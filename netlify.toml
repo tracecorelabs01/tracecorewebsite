@@ -1,3 +1,7 @@
 [build]
   command = "npm run build"
   publish = ".next"
+
+# Converts the Next.js build into Netlify functions. Not auto-installed on this site.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
