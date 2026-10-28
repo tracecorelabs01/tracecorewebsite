@@ -16,14 +16,6 @@ const nextConfig: NextConfig = {
     // Product photo uploads go through Server Actions.
     serverActions: { bodySizeLimit: "12mb" },
   },
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
 };
 
 export default nextConfig;
