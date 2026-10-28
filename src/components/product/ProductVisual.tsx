@@ -35,6 +35,8 @@ export function ProductVisual({
         sizes={sizes ?? (variant === "thumb" ? "96px" : variant === "stage" ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw")}
         className={cn(
           "object-cover",
+          // Product banners put the product on the left; keep it in view when a small square crops the banner.
+          variant === "thumb" && "object-left",
           variant === "card" && "transition-transform duration-[1.2s] ease-[var(--ease-expo)] group-hover:scale-[1.06]",
           className,
         )}

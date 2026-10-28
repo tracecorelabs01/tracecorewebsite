@@ -6,9 +6,9 @@ export const SETUP_CATEGORIES = ["dma", "fuser", "input"] as const;
 
 export const SETUP_SLUGS = {
   cards: ["tracecore-35t", "tracecore-75t", "tracecore-100t-pro"],
-  inputs: ["tracecore-link", "tracecore-link-pro", "ferrum"],
-  miniPc: "tracecore-mini-pc",
-  adapter: "tracecore-tb-pcie-adapter",
+  inputs: ["makcu", "ferrum"],
+  miniPc: "dma-mini-pc",
+  extras: ["usb-c-data-cable", "pcie-riser-kit", "thermal-kit"],
 } as const;
 
 export const RESOLUTIONS = [
@@ -24,13 +24,18 @@ export const REFRESH_RATES = [60, 100, 120, 144, 165, 240, 360, 500] as const;
 
 /** Highest refresh rate (Hz) each fuser supports at each resolution, from its spec sheet. */
 export const FUSERS: Record<string, Record<Resolution, number>> = {
-  "tracecore-fuser-hd": { "1080p": 240, "1080uw": 200, "1440p": 144, "1440uw": 100, "4k": 60 },
-  "tracecore-fuser-4k-pro": { "1080p": 360, "1080uw": 165, "1440p": 240, "1440uw": 60, "4k": 120 },
+  "dichen-fuser": { "1080p": 240, "1080uw": 200, "1440p": 144, "1440uw": 100, "4k": 60 },
+  "godlike-4k-fuser": { "1080p": 360, "1080uw": 165, "1440p": 240, "1440uw": 60, "4k": 120 },
   // 2560 × 1080 isn't on the sheet; it has fewer pixels than 2560 × 1440, so that limit is safe.
-  "tracecore-fuser-dp-4k": { "1080p": 639, "1080uw": 364, "1440p": 364, "1440uw": 264, "4k": 164 },
+  "dc1a686-fuser": { "1080p": 639, "1080uw": 364, "1440p": 364, "1440uw": 264, "4k": 164 },
 };
 
-export const SETUP_PRODUCT_SLUGS = new Set<string>([...SETUP_SLUGS.cards, ...SETUP_SLUGS.inputs, SETUP_SLUGS.miniPc, SETUP_SLUGS.adapter, ...Object.keys(FUSERS)]);
+export const SETUP_PRODUCT_SLUGS = new Set<string>([...SETUP_SLUGS.cards, ...SETUP_SLUGS.inputs, SETUP_SLUGS.miniPc, ...SETUP_SLUGS.extras, ...Object.keys(FUSERS)]);
+
+/** Highest refresh rate any of these fusers supports at `resolution` (0 if none). */
+export function maxHzFor(fuserSlugs: string[], resolution: Resolution) {
+  return Math.max(0, ...fuserSlugs.map((s) => FUSERS[s]?.[resolution] ?? 0));
+}
 
 /** The cheapest of `products` that drives this display, or undefined if none can. */
 export function fuserFor<T extends { slug: string; price: number }>(products: T[], resolution: Resolution, hz: number) {

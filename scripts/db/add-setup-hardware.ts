@@ -1,11 +1,11 @@
-// Adds the setup hardware line (video fusers, input controllers, mini PC, Thunderbolt adapter) as
-// DRAFTS with zero stock: add photos, set stock and publish each one from /admin/products.
+// Adds the setup hardware line (video fusers, MAKCU, DMA Mini PC, Heino 2.0), published with
+// stock 99 and their product card image from public/products/cards.
 // Safe to re-run: products and categories that already exist (matched by slug) are left alone.
 //   npm run db:add-hardware
 
 import { eq, max } from "drizzle-orm";
 import { createDb, createPool } from "../../src/db/client";
-import { categories, products } from "../../src/db/schema";
+import { categories, productImages, products } from "../../src/db/schema";
 
 type Item = {
   slug: string;
@@ -23,8 +23,8 @@ const NEW_CATEGORIES = [{ slug: "fuser", name: "Video Fusers", blurb: "Combine t
 
 const ITEMS: Item[] = [
   {
-    slug: "tracecore-fuser-hd",
-    name: "TraceCore Fuser HD",
+    slug: "dichen-fuser",
+    name: "Dichen Fuser",
     tagline: "HDMI video fuser up to 240 Hz",
     category: "fuser",
     price: 85,
@@ -39,11 +39,11 @@ const ITEMS: Item[] = [
       { label: "3840 × 2160", value: "Up to 60 Hz" },
       { label: "EDID", value: "Automatic" },
     ],
-    inTheBox: ["TraceCore Fuser HD"],
+    inTheBox: ["Dichen Fuser"],
   },
   {
-    slug: "tracecore-fuser-dp-4k",
-    name: "TraceCore Fuser DP 4K",
+    slug: "dc1a686-fuser",
+    name: "DC1A686 Fuser",
     tagline: "DisplayPort fuser up to 639 Hz",
     category: "fuser",
     price: 275,
@@ -60,11 +60,11 @@ const ITEMS: Item[] = [
       { label: "Colour", value: "RGB / YCbCr, 8 / 10 / 12-bit" },
       { label: "Recommended GPU", value: "NVIDIA RTX 30-series or newer in both PCs" },
     ],
-    inTheBox: ["TraceCore Fuser DP 4K"],
+    inTheBox: ["DC1A686 Fuser"],
   },
   {
-    slug: "tracecore-fuser-4k-pro",
-    name: "TraceCore Fuser 4K Pro",
+    slug: "godlike-4k-fuser",
+    name: "Godlike 4K Fuser",
     tagline: "4K 120 Hz fuser with remote",
     category: "fuser",
     price: 270,
@@ -79,11 +79,11 @@ const ITEMS: Item[] = [
       { label: "Power", value: "12 V 2 A" },
       { label: "Second-PC GPU", value: "NVIDIA RTX 2060, AMD RX 470 or Radeon 780M and up" },
     ],
-    inTheBox: ["TraceCore Fuser 4K Pro", "Remote control", "2 × DisplayPort cable", "12 V 2 A power adapter (US plug)"],
+    inTheBox: ["Godlike 4K Fuser", "Remote control", "2 × DisplayPort cable", "12 V 2 A power adapter (US plug)"],
   },
   {
-    slug: "tracecore-link",
-    name: "TraceCore Link",
+    slug: "makcu",
+    name: "MAKCU",
     tagline: "Compact USB passthrough controller",
     category: "input",
     price: 17,
@@ -94,28 +94,11 @@ const ITEMS: Item[] = [
       { label: "Polling", value: "1000 Hz mice supported" },
       { label: "Platform", value: "PC" },
     ],
-    inTheBox: ["TraceCore Link"],
+    inTheBox: ["MAKCU"],
   },
   {
-    slug: "tracecore-link-pro",
-    name: "TraceCore Link Pro",
-    tagline: "8000 Hz passthrough controller",
-    category: "input",
-    price: 30,
-    summary: "A full-passthrough input controller with a dual-core 144 MHz MCU and 8000 Hz polling. Works with KMBox- and MAKCU-compatible software as is.",
-    highlights: ["8000 Hz polling", "Dual-core 144 MHz MCU", "Full passthrough", "KMBox- and MAKCU-compatible"],
-    specs: [
-      { label: "MCU", value: "Dual-core, 144 MHz" },
-      { label: "Polling", value: "8000 Hz" },
-      { label: "Mode", value: "Full passthrough" },
-      { label: "Software", value: "KMBox / MAKCU compatible" },
-      { label: "Platform", value: "PC" },
-    ],
-    inTheBox: ["TraceCore Link Pro"],
-  },
-  {
-    slug: "tracecore-mini-pc",
-    name: "TraceCore Mini PC",
+    slug: "dma-mini-pc",
+    name: "DMA Mini PC",
     tagline: "A compact second PC",
     category: "accessory",
     price: 265,
@@ -128,22 +111,21 @@ const ITEMS: Item[] = [
       { label: "Wireless", value: "Wi-Fi 5" },
       { label: "Ports", value: "3 × USB 3.2 · 2 × HDMI" },
     ],
-    inTheBox: ["TraceCore Mini PC"],
+    inTheBox: ["DMA Mini PC"],
   },
   {
-    slug: "tracecore-tb-pcie-adapter",
-    name: "TraceCore TB-PCIe Adapter",
-    tagline: "Run a PCIe card from a laptop",
-    category: "accessory",
-    price: 85,
-    summary: "Connects a PCIe card, like a TraceCore DMA board, to a laptop over Thunderbolt or USB4. Add your laptop model in the order notes so we send the right unit.",
-    highlights: ["Thunderbolt 5, 4 and 3, plus USB4", "PCIe 4.0 x4 slot", "Made for laptops"],
+    slug: "heino-2",
+    name: "Heino 2.0",
+    tagline: "Standalone DMA device",
+    category: "dma",
+    price: 5000,
+    summary: "A standalone DMA device that works without custom firmware. Contact us before ordering for current lead times.",
+    highlights: ["No custom firmware needed", "Third-party device, manufacturer warranty"],
     specs: [
-      { label: "Host", value: "Thunderbolt 5 / 4 / 3 · USB4" },
-      { label: "Slot", value: "PCIe 4.0 x4" },
-      { label: "Ordering", value: "Add your laptop model in the order notes" },
+      { label: "Firmware", value: "Not required" },
+      { label: "Warranty", value: "Handled by the manufacturer" },
     ],
-    inTheBox: ["TraceCore TB-PCIe Adapter"],
+    inTheBox: ["Heino 2.0"],
   },
 ];
 
@@ -167,16 +149,16 @@ async function main() {
     for (const p of ITEMS) {
       const [exists] = await db.select({ id: products.id }).from(products).where(eq(products.slug, p.slug)).limit(1);
       if (exists) continue;
-      await db.insert(products).values({
+      const [{ id }] = await db.insert(products).values({
         slug: p.slug,
         name: p.name,
         tagline: p.tagline,
         categoryId: categoryIds.get(p.category) ?? null,
-        status: "draft",
+        status: "active",
         priceCents: Math.round(p.price * 100),
         sortOrder: sortOrder++,
         trackInventory: true,
-        stockQty: 0,
+        stockQty: 99,
         lowStockThreshold: 5,
         allowBackorder: false,
         summary: p.summary,
@@ -185,10 +167,11 @@ async function main() {
         inTheBox: p.inTheBox,
         optionValues: [],
         artKey: "placeholder",
-      });
-      console.log(`+ product ${p.name} (draft)`);
+      }).$returningId();
+      await db.insert(productImages).values({ productId: id, url: `/products/cards/${p.slug}.webp`, alt: p.name, sortOrder: 0 });
+      console.log(`+ product ${p.name}`);
     }
-    console.log("✓ Setup hardware added. Publish each product from /admin/products.");
+    console.log("✓ Setup hardware added.");
   } finally {
     await pool.end();
   }

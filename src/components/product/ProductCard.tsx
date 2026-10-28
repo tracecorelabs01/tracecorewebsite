@@ -37,7 +37,7 @@ export function ProductCard({ product, eager, className }: { product: Product; e
   return (
     <Tilt className={cn("group h-full rounded-2xl", className)} max={5}>
       <article className="border-flow relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-ink-900/80 transition-colors duration-500 hover:border-transparent">
-        <div className="relative aspect-[5/4] overflow-hidden bg-ink-850">
+        <div className="relative aspect-video overflow-hidden bg-ink-850">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_62%,rgb(255_61_0/0.16),transparent_62%)]" />
           <div className="absolute inset-0 bg-grid opacity-50 mask-radial" />
           <ProductVisual visual={product.visual} variant="card" eager={eager} />

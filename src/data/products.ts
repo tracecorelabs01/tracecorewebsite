@@ -24,7 +24,7 @@ const demoProducts: DemoProduct[] = [
     status: "in-stock",
     rating: 4.9,
     reviewCount: 412,
-    visual: { kind: "art", art: "dma-75t" },
+    visual: { kind: "image", src: "/products/cards/tracecore-75t.webp", alt: "TraceCore 75T DMA card" },
     summary:
       "Our most popular board. A Xilinx Artix-7 75T FPGA, a USB-C 3.0 data link and a clean, low-noise layout. Tested in our lab before it leaves.",
     highlights: [
@@ -55,8 +55,9 @@ const demoProducts: DemoProduct[] = [
     status: "in-stock",
     rating: 4.8,
     reviewCount: 168,
-    visual: { kind: "image", src: "/products/ferrum.webp", alt: "Ferrum input device in brushed gunmetal" },
+    visual: { kind: "image", src: "/products/cards/ferrum.webp", alt: "Ferrum" },
     gallery: [
+      { kind: "image", src: "/products/cards/ferrum.webp", alt: "Ferrum" },
       { kind: "image", src: "/products/ferrum.webp", alt: "Ferrum input device in brushed gunmetal" },
       { kind: "image", src: "/products/ferrum-banner.webp", alt: "Ferrum product banner" },
     ],
@@ -90,7 +91,7 @@ const demoProducts: DemoProduct[] = [
     status: "low-stock",
     rating: 5,
     reviewCount: 74,
-    visual: { kind: "art", art: "dma-100t" },
+    visual: { kind: "image", src: "/products/cards/tracecore-100t-pro.webp", alt: "TraceCore 100T Pro DMA card" },
     summary:
       "The largest Artix-7 in the range, with a finned aluminium heatsink for long sessions. Built in small batches and stress-tested for longer.",
     highlights: [
@@ -122,7 +123,7 @@ const demoProducts: DemoProduct[] = [
     status: "in-stock",
     rating: 4.9,
     reviewCount: 96,
-    visual: { kind: "art", art: "bundle" },
+    visual: { kind: "image", src: "/products/cards/lab-bundle.webp", alt: "Lab Bundle" },
     summary:
       "Our flagship card and Ferrum in one box, with the cables to connect everything. The easiest way to get a complete setup in one order.",
     highlights: ["TraceCore 75T DMA card", "Ferrum input device", "2 m USB-C 3.2 data cable", "Bundle pricing: save $53"],
@@ -144,7 +145,7 @@ const demoProducts: DemoProduct[] = [
     status: "in-stock",
     rating: 4.7,
     reviewCount: 203,
-    visual: { kind: "art", art: "dma-35t" },
+    visual: { kind: "image", src: "/products/cards/tracecore-35t.webp", alt: "TraceCore 35T DMA card" },
     summary:
       "Everything that makes the 75T great in a smaller, more affordable board. A sensible first card.",
     highlights: ["Xilinx Artix-7 XC7A35T FPGA", "USB-C 3.0 data link", "Short-length PCB", "Both brackets included"],
@@ -167,7 +168,7 @@ const demoProducts: DemoProduct[] = [
     status: "in-stock",
     rating: 4.8,
     reviewCount: 311,
-    visual: { kind: "art", art: "cable" },
+    visual: { kind: "image", src: "/products/cards/usb-c-data-cable.webp", alt: "USB 3.2 DMA cable" },
     summary: "A braided, shielded USB-C 3.2 cable with the length to reach a second machine on your desk.",
     highlights: ["USB 3.2 Gen 2 (10 Gbps)", "Braided nylon jacket", "Aluminium connector shells"],
     specs: [
@@ -187,7 +188,7 @@ const demoProducts: DemoProduct[] = [
     status: "in-stock",
     rating: 4.6,
     reviewCount: 88,
-    visual: { kind: "art", art: "riser" },
+    visual: { kind: "image", src: "/products/cards/pcie-riser-kit.webp", alt: "PCIe x1 riser kit" },
     summary: "Move your card where airflow and space are better. A shielded flex riser with a locking slot.",
     highlights: ["Shielded flex ribbon", "Locking x1 slot", "20 cm length"],
     specs: [
@@ -206,7 +207,7 @@ const demoProducts: DemoProduct[] = [
     status: "preorder",
     rating: 4.7,
     reviewCount: 41,
-    visual: { kind: "art", art: "thermal" },
+    visual: { kind: "image", src: "/products/cards/thermal-kit.webp", alt: "DMA thermal kit" },
     summary: "A clip-on aluminium heatsink and pre-cut thermal pads for the 35T and 75T. Keeps temperatures down in cramped cases.",
     highlights: ["Anodised aluminium fins", "Pre-cut 1.5 mm pads", "Tool-free clip mount"],
     specs: [

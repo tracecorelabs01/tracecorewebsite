@@ -100,7 +100,7 @@ export function ProductView({ product, related }: { product: Product; related: P
               <div className="lg:sticky lg:top-28">
                 <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={play ? { opacity: 1, scale: 1 } : {}} transition={{ duration: 1.1, ease: EASE_EXPO }}>
                   <Tilt className="group rounded-[32px]" max={4}>
-                    <div className="relative aspect-square overflow-hidden rounded-[32px] border border-line bg-ink-900 md:aspect-[5/4]">
+                    <div className="relative aspect-video overflow-hidden rounded-[32px] border border-line bg-ink-900">
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_58%,rgb(255_61_0/0.2),transparent_60%)]" />
                       <div className="absolute inset-0 bg-grid opacity-60 mask-radial" />
                       <div className="absolute left-1/2 top-1/2 aspect-square w-[78%] -translate-x-1/2 -translate-y-1/2 animate-spin-slower rounded-full border border-dashed border-white/[0.07]" />
@@ -119,9 +119,12 @@ export function ProductView({ product, related }: { product: Product; related: P
                       {["left-5 top-5 border-l border-t", "right-5 top-5 border-r border-t", "bottom-5 left-5 border-b border-l", "bottom-5 right-5 border-b border-r"].map((c) => (
                         <span key={c} className={`pointer-events-none absolute size-6 border-blaze/60 ${c}`} />
                       ))}
-                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.24em] text-dim">
-                        {product.name} · TCL
-                      </div>
+                      {/* Product banners carry their own title. */}
+                      {gallery[view].kind !== "image" && (
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.24em] text-dim">
+                          {product.name} · TCL
+                        </div>
+                      )}
                     </div>
                   </Tilt>
                 </motion.div>
