@@ -20,7 +20,7 @@ export default function FaqPage() {
             answered.
           </span>,
         ]}
-        description="Everything about orders, shipping, setup and warranty. Still stuck? Our team is one message away."
+        description="Everything about orders, shipping, setup and warranty. Still stuck? 24/7 support is one message away."
       />
       <FaqBrowser />
       <SupportCta />

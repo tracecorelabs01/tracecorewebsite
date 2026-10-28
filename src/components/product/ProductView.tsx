@@ -66,7 +66,7 @@ export function ProductView({ product, related }: { product: Product; related: P
     { Icon: Truck, title: `Free shipping over ${formatPrice(settings.freeShippingThreshold)}`, text: "Dispatched within one business day" },
     { Icon: ShieldCheck, title: `${warranty} warranty`, text: "Repair or replace, no fuss" },
     { Icon: RotateCcw, title: "14-day returns", text: "On unopened items" },
-    { Icon: Headphones, title: "Discord support", text: "Real people, 7 days a week" },
+    { Icon: Headphones, title: "24/7 support", text: "On Discord, day or night" },
   ];
 
   return (

@@ -23,7 +23,7 @@ export const site = {
   announcements: [
     "Free worldwide shipping on orders over $250",
     "Every unit is tested in our lab before dispatch",
-    "Real humans on Discord — 7 days a week",
+    "24/7 support on Discord",
     "Secure checkout · Card · PayPal · Crypto",
   ],
   // PLACEHOLDER — replace with your real numbers.

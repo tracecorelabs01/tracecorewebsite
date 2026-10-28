@@ -196,7 +196,7 @@ function ChatCell() {
           </motion.div>
         ))}
       </div>
-      <CellText title="Real humans, 7 days a week">Setup help, order updates or just a second opinion — our team is on Discord every day.</CellText>
+      <CellText title="24/7 support">Setup help, order updates or just a second opinion, any time of day or night on Discord.</CellText>
     </div>
   );
 }

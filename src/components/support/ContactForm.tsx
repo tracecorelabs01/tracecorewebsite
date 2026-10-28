@@ -13,7 +13,7 @@ const topics = ["Order status", "Setup help", "Warranty claim", "Returns", "Whol
 export function SupportContent() {
   const settings = useStoreSettings();
   const channels = [
-    { Icon: DiscordIcon, title: "Discord", text: "Fastest replies — 7 days a week.", href: settings.links.discord, cta: "Open Discord", external: true },
+    { Icon: DiscordIcon, title: "Discord", text: "Fastest replies, 24/7 support.", href: settings.links.discord, cta: "Open Discord", external: true },
     { Icon: Mail, title: "Email", text: settings.supportEmail, href: `mailto:${settings.supportEmail}`, cta: "Send email", external: false },
     { Icon: Package, title: "Order help", text: "Have your order number ready.", href: "#contact", cta: "Use the form", external: false },
   ];

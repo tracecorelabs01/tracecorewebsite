@@ -16,7 +16,7 @@ export function FaqPreview() {
           <Kicker index="06">Quick answers</Kicker>
           <RevealLines as="h2" className="type-h2 mt-5" lines={[<span key="a" id="faq-heading">Got</span>, <span key="b" className="text-gradient">questions?</span>]} />
           <Reveal delay={0.1}>
-            <p className="mt-6 max-w-md text-muted">The essentials on ordering, shipping and setup. Can&apos;t find what you need? Our team is a message away.</p>
+            <p className="mt-6 max-w-md text-muted">The essentials on ordering, shipping and setup. Can&apos;t find what you need? 24/7 support is a message away.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/faq" variant="ghost">
                 View all FAQ
@@ -32,8 +32,8 @@ export function FaqPreview() {
                 <DiscordIcon className="size-7" />
               </span>
               <span>
-                <span className="block font-display text-2xl uppercase">Talk to a human</span>
-                <span className="text-sm text-muted">Our support team is on Discord 7 days a week.</span>
+                <span className="block font-display text-2xl uppercase">24/7 support</span>
+                <span className="text-sm text-muted">Reach us on Discord any time, day or night.</span>
               </span>
             </a>
           </Reveal>

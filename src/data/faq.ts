@@ -80,7 +80,7 @@ export const faqGroups: FaqGroup[] = [
       },
       {
         q: "How do I contact support?",
-        a: "The fastest way is our Discord, where the team is online 7 days a week. You can also use the contact form on the support page or email us directly.",
+        a: "The fastest way is our Discord, with 24/7 support. You can also use the contact form on the support page or email us directly.",
       },
     ],
   },

@@ -16,7 +16,7 @@ export function SupportCta() {
           <div className="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
             <div>
               <h2 className="type-h2 text-white">Still need a hand?</h2>
-              <p className="mt-3 max-w-lg text-white/85">Message the team on Discord or send us a ticket — real people, seven days a week.</p>
+              <p className="mt-3 max-w-lg text-white/85">Message us on Discord or send a ticket. We offer 24/7 support.</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <ButtonLink href={links.discord} target="_blank" rel="noreferrer" variant="light" size="lg" icon={<DiscordIcon className="size-4" />}>
