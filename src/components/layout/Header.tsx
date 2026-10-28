@@ -26,6 +26,9 @@ export function Header() {
   const setMenu = useUi((s) => s.setMenu);
   const settings = useStoreSettings();
   const hasBar = settings.announcements.length > 0;
+  const barOpen = hasBar && !scrolled && !menuOpen;
+  // A marquee in the folded bar still ticks on the main thread every frame, so it holds still until the bar opens again.
+  const [barFolded, setBarFolded] = useState(false);
 
   useMotionValueEvent(scrollY, "change", (y) => {
     const prev = scrollY.getPrevious() ?? 0;
@@ -42,17 +45,21 @@ export function Header() {
       <motion.div
         className="overflow-hidden bg-brand text-white"
         initial={false}
-        animate={{ height: scrolled || menuOpen || !hasBar ? 0 : 34 }}
+        animate={{ height: barOpen ? 34 : 0 }}
         transition={{ duration: 0.45, ease: EASE_EXPO }}
+        onAnimationComplete={(def) => setBarFolded((def as { height?: number }).height === 0)}
+        data-offscreen={!barOpen && barFolded ? "" : undefined}
       >
-        <CssMarquee duration={38} className="h-[34px] items-center [mask-image:none]">
-          {[...settings.announcements, ...settings.announcements].map((msg, i) => (
-            <span key={i} className="flex items-center gap-6 pr-6 font-mono text-[11px] font-medium uppercase tracking-[0.18em]">
-              {msg}
-              <span aria-hidden className="text-white/60">✦</span>
-            </span>
-          ))}
-        </CssMarquee>
+        {hasBar && (
+          <CssMarquee duration={38} className="h-[34px] items-center [mask-image:none]">
+            {[...settings.announcements, ...settings.announcements].map((msg, i) => (
+              <span key={i} className="flex items-center gap-6 pr-6 font-mono text-[11px] font-medium uppercase tracking-[0.18em]">
+                {msg}
+                <span aria-hidden className="text-white/60">✦</span>
+              </span>
+            ))}
+          </CssMarquee>
+        )}
       </motion.div>
 
       <div

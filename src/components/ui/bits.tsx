@@ -66,7 +66,15 @@ export function Counter({ value, decimals = 0, suffix = "", prefix = "", duratio
       node.textContent = fmt(0);
       return;
     }
-    const controls = animate(0, value, { duration, ease: EASE_EXPO, onUpdate: (v) => (node.textContent = fmt(v)) });
+    // Write only when the digits change: the ease-out settles early but keeps calling onUpdate until the end.
+    const controls = animate(0, value, {
+      duration,
+      ease: EASE_EXPO,
+      onUpdate: (v) => {
+        const text = fmt(v);
+        if (node.textContent !== text) node.textContent = text;
+      },
+    });
     return () => controls.stop();
   }, [inView, value, duration, fmt]);
 
@@ -140,7 +148,7 @@ export function StatusDot({ status, className }: { status: keyof typeof STATUS; 
   const s = STATUS[status];
   return (
     <span className={cn("inline-flex items-center gap-2 type-kicker !tracking-[0.16em] text-muted", className)}>
-      <span className={cn("size-1.5 rounded-full animate-pulse-dot", s.dot)} />
+      <span className={cn("pulse-dot size-1.5 rounded-full", s.dot)} />
       {s.label}
     </span>
   );

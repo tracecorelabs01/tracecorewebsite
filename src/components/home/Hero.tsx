@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { ArrowRight, Globe2, ShieldCheck, Truck } from "lucide-react";
 import { LogoMark } from "@/components/brand/Logo";
 import { FerrumShowcase } from "./FerrumShowcase";
 import { Stars } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/Button";
-import { EASE_EXPO, Magnetic, RevealLines } from "@/components/ui/motion";
+import { EASE_EXPO, Magnetic, RevealLines, pauseOffscreen } from "@/components/ui/motion";
 import type { ReviewSummary } from "@/lib/catalog/types";
 import { useUi } from "@/lib/ui-store";
 import { seeded } from "@/lib/utils";
@@ -34,7 +34,7 @@ export function Hero({ rating, ferrumPrice }: { rating: ReviewSummary | null; fe
   });
 
   return (
-    <section className="relative isolate overflow-hidden pt-[106px]">
+    <section ref={pauseOffscreen} className="relative isolate overflow-hidden pt-[106px]">
       <Backdrop />
       <div className="container-x relative grid min-h-[calc(100svh-106px)] items-center gap-6 pb-16 pt-6 lg:grid-cols-12 lg:gap-10 lg:pb-16">
         <div className="relative z-10 lg:col-span-7">
@@ -170,17 +170,21 @@ function Orb({ play }: { play: boolean }) {
     <div ref={ref} className="absolute inset-0">
       <div className="absolute left-1/2 top-1/2 aspect-square w-[min(100%,74vh)] -translate-x-1/2 -translate-y-1/2">
         <div className="absolute inset-[8%] rounded-full bg-[radial-gradient(circle,rgb(255_61_0/0.28),rgb(255_20_8/0.06)_45%,transparent_68%)] blur-xl" />
-        <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full" aria-hidden>
-          <defs>
-            <linearGradient id="orb-ring" x1="0" x2="1">
-              <stop offset="0" stopColor="#ff1408" />
-              <stop offset="1" stopColor="#ff7a00" stopOpacity="0.2" />
-            </linearGradient>
-          </defs>
-          <g className="origin-center animate-spin-slower">
+        {/* Each ring is a static SVG on its own HTML layer that the GPU rotates. Rotating SVG groups instead
+            re-lays out and repaints the whole drawing every frame. */}
+        <div className="absolute inset-0 animate-spin-slower" aria-hidden>
+          <svg viewBox="0 0 400 400" className="h-full w-full">
             <circle cx="200" cy="200" r="194" fill="none" stroke="rgb(255 236 230 / 0.12)" strokeDasharray="1.5 7" />
-          </g>
-          <g className="origin-center animate-spin-rev">
+          </svg>
+        </div>
+        <div className="absolute inset-0 animate-spin-rev" aria-hidden>
+          <svg viewBox="0 0 400 400" className="h-full w-full">
+            <defs>
+              <linearGradient id="orb-ring" x1="0" x2="1">
+                <stop offset="0" stopColor="#ff1408" />
+                <stop offset="1" stopColor="#ff7a00" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
             <circle cx="200" cy="200" r="172" fill="none" stroke="url(#orb-ring)" strokeWidth="1.2" strokeDasharray="120 960" strokeLinecap="round" />
             {Array.from({ length: 60 }).map((_, i) => (
               <line
@@ -194,13 +198,16 @@ function Orb({ play }: { play: boolean }) {
                 transform={`rotate(${i * 6} 200 200)`}
               />
             ))}
-          </g>
-          <g className="origin-center animate-spin-slow">
+          </svg>
+        </div>
+        <div className="absolute inset-0 animate-spin-slow" aria-hidden>
+          <svg viewBox="0 0 400 400" className="h-full w-full">
             <circle cx="200" cy="200" r="138" fill="none" stroke="rgb(255 236 230 / 0.07)" />
-            <circle cx="200" cy="62" r="3.5" fill="#ff6a00">
-              <animate attributeName="opacity" values="1;0.35;1" dur="2s" repeatCount="indefinite" />
-            </circle>
-          </g>
+          </svg>
+          {/* The orbiting dot (circle at 200,62 r=3.5 in the 400 viewBox), pulsing with CSS instead of SVG <animate>. */}
+          <span className="absolute left-1/2 top-[15.5%] aspect-square w-[1.75%] -translate-x-1/2 -translate-y-1/2 animate-dot-pulse rounded-full bg-[#ff6a00]" />
+        </div>
+        <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full" aria-hidden>
           <path d="M 70 200 H 92 M 308 200 H 330 M 200 70 V 92 M 200 308 V 330" stroke="rgb(255 236 230 / 0.25)" />
         </svg>
         <div className="absolute inset-[12%]">{use3d ? play && <LogoScene play={play} active={active} /> : <StaticMark />}</div>
@@ -249,6 +256,10 @@ function Backdrop() {
     delay: -rand() * 14,
     drift: (rand() - 0.5) * 120,
   }));
+  // One keyframe set per ember with its drift written in: keyframes that read var() can't run on the GPU.
+  const emberKeyframes = embers
+    .map((e, i) => `@keyframes ember-${i}{0%{transform:translate3d(0,0,0) scale(1);opacity:0}10%{opacity:1}100%{transform:translate3d(${e.drift}px,-110vh,0) scale(0.4);opacity:0}}`)
+    .join("");
 
   return (
     <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
@@ -261,25 +272,21 @@ function Backdrop() {
       </motion.div>
 
       <div className="absolute inset-x-0 bottom-0 h-[52%] overflow-hidden [perspective:700px]">
-        <div className="absolute inset-x-[-60%] -bottom-[6%] h-[150%] origin-bottom animate-grid-flow bg-[linear-gradient(to_right,rgb(255_77_15/0.2)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255_77_15/0.2)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:linear-gradient(to_top,#000_5%,transparent_70%)] [transform:rotateX(66deg)]" />
+        <div className="absolute inset-x-[-60%] -bottom-[6%] h-[150%] origin-bottom overflow-hidden [mask-image:linear-gradient(to_top,#000_5%,transparent_70%)] [transform:rotateX(66deg)]">
+          {/* One 64px cell taller than the floor and moved down a cell per loop: the same flow as animating
+              background-position, but the GPU slides it instead of repainting it every frame. */}
+          <div className="absolute inset-x-0 -top-[64px] bottom-0 animate-grid-flow bg-[linear-gradient(to_right,rgb(255_77_15/0.2)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255_77_15/0.2)_1px,transparent_1px)] bg-[size:64px_64px]" />
+        </div>
       </div>
 
       <div className="absolute inset-0 bg-dots opacity-40 [mask-image:radial-gradient(ellipse_at_top_left,#000,transparent_60%)]" />
 
+      <style>{emberKeyframes}</style>
       {embers.map((e, i) => (
         <span
           key={i}
-          className="absolute bottom-[-10px] animate-rise rounded-full bg-[#ff6a00] shadow-[0_0_10px_2px_rgb(255_80_10/0.6)]"
-          style={
-            {
-              left: e.left,
-              width: e.size,
-              height: e.size,
-              animationDelay: `${e.delay}s`,
-              "--rise-duration": `${e.duration}s`,
-              "--drift": `${e.drift}px`,
-            } as CSSProperties
-          }
+          className="absolute bottom-[-10px] rounded-full bg-[#ff6a00] shadow-[0_0_10px_2px_rgb(255_80_10/0.6)]"
+          style={{ left: e.left, width: e.size, height: e.size, animation: `ember-${i} ${e.duration}s linear ${e.delay}s infinite` }}
         />
       ))}
 

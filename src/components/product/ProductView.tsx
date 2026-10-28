@@ -7,7 +7,7 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { Check, Headphones, RotateCcw, ShieldCheck, ShoppingBag, Truck, Zap } from "lucide-react";
 import { MAX_QTY, type Product } from "@/lib/catalog/types";
 import { Accordion, Badge, Kicker, Price, QuantityStepper, StatusDot, Stars } from "@/components/ui/bits";
-import { EASE_EXPO, Reveal, RevealLines, Tilt } from "@/components/ui/motion";
+import { EASE_EXPO, Reveal, RevealLines, Tilt, pauseOffscreen } from "@/components/ui/motion";
 import { useCart } from "@/lib/cart-store";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { useUi } from "@/lib/ui-store";
@@ -71,7 +71,7 @@ export function ProductView({ product, related }: { product: Product; related: P
 
   return (
     <>
-      <section className="relative isolate pt-[130px] md:pt-[150px]">
+      <section ref={pauseOffscreen} className="relative isolate pt-[130px] md:pt-[150px]">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[90vh]" aria-hidden>
           <div className="absolute inset-0 bg-grid opacity-50 [mask-image:radial-gradient(ellipse_at_top_left,#000,transparent_65%)]" />
           <div className="absolute -left-1/4 top-0 size-[70vw] rounded-full bg-[radial-gradient(circle,rgb(255_61_0/0.14),transparent_62%)]" />

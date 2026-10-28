@@ -6,6 +6,21 @@ import { cn } from "@/lib/utils";
 
 export const EASE_EXPO = [0.16, 1, 0.3, 1] as const;
 
+let offscreen: IntersectionObserver | undefined;
+
+/** Ref callback: pauses the CSS animations inside an element while it is off screen (rule in globals.css). */
+export function pauseOffscreen(el: Element | null) {
+  if (!el) return;
+  offscreen ??= new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) e.target.toggleAttribute("data-offscreen", !e.isIntersecting);
+    },
+    { rootMargin: "100px 0px" },
+  );
+  offscreen.observe(el);
+  return () => offscreen?.unobserve(el);
+}
+
 /** Fade/slide content in when it scrolls into view. */
 export function Reveal({
   children,
@@ -24,26 +39,31 @@ export function Reveal({
   amount?: number;
   as?: "div" | "li" | "section" | "article" | "p" | "span";
 }) {
+  const reduce = useReducedMotion();
   const Comp = motion[as] as typeof motion.div;
+  // A whole `transform` (not x/y) lets Motion hand the slide to the compositor instead of restyling every frame.
+  // It animates to an explicit identity (Motion can't tween to "none") and lands on "none", as x/y did.
+  // Reduced motion only skips x/y on its own, so the slide is made instant here, as it was.
   return (
     <Comp
       className={className}
-      initial={{ opacity: 0, y, x }}
-      whileInView={{ opacity: 1, y: 0, x: 0 }}
+      initial={{ opacity: 0, transform: `translate(${x}px, ${y}px)` }}
+      whileInView={{ opacity: 1, transform: "translate(0px, 0px)", transitionEnd: { transform: "none" } }}
       viewport={{ once: true, amount }}
-      transition={{ duration: 1, ease: EASE_EXPO, delay }}
+      transition={{ duration: 1, ease: EASE_EXPO, delay, ...(reduce && { transform: { type: false } }) }}
     >
       {children}
     </Comp>
   );
 }
 
+// One transform string, not y/rotate, so the compositor runs it (see Reveal).
 const lineVariants: Variants = {
-  hidden: { y: "125%", rotate: 3 },
-  shown: (i: number) => ({
-    y: "0%",
-    rotate: 0,
-    transition: { duration: 1.15, ease: EASE_EXPO, delay: i },
+  hidden: { transform: "translateY(125%) rotate(3deg)" },
+  shown: ({ delay, reduce }: { delay: number; reduce: boolean }) => ({
+    transform: "translateY(0%) rotate(0deg)",
+    transitionEnd: { transform: "none" },
+    transition: reduce ? { type: false } : { duration: 1.15, ease: EASE_EXPO, delay },
   }),
 };
 
@@ -76,6 +96,7 @@ export function RevealLines({
 }) {
   const Tag = as;
   const controlled = play !== undefined;
+  const reduce = useReducedMotion() ?? false;
   return (
     <Tag className={className}>
       <motion.span
@@ -85,7 +106,7 @@ export function RevealLines({
       >
         {lines.map((line, i) => (
           <span key={i} className="-my-[0.14em] block overflow-hidden py-[0.14em]">
-            <motion.span className={cn("block origin-bottom-left will-change-transform", lineClassName)} variants={lineVariants} custom={delay + i * stagger}>
+            <motion.span className={cn("block origin-bottom-left will-change-transform", lineClassName)} variants={lineVariants} custom={{ delay: delay + i * stagger, reduce }}>
               {line}
             </motion.span>
           </span>

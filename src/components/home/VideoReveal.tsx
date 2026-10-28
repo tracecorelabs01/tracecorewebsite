@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { motion, useMotionTemplate, useMotionValueEvent, useScroll, useTransform, type MotionValue } from "motion/react";
 import { ButtonLink } from "@/components/ui/Button";
 import { Kicker } from "@/components/ui/bits";
+import { pauseOffscreen } from "@/components/ui/motion";
 
 const LINE = "Engineered for zero compromise.";
 
@@ -51,7 +52,7 @@ export function VideoReveal() {
 
   return (
     <section ref={ref} className="relative h-[260vh]" aria-label="Engineered for zero compromise">
-      <div className="sticky top-0 flex h-[100svh] items-center justify-center overflow-hidden">
+      <div ref={pauseOffscreen} className="sticky top-0 flex h-[100svh] items-center justify-center overflow-hidden">
         <motion.div className="absolute inset-0 bg-ink-900" style={{ clipPath }}>
           <motion.video
             ref={videoRef}

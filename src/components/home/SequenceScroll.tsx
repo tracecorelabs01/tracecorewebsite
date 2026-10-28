@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { motion, useMotionValueEvent, useScroll, useTransform, type MotionValue } from "motion/react";
 import { Kicker } from "@/components/ui/bits";
 
 const FRAMES = 80;
+// Frames kept decoded on each side of the current one (a 1280x720 frame is ~3.7 MB decoded).
+const NEAR = 10;
 const src = (i: number) => `/sequence/${String(i + 1).padStart(3, "0")}.webp`;
 
 const steps = [
@@ -18,9 +20,14 @@ export function SequenceScroll() {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameLabel = useRef<HTMLSpanElement>(null);
-  const images = useRef<HTMLImageElement[]>([]);
+  const loadLabel = useRef<HTMLSpanElement>(null);
+  // Every frame is downloaded up front, but only the ones near the current frame are decoded, off the main
+  // thread, into bitmaps. Drawing an <img> instead makes Chrome decode it on the main thread mid-scroll.
+  const files = useRef<Blob[]>([]);
+  const bitmaps = useRef(new Map<number, ImageBitmap>());
+  const decoding = useRef(new Set<number>());
   const current = useRef(0);
-  const [loaded, setLoaded] = useState(0);
+  const shown = useRef(-1);
 
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
   const frame = useTransform(scrollYProgress, [0, 0.9], [0, FRAMES - 1], { clamp: true });
@@ -30,31 +37,66 @@ export function SequenceScroll() {
   const draw = useCallback((index: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // fall back to the nearest decoded frame while the rest stream in
-    let img: HTMLImageElement | undefined;
-    for (let d = 0; d < FRAMES; d++) {
-      const a = images.current[index - d];
-      const b = images.current[index + d];
-      if (a?.complete && a.naturalWidth) {
-        img = a;
-        break;
-      }
-      if (b?.complete && b.naturalWidth) {
-        img = b;
-        break;
-      }
-    }
-    if (!img) return;
-    const ctx = canvas.getContext("2d");
+    // Opaque: every draw fills the whole canvas, so the compositor can skip blending it.
+    const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
+    // fall back to the nearest decoded frame while the rest stream in
+    let at = -1;
+    for (let d = 0; d < FRAMES && at < 0; d++) {
+      if (bitmaps.current.has(index - d)) at = index - d;
+      else if (bitmaps.current.has(index + d)) at = index + d;
+    }
+    shown.current = at;
+    const img = bitmaps.current.get(at);
     const { width: cw, height: ch } = canvas;
-    const s = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
-    const w = img.naturalWidth * s;
-    const h = img.naturalHeight * s;
+    if (!img) {
+      // Nothing decoded yet: match the page background the transparent canvas used to show.
+      ctx.fillStyle = "#060304";
+      ctx.fillRect(0, 0, cw, ch);
+      return;
+    }
+    const s = Math.max(cw / img.width, ch / img.height);
+    const w = img.width * s;
+    const h = img.height * s;
     ctx.fillStyle = "#050203";
     ctx.fillRect(0, 0, cw, ch);
     ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
   }, []);
+
+  // Decode the frames around the current one, nearest first and a few at a time; drop the ones left behind.
+  const decodeNear = useCallback(
+    function decodeNear() {
+      if (!canvasRef.current) return; // unmounted
+      const at = current.current;
+      for (const [i, bmp] of bitmaps.current) {
+        if (Math.abs(i - at) <= NEAR) continue;
+        bmp.close();
+        bitmaps.current.delete(i);
+      }
+      for (let d = 0; d <= NEAR; d++) {
+        for (const i of [at + d, at - d]) {
+          if (decoding.current.size >= 4) return;
+          const file = files.current[i];
+          if (!file || bitmaps.current.has(i) || decoding.current.has(i)) continue;
+          decoding.current.add(i);
+          createImageBitmap(file).then(
+            (bmp) => {
+              decoding.current.delete(i);
+              const want = current.current;
+              if (Math.abs(i - want) > NEAR) bmp.close();
+              else {
+                bitmaps.current.set(i, bmp);
+                if (shown.current < 0 || Math.abs(i - want) < Math.abs(shown.current - want)) draw(want);
+              }
+              decodeNear();
+            },
+            () => decoding.current.delete(i),
+          );
+        }
+      }
+    },
+    [draw],
+  );
 
   // Size the canvas to its box (DPR-aware).
   useEffect(() => {
@@ -72,37 +114,45 @@ export function SequenceScroll() {
     return () => ro.disconnect();
   }, [draw]);
 
-  // Start streaming frames when the section is within a screen of the viewport.
+  // Start downloading frames when the section is within a screen of the viewport.
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
+    const live = bitmaps.current;
     let started = false;
     const io = new IntersectionObserver(
       ([e]) => {
         if (!e.isIntersecting || started) return;
         started = true;
+        let loaded = 0;
         for (let i = 0; i < FRAMES; i++) {
-          const img = new Image();
-          img.decoding = "async";
-          img.onload = () => {
-            setLoaded((n) => n + 1);
-            if (Math.abs(i - current.current) < 3) draw(current.current);
-          };
-          img.src = src(i);
-          images.current[i] = img;
+          fetch(src(i))
+            .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+            .then((file) => {
+              files.current[i] = file;
+              loaded += 1;
+              if (loadLabel.current) loadLabel.current.textContent = loaded < FRAMES ? `Loading ${Math.round((loaded / FRAMES) * 100)}%` : "Scroll";
+              decodeNear();
+            })
+            .catch(() => {});
         }
       },
       { rootMargin: "120% 0px" },
     );
     io.observe(section);
-    return () => io.disconnect();
-  }, [draw]);
+    return () => {
+      io.disconnect();
+      for (const bmp of live.values()) bmp.close();
+      live.clear();
+    };
+  }, [decodeNear]);
 
   useMotionValueEvent(frame, "change", (v) => {
     const i = Math.round(v);
-    if (frameLabel.current) frameLabel.current.textContent = String(i + 1).padStart(3, "0");
     if (i === current.current) return;
     current.current = i;
+    if (frameLabel.current) frameLabel.current.textContent = String(i + 1).padStart(3, "0");
+    decodeNear();
     requestAnimationFrame(() => draw(i));
   });
 
@@ -138,7 +188,7 @@ export function SequenceScroll() {
             <div className="h-px flex-1 bg-line">
               <motion.div className="h-px origin-left bg-brand shadow-[0_0_10px_#ff3d00]" style={{ scaleX: bar }} />
             </div>
-            <span>{loaded < FRAMES ? `Loading ${Math.round((loaded / FRAMES) * 100)}%` : "Scroll"}</span>
+            <span ref={loadLabel}>Loading 0%</span>
           </div>
         </div>
       </div>

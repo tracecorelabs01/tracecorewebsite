@@ -33,15 +33,14 @@
   --animate-spin-slow: spin 28s linear infinite;
   --animate-spin-slower: spin 70s linear infinite;
   --animate-spin-rev: spin-rev 40s linear infinite;
-  --animate-pulse-dot: pulse-dot 2s ease-in-out infinite;
+  --animate-dot-pulse: dot-pulse 2s linear infinite;
   --animate-float: float 7s ease-in-out infinite;
   --animate-grid-flow: grid-flow 2.6s linear infinite;
   --animate-trace: trace var(--trace-duration, 3.4s) linear infinite;
-  --animate-blink: blink 1.8s steps(2, start) infinite;
+  --animate-blink: blink 1.8s step-end infinite;
   --animate-gradient-pan: gradient-pan 7s ease infinite;
-  --animate-rise: rise var(--rise-duration, 9s) linear infinite;
   --animate-scan: scan 3.8s var(--ease-quint) infinite;
-  --animate-caret: blink 1s steps(2, start) infinite;
+  --animate-caret: blink 1s step-end infinite;
 
   @keyframes marquee {
     from { transform: translate3d(0, 0, 0); }
@@ -50,33 +49,39 @@
   @keyframes spin-rev {
     to { transform: rotate(-360deg); }
   }
+  /* Status dot: the dot dims while a ring grows out of it and fades (the old 0→5px box-shadow, but on the GPU). */
   @keyframes pulse-dot {
-    0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
-    50% { box-shadow: 0 0 0 5px transparent; opacity: 0.75; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
+  }
+  @keyframes pulse-ring {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(2.6667); opacity: 0; }
+  }
+  @keyframes dot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
   }
   @keyframes float {
     0%, 100% { transform: translate3d(0, 0, 0); }
     50% { transform: translate3d(0, -14px, 0); }
   }
+  /* Moves a grid layer one 64px cell (transform, so the GPU does it instead of repainting the background). */
   @keyframes grid-flow {
-    from { background-position: 0 0; }
-    to { background-position: 0 64px; }
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(0, 64px, 0); }
   }
   @keyframes trace {
     from { stroke-dashoffset: 0; }
     to { stroke-dashoffset: -400; }
   }
+  /* On for the first half of each cycle, off for the second. Opacity rather than visibility, which only the main thread can animate. */
   @keyframes blink {
-    to { visibility: hidden; }
+    50%, 100% { opacity: 0; }
   }
   @keyframes gradient-pan {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
-  }
-  @keyframes rise {
-    0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0; }
-    10% { opacity: 1; }
-    100% { transform: translate3d(var(--drift, 20px), -110vh, 0) scale(0.4); opacity: 0; }
   }
   @keyframes scan {
     0% { transform: translateY(-100%); }
@@ -86,12 +91,13 @@
     0% { transform: scale(1); opacity: 0.8; }
     100% { transform: scale(2.6); opacity: 0; }
   }
+  /* Same jitter as the old ±3% of a 200vw × 200vh layer, in viewport units so the layer can be just bigger than the screen. */
   @keyframes grain {
-    0%, 100% { transform: translate(0, 0); }
-    20% { transform: translate(-3%, 2%); }
-    40% { transform: translate(2%, -3%); }
-    60% { transform: translate(-1%, 3%); }
-    80% { transform: translate(3%, 1%); }
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    20% { transform: translate3d(-6vw, 4vh, 0); }
+    40% { transform: translate3d(4vw, -6vh, 0); }
+    60% { transform: translate3d(-2vw, 6vh, 0); }
+    80% { transform: translate3d(6vw, 2vh, 0); }
   }
 }
 
@@ -259,15 +265,42 @@
   }
 }
 
-/* Film grain over everything — cheap SVG noise, no images. */
+/* Film grain over everything — cheap SVG noise, no images. The layer only overhangs the screen by the
+   largest jitter step (6vw / 6vh), so the GPU blends ~1.25 screens of it per frame instead of 4. */
 .grain {
   position: fixed;
-  inset: -50%;
+  inset: -6vh -6vw;
   z-index: 80;
   pointer-events: none;
   opacity: 0.055;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   animation: grain 1.1s steps(5) infinite;
+  will-change: transform;
+}
+
+/* Status dot pulse (see pulse-dot / pulse-ring): transform + opacity only, so it never repaints. */
+.pulse-dot {
+  position: relative;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+
+/* Loops in off-screen sections hold still (set by pauseOffscreen). While any requestAnimationFrame loop runs
+   (smooth scroll, 3D), Chrome restyles every running animation on every frame, seen or not. */
+[data-offscreen],
+[data-offscreen]::before,
+[data-offscreen]::after,
+[data-offscreen] *,
+[data-offscreen] *::before,
+[data-offscreen] *::after {
+  animation-play-state: paused !important;
 }
 
 /* The preloader only runs once per session; an inline head script sets this flag. */
@@ -324,10 +357,13 @@ html[data-intro="done"] .tc-preloader {
   opacity: 0;
   transition: opacity 0.5s var(--ease-quint);
   animation: border-spin 4s linear infinite;
+  /* An animated gradient angle can't run on the GPU, so only spin it while it can be seen. */
+  animation-play-state: paused;
 }
 .border-flow:hover::before,
 .border-flow[data-active="true"]::before {
   opacity: 1;
+  animation-play-state: running;
 }
 @keyframes border-spin {
   to { --border-angle: 360deg; }

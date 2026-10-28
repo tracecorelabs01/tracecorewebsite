@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import { motion, useAnimationFrame, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, useVelocity } from "motion/react";
+import { motion, useAnimationFrame, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, useVelocity } from "motion/react";
 import { cn, wrap } from "@/lib/utils";
 
 /**
@@ -29,9 +29,12 @@ export function VelocityMarquee({
   const factor = useTransform(smooth, [0, 1000], [0, 4], { clamp: false });
   const x = useTransform(baseX, (v) => `${wrap(-100 / repeat, 0, v)}%`);
   const direction = useRef(1);
+  // The loop writes a transform every frame, so only run it while the band can be seen.
+  const root = useRef<HTMLDivElement>(null);
+  const visible = useInView(root, { margin: "100px 0px" });
 
   useAnimationFrame((_, delta) => {
-    if (reduce) return;
+    if (reduce || !visible) return;
     let moveBy = direction.current * baseVelocity * (delta / 1000);
     const f = factor.get();
     if (f < 0) direction.current = -1;
@@ -41,7 +44,7 @@ export function VelocityMarquee({
   });
 
   return (
-    <div className={cn("flex overflow-hidden whitespace-nowrap", className)}>
+    <div ref={root} className={cn("flex overflow-hidden whitespace-nowrap", className)}>
       <motion.div className={cn("flex shrink-0 whitespace-nowrap will-change-transform", trackClassName)} style={{ x }}>
         {Array.from({ length: repeat }).map((_, i) => (
           <div key={i} aria-hidden={i > 0 || undefined} className="flex shrink-0">

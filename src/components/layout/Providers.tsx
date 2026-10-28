@@ -45,6 +45,7 @@ function ScrollManager() {
   const pathname = usePathname();
   const lenis = useLenis();
   const fromPopState = useRef(false);
+  const firstLoad = useRef(true);
   const locked = useUi((s) => s.cartOpen || s.menuOpen);
 
   useEffect(() => {
@@ -54,6 +55,8 @@ function ScrollManager() {
   }, []);
 
   useEffect(() => {
+    const first = firstLoad.current;
+    firstLoad.current = false;
     if (fromPopState.current) {
       fromPopState.current = false;
       return;
@@ -67,7 +70,9 @@ function ScrollManager() {
       }, 60);
       return () => window.clearTimeout(id);
     }
-    lenis?.scrollTo(0, { immediate: true, force: true });
+    // A fresh load already starts at the top (or where a reload left off). Resetting it here, once this hydrates,
+    // would yank back a visitor who has already started scrolling.
+    if (!first) lenis?.scrollTo(0, { immediate: true, force: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on route change
   }, [pathname]);
 
