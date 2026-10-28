@@ -8,6 +8,7 @@ import { ProductVisual } from "@/components/product/ProductVisual";
 import { QuantityStepper } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/Button";
 import { EASE_EXPO } from "@/components/ui/motion";
+import { MAX_QTY } from "@/lib/catalog/types";
 import { selectCount, selectSubtotal, useCart } from "@/lib/cart-store";
 import { useStoreSettings } from "./StoreSettings";
 import { useUi } from "@/lib/ui-store";
@@ -145,7 +146,7 @@ export function CartDrawer() {
                               <span className="font-display text-xl">{formatPrice(line.price * line.qty)}</span>
                             </div>
                             <div className="mt-auto flex items-center justify-between pt-3">
-                              <QuantityStepper size="sm" value={line.qty} onChange={(v) => setQty(line.key, v)} max={line.maxQty ?? 99} />
+                              <QuantityStepper size="sm" value={line.qty} onChange={(v) => setQty(line.key, v)} max={Math.min(line.maxQty ?? MAX_QTY, MAX_QTY)} />
                               <button type="button" onClick={() => remove(line.key)} className="flex items-center gap-1.5 text-xs text-dim transition-colors hover:text-ember" aria-label={`Remove ${line.name}`}>
                                 <Trash2 className="size-3.5" /> Remove
                               </button>

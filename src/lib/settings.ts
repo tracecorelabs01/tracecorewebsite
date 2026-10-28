@@ -29,6 +29,7 @@ export const storeSettingsSchema: z.ZodType<StoreSettings> = z.object({
     .max(4),
   payments: z.array(z.string().trim().min(1).max(30)).max(10),
   orderNote: z.string().trim().max(600),
+  reservationHours: z.number().int().min(0).max(720),
 });
 
 /** Merge a stored (possibly partial or outdated) settings object over the defaults. */

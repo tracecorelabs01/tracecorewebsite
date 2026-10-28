@@ -44,9 +44,10 @@ export function lines(value: FormDataEntryValue | null) {
 
 export function csvEscape(value: unknown) {
   const s = value == null ? "" : value instanceof Date ? value.toISOString() : String(value);
-  // Neutralise spreadsheet formula injection.
+  // Neutralise spreadsheet formula injection. Always quote, so a ";" can't start a new
+  // cell (and a formula) in locales where Excel splits on semicolons.
   const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
-  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  return `"${safe.replace(/"/g, '""')}"`;
 }
 
 /** First value of a search param. */

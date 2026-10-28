@@ -106,6 +106,13 @@ export function SettingsForm({
           <Field label="Message" name="orderNote" hint="Explain what happens next, e.g. how and when to pay. Up to 600 characters.">
             <Textarea name="orderNote" defaultValue={settings.orderNote} rows={4} maxLength={600} />
           </Field>
+          <Field
+            label="Hold unpaid orders for (hours)"
+            name="reservationHours"
+            hint="An unpaid order keeps its stock reserved this long, then it's cancelled automatically and the stock goes back on sale. Use 0 to hold stock until you cancel the order yourself. Up to 720 (30 days)."
+          >
+            <Input name="reservationHours" type="number" min={0} max={720} step={1} inputMode="numeric" defaultValue={settings.reservationHours} className="tabular-nums" />
+          </Field>
         </Card>
       </div>
 

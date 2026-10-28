@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { Check, Headphones, RotateCcw, ShieldCheck, ShoppingBag, Truck, Zap } from "lucide-react";
-import type { Product } from "@/lib/catalog/types";
+import { MAX_QTY, type Product } from "@/lib/catalog/types";
 import { Accordion, Badge, Kicker, Price, QuantityStepper, StatusDot, Stars } from "@/components/ui/bits";
 import { EASE_EXPO, Reveal, RevealLines, Tilt } from "@/components/ui/motion";
 import { useCart } from "@/lib/cart-store";
@@ -23,7 +23,7 @@ export function ProductView({ product, related }: { product: Product; related: P
   const play = useUi((s) => s.introDone);
   const settings = useStoreSettings();
   const soldOut = product.status === "sold-out";
-  const maxQty = product.maxQty ?? 99;
+  const maxQty = Math.min(product.maxQty ?? MAX_QTY, MAX_QTY);
 
   const gallery = product.gallery ?? [product.visual];
   const [view, setView] = useState(0);

@@ -5,6 +5,7 @@ import { and, count, eq, gt, gte, inArray, isNull, lt, or, sql } from "drizzle-o
 import { z } from "zod";
 import { customers, discountCodes, getDb, isDbConfigured, messages, orderEvents, orderItems, orders, products, subscribers } from "@/db";
 import { getCatalog, getStoreSettings, TAGS } from "@/lib/catalog/server";
+import { MAX_QTY } from "@/lib/catalog/types";
 import { sendOrderEmails } from "@/lib/email";
 import { getClientIp } from "@/lib/request";
 
@@ -13,7 +14,7 @@ import { getClientIp } from "@/lib/request";
 const lineSchema = z.object({
   slug: z.string().trim().min(1).max(120),
   option: z.string().trim().max(80).optional(),
-  qty: z.number().int().min(1).max(99),
+  qty: z.number().int().min(1).max(MAX_QTY),
 });
 
 type CartInput = z.infer<typeof lineSchema>[];
@@ -49,7 +50,8 @@ const now = () => new Date();
 function discountError(row: typeof discountCodes.$inferSelect | undefined, subtotalCents: number) {
   if (!row || !row.isActive) return "That code isn't valid.";
   const t = now();
-  if (row.startsAt && row.startsAt > t) return "That code isn't active yet.";
+  // Same answer as an unknown code, so scheduled promos can't be discovered early.
+  if (row.startsAt && row.startsAt > t) return "That code isn't valid.";
   if (row.endsAt && row.endsAt <= t) return "That code has expired.";
   if (row.maxUses != null && row.usedCount >= row.maxUses) return "That code has been fully redeemed.";
   if (subtotalCents < row.minSubtotalCents) return `That code needs a subtotal of at least $${(row.minSubtotalCents / 100).toFixed(2)}.`;
@@ -96,6 +98,10 @@ async function priceCart(lines: CartInput, code?: string): Promise<Priced> {
     const values = p.optionValues ?? [];
     if (p.optionName && values.length && (!l.option || !values.includes(l.option))) {
       issues.push({ slug: l.slug, message: `Choose a ${p.optionName.toLowerCase()}` });
+      continue;
+    }
+    if ((wanted.get(l.slug) ?? 0) > MAX_QTY) {
+      issues.push({ slug: l.slug, message: `Limit ${MAX_QTY} per order`, maxQty: MAX_QTY });
       continue;
     }
     const guarded = p.trackInventory && !p.allowBackorder;
@@ -247,14 +253,26 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         if (res.affectedRows === 0) throw new CheckoutError("That discount code was just fully redeemed.");
       }
 
-      const [existing] = await tx.select({ id: customers.id }).from(customers).where(eq(customers.email, email)).limit(1);
+      const [existing] = await tx
+        .select({ id: customers.id, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone, country: customers.country })
+        .from(customers)
+        .where(eq(customers.email, email))
+        .limit(1);
       let customerId: number;
       const profile = { firstName: data.firstName, lastName: data.lastName, phone: data.phone || null, country: data.country, lastOrderAt: now() };
       if (existing) {
         customerId = existing.id;
+        // Anyone can check out with any email, so only fill in blanks: never overwrite a customer's details.
         await tx
           .update(customers)
-          .set({ ...profile, ordersCount: sql`${customers.ordersCount} + 1` })
+          .set({
+            firstName: existing.firstName || profile.firstName,
+            lastName: existing.lastName || profile.lastName,
+            phone: existing.phone || profile.phone,
+            country: existing.country || profile.country,
+            lastOrderAt: profile.lastOrderAt,
+            ordersCount: sql`${customers.ordersCount} + 1`,
+          })
           .where(eq(customers.id, customerId));
       } else {
         [{ id: customerId }] = await tx.insert(customers).values({ email, ...profile, ordersCount: 1 }).$returningId();

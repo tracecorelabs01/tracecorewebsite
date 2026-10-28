@@ -35,6 +35,9 @@
     "zod": "^4.6.7",
     "zustand": "^5.0.16"
   },
+  "overrides": {
+    "esbuild": "^0.28.2"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20",

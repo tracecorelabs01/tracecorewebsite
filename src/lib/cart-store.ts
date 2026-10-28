@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { Product, ProductVisual } from "@/lib/catalog/types";
+import { MAX_QTY, type Product, type ProductVisual } from "@/lib/catalog/types";
 
 export interface CartLine {
   key: string;
@@ -25,7 +25,7 @@ interface CartState {
   clear: () => void;
 }
 
-const cap = (qty: number, max?: number) => Math.max(1, Math.min(99, max ?? 99, qty));
+const cap = (qty: number, max?: number) => Math.max(1, Math.min(MAX_QTY, max ?? MAX_QTY, qty));
 
 export const useCart = create<CartState>()(
   persist(

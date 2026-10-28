@@ -1,25 +1,23 @@
 "use server";
 
 import { refresh, updateTag } from "next/cache";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import type { ActionState } from "@/components/admin/forms";
-import { getDb, orderEvents, orderItems, orders, products } from "@/db";
+import { getDb, orderEvents, orderItems, orders } from "@/db";
 import { logActivity } from "@/lib/admin/audit";
+import { plural, restockItems, wasRestocked, type NewEvent, type Tx } from "@/lib/admin/order-stock";
 import { addressLines, isOrderStatus, isPaymentStatus, type OrderStatus } from "@/lib/admin/orders";
 import { requireAdmin, type AdminUser } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
 import { sendShippingEmail } from "@/lib/email";
 
-type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 type Order = typeof orders.$inferSelect;
 type OrderPatch = Partial<typeof orders.$inferInsert>;
-type NewEvent = { type: string; message: string };
 
 const NOTE_MAX = 5000;
 const str = (v: FormDataEntryValue | null) => String(v ?? "").trim();
 /** Multi-line text with line endings normalised. */
 const text = (v: FormDataEntryValue | null) => str(v).replace(/\r\n?/g, "\n");
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 /** Leave a transaction early (nothing written) with a message for the form. */
 const halt = (ok: boolean, message: string) => ({ halted: true as const, state: { ok, message } });
 
@@ -62,37 +60,6 @@ function statusEvents(order: Order, to: OrderStatus): NewEvent[] {
   const events = [{ type: "status", message: `Status changed: ${order.status} → ${to}` }];
   if (to === "refunded" && order.paymentStatus !== "refunded") events.push({ type: "payment", message: `Payment changed: ${order.paymentStatus} → refunded` });
   return events;
-}
-
-async function wasRestocked(tx: Tx, orderId: number) {
-  const [row] = await tx
-    .select({ id: orderEvents.id })
-    .from(orderEvents)
-    .where(and(eq(orderEvents.orderId, orderId), eq(orderEvents.type, "restock")))
-    .limit(1);
-  return Boolean(row);
-}
-
-/** Put the order's tracked items back in stock. Runs at most once per order — reopening an order doesn't deduct stock again. */
-async function restockItems(tx: Tx, orderId: number): Promise<{ units: number; event?: NewEvent; skipped?: string }> {
-  if (await wasRestocked(tx, orderId)) return { units: 0, skipped: "Its items were already restocked earlier." };
-  const lines = await tx
-    .select({ productId: products.id, name: orderItems.productName, quantity: orderItems.quantity })
-    .from(orderItems)
-    .innerJoin(products, eq(orderItems.productId, products.id))
-    .where(and(eq(orderItems.orderId, orderId), eq(products.trackInventory, true)));
-  if (!lines.length) return { units: 0, skipped: "No tracked items to restock." };
-
-  const perProduct = new Map<number, number>();
-  for (const l of lines) perProduct.set(l.productId, (perProduct.get(l.productId) ?? 0) + l.quantity);
-  for (const [productId, qty] of perProduct) {
-    await tx
-      .update(products)
-      .set({ stockQty: sql`${products.stockQty} + ${qty}` })
-      .where(eq(products.id, productId));
-  }
-  const units = lines.reduce((n, l) => n + l.quantity, 0);
-  return { units, event: { type: "restock", message: `Restocked ${plural(units, "unit")}: ${lines.map((l) => `${l.quantity} × ${l.name}`).join(", ")}` } };
 }
 
 /** Best-effort shipping confirmation. Records an event only when the email actually went out. */

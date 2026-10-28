@@ -7,6 +7,9 @@ export type ProductVisual = { kind: "art"; art: ArtKey } | { kind: "image"; src:
 
 export type StockStatus = "in-stock" | "low-stock" | "preorder" | "sold-out";
 
+/** Most units of one product (all options combined) a single order may hold. Enforced at checkout. */
+export const MAX_QTY = 10;
+
 export interface CategoryInfo {
   id: string; // slug
   label: string;

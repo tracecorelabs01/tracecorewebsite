@@ -13,6 +13,8 @@ export interface StoreSettings {
   payments: string[];
   /** Shown to customers after they place an order (e.g. how payment works). */
   orderNote: string;
+  /** Hours an unpaid order holds its stock before it's cancelled and restocked. 0 = hold until staff act. */
+  reservationHours: number;
 }
 
 export const defaultSettings: StoreSettings = {
@@ -24,4 +26,5 @@ export const defaultSettings: StoreSettings = {
   stats: site.stats.map((s) => ({ ...s })),
   payments: [...site.payments],
   orderNote: "Thanks for your order! We'll email you payment instructions and a confirmation shortly. Questions? Reply to that email or message us on Discord.",
+  reservationHours: 48,
 };

@@ -3,9 +3,10 @@
 
 import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:crypto";
 
+// OWASP's scrypt equivalent of N=2^17,p=1 that keeps memory at 16 MiB per hash (shared hosting).
 const N = 16384;
 const R = 8;
-const P = 1;
+const P = 5;
 const KEYLEN = 64;
 const MAXMEM = 64 * 1024 * 1024;
 

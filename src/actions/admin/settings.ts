@@ -25,6 +25,7 @@ const SECTIONS: Record<keyof StoreSettings, string> = {
   stats: "homepage stats",
   payments: "payment methods",
   orderNote: "order note",
+  reservationHours: "unpaid order reservation time",
 };
 
 const str = (v: FormDataEntryValue | null) => String(v ?? "").trim();
@@ -62,6 +63,7 @@ function readForm(fd: FormData): StoreSettings {
     // The footer keys badges by name, so drop repeats.
     payments: payments.filter((p, i) => payments.findIndex((o) => o.toLowerCase() === p.toLowerCase()) === i),
     orderNote: str(fd.get("orderNote")),
+    reservationHours: num(fd.get("reservationHours")),
   };
 }
 
