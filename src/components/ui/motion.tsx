@@ -1,0 +1,188 @@
+"use client";
+
+import { useRef, type ReactNode, type ElementType, type PointerEvent } from "react";
+import { motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring, type Variants } from "motion/react";
+import { cn } from "@/lib/utils";
+
+export const EASE_EXPO = [0.16, 1, 0.3, 1] as const;
+
+/** Fade/slide content in when it scrolls into view. */
+export function Reveal({
+  children,
+  className,
+  delay = 0,
+  y = 28,
+  x = 0,
+  amount = 0.25,
+  as = "div",
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  y?: number;
+  x?: number;
+  amount?: number;
+  as?: "div" | "li" | "section" | "article" | "p" | "span";
+}) {
+  const Comp = motion[as] as typeof motion.div;
+  return (
+    <Comp
+      className={className}
+      initial={{ opacity: 0, y, x }}
+      whileInView={{ opacity: 1, y: 0, x: 0 }}
+      viewport={{ once: true, amount }}
+      transition={{ duration: 1, ease: EASE_EXPO, delay }}
+    >
+      {children}
+    </Comp>
+  );
+}
+
+const lineVariants: Variants = {
+  hidden: { y: "125%", rotate: 3 },
+  shown: (i: number) => ({
+    y: "0%",
+    rotate: 0,
+    transition: { duration: 1.15, ease: EASE_EXPO, delay: i },
+  }),
+};
+
+/**
+ * Masked line-by-line headline reveal. Each line slides up out of its own
+ * overflow mask; the padding/negative-margin trick keeps tall display glyphs
+ * from being clipped despite a tight line-height.
+ *
+ * The viewport trigger sits on an untransformed wrapper: the lines themselves
+ * start fully clipped by their masks, so IntersectionObserver would never
+ * report them as visible.
+ */
+export function RevealLines({
+  lines,
+  as = "h2",
+  className,
+  lineClassName,
+  delay = 0,
+  stagger = 0.09,
+  play,
+}: {
+  lines: ReactNode[];
+  as?: ElementType;
+  className?: string;
+  lineClassName?: string;
+  delay?: number;
+  stagger?: number;
+  /** When provided, animation is driven by this flag instead of viewport entry. */
+  play?: boolean;
+}) {
+  const Tag = as;
+  const controlled = play !== undefined;
+  return (
+    <Tag className={className}>
+      <motion.span
+        className="block"
+        initial="hidden"
+        {...(controlled ? { animate: play ? "shown" : "hidden" } : { whileInView: "shown", viewport: { once: true, amount: 0.35 } })}
+      >
+        {lines.map((line, i) => (
+          <span key={i} className="-my-[0.14em] block overflow-hidden py-[0.14em]">
+            <motion.span className={cn("block origin-bottom-left will-change-transform", lineClassName)} variants={lineVariants} custom={delay + i * stagger}>
+              {line}
+            </motion.span>
+          </span>
+        ))}
+      </motion.span>
+    </Tag>
+  );
+}
+
+/** Pulls its child toward the cursor; springs back on leave. Mouse only. */
+export function Magnetic({ children, strength = 0.3, className }: { children: ReactNode; strength?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
+  const x = useSpring(0, { stiffness: 200, damping: 16, mass: 0.5 });
+  const y = useSpring(0, { stiffness: 200, damping: 16, mass: 0.5 });
+
+  function onMove(e: PointerEvent) {
+    if (reduce || e.pointerType !== "mouse" || !ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    x.set((e.clientX - (r.left + r.width / 2)) * strength);
+    y.set((e.clientY - (r.top + r.height / 2)) * strength);
+  }
+
+  return (
+    <motion.div
+      ref={ref}
+      onPointerMove={onMove}
+      onPointerLeave={() => {
+        x.set(0);
+        y.set(0);
+      }}
+      style={{ x, y }}
+      className={cn("inline-flex", className)}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** 3D pointer tilt with a moving glare highlight. */
+export function Tilt({
+  children,
+  className,
+  max = 7,
+  glare = true,
+}: {
+  children: ReactNode;
+  className?: string;
+  max?: number;
+  glare?: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
+  const rx = useSpring(0, { stiffness: 160, damping: 18 });
+  const ry = useSpring(0, { stiffness: 160, damping: 18 });
+  const gx = useMotionValue(50);
+  const gy = useMotionValue(50);
+  const glareBg = useMotionTemplate`radial-gradient(520px circle at ${gx}% ${gy}%, rgb(255 255 255 / 0.09), transparent 45%)`;
+
+  function onMove(e: PointerEvent) {
+    if (reduce || e.pointerType !== "mouse" || !ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    ry.set((px - 0.5) * 2 * max);
+    rx.set(-(py - 0.5) * 2 * max);
+    gx.set(px * 100);
+    gy.set(py * 100);
+  }
+
+  return (
+    <motion.div
+      ref={ref}
+      onPointerMove={onMove}
+      onPointerLeave={() => {
+        rx.set(0);
+        ry.set(0);
+      }}
+      style={{ rotateX: rx, rotateY: ry, transformPerspective: 1100 }}
+      className={cn("relative", className)}
+    >
+      {children}
+      {glare && (
+        <motion.div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+          style={{ background: glareBg }}
+        />
+      )}
+    </motion.div>
+  );
+}
+
+/** Updates --mx/--my so the `.spotlight` CSS class can follow the pointer. */
+export function spotlightHandler(e: PointerEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  const r = el.getBoundingClientRect();
+  el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  el.style.setProperty("--my", `${e.clientY - r.top}px`);
+}

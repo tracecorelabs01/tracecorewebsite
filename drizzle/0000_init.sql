@@ -1,0 +1,269 @@
+CREATE TABLE `activity_log` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`admin_id` int,
+	`action` varchar(60) NOT NULL,
+	`entity` varchar(40) NOT NULL,
+	`entity_id` varchar(40),
+	`summary` varchar(255) NOT NULL,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `activity_log_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `admin_sessions` (
+	`id` char(64) NOT NULL,
+	`user_id` int NOT NULL,
+	`expires_at` datetime NOT NULL,
+	`ip` varchar(64),
+	`user_agent` varchar(255),
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `admin_sessions_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `admin_users` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`email` varchar(191) NOT NULL,
+	`name` varchar(120) NOT NULL,
+	`password_hash` varchar(255) NOT NULL,
+	`role` enum('owner','admin','staff') NOT NULL DEFAULT 'staff',
+	`is_active` boolean NOT NULL DEFAULT true,
+	`last_login_at` datetime,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `admin_users_id` PRIMARY KEY(`id`),
+	CONSTRAINT `admin_users_email_uq` UNIQUE(`email`)
+);
+--> statement-breakpoint
+CREATE TABLE `categories` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`slug` varchar(80) NOT NULL,
+	`name` varchar(120) NOT NULL,
+	`blurb` varchar(255) NOT NULL DEFAULT '',
+	`sort_order` int NOT NULL DEFAULT 0,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `categories_id` PRIMARY KEY(`id`),
+	CONSTRAINT `categories_slug_uq` UNIQUE(`slug`)
+);
+--> statement-breakpoint
+CREATE TABLE `customers` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`email` varchar(191) NOT NULL,
+	`first_name` varchar(80) NOT NULL DEFAULT '',
+	`last_name` varchar(80) NOT NULL DEFAULT '',
+	`phone` varchar(40),
+	`country` varchar(80),
+	`orders_count` int NOT NULL DEFAULT 0,
+	`total_spent_cents` int NOT NULL DEFAULT 0,
+	`last_order_at` datetime,
+	`notes` text,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `customers_id` PRIMARY KEY(`id`),
+	CONSTRAINT `customers_email_uq` UNIQUE(`email`)
+);
+--> statement-breakpoint
+CREATE TABLE `discount_codes` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`code` varchar(40) NOT NULL,
+	`kind` enum('percent','fixed') NOT NULL,
+	`value` int NOT NULL,
+	`min_subtotal_cents` int NOT NULL DEFAULT 0,
+	`max_uses` int,
+	`used_count` int NOT NULL DEFAULT 0,
+	`starts_at` datetime,
+	`ends_at` datetime,
+	`is_active` boolean NOT NULL DEFAULT true,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `discount_codes_id` PRIMARY KEY(`id`),
+	CONSTRAINT `discount_codes_code_uq` UNIQUE(`code`)
+);
+--> statement-breakpoint
+CREATE TABLE `login_attempts` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`email` varchar(191),
+	`ip` varchar(64),
+	`success` boolean NOT NULL,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `login_attempts_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `messages` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`name` varchar(120) NOT NULL,
+	`email` varchar(191) NOT NULL,
+	`order_number` varchar(40),
+	`topic` varchar(60) NOT NULL,
+	`body` text NOT NULL,
+	`status` enum('open','closed') NOT NULL DEFAULT 'open',
+	`ip` varchar(64),
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `messages_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `order_events` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`order_id` int NOT NULL,
+	`type` varchar(30) NOT NULL,
+	`message` varchar(500) NOT NULL,
+	`admin_id` int,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `order_events_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `order_items` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`order_id` int NOT NULL,
+	`product_id` int,
+	`product_slug` varchar(120) NOT NULL,
+	`product_name` varchar(160) NOT NULL,
+	`option_value` varchar(80),
+	`unit_price_cents` int NOT NULL,
+	`quantity` int NOT NULL,
+	`line_total_cents` int NOT NULL,
+	CONSTRAINT `order_items_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `orders` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`number` varchar(20) NOT NULL,
+	`customer_id` int,
+	`status` enum('pending','processing','shipped','delivered','cancelled','refunded') NOT NULL DEFAULT 'pending',
+	`payment_status` enum('unpaid','paid','refunded','failed') NOT NULL DEFAULT 'unpaid',
+	`payment_method` varchar(30) NOT NULL,
+	`payment_ref` varchar(191),
+	`email` varchar(191) NOT NULL,
+	`phone` varchar(40),
+	`first_name` varchar(80) NOT NULL,
+	`last_name` varchar(80) NOT NULL,
+	`address1` varchar(191) NOT NULL,
+	`address2` varchar(191),
+	`city` varchar(120) NOT NULL,
+	`region` varchar(120),
+	`postal_code` varchar(40) NOT NULL,
+	`country` varchar(80) NOT NULL,
+	`subtotal_cents` int NOT NULL,
+	`shipping_cents` int NOT NULL DEFAULT 0,
+	`discount_cents` int NOT NULL DEFAULT 0,
+	`total_cents` int NOT NULL,
+	`currency` char(3) NOT NULL DEFAULT 'USD',
+	`discount_code` varchar(40),
+	`customer_note` text,
+	`internal_note` text,
+	`tracking_carrier` varchar(60),
+	`tracking_number` varchar(120),
+	`paid_at` datetime,
+	`shipped_at` datetime,
+	`delivered_at` datetime,
+	`cancelled_at` datetime,
+	`ip` varchar(64),
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `orders_id` PRIMARY KEY(`id`),
+	CONSTRAINT `orders_number_uq` UNIQUE(`number`)
+);
+--> statement-breakpoint
+CREATE TABLE `product_images` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`product_id` int NOT NULL,
+	`url` varchar(500) NOT NULL,
+	`storage_key` varchar(255),
+	`alt` varchar(255) NOT NULL DEFAULT '',
+	`width` int,
+	`height` int,
+	`sort_order` int NOT NULL DEFAULT 0,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `product_images_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `products` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`slug` varchar(120) NOT NULL,
+	`name` varchar(160) NOT NULL,
+	`tagline` varchar(255) NOT NULL DEFAULT '',
+	`category_id` int,
+	`status` enum('active','draft','archived') NOT NULL DEFAULT 'draft',
+	`price_cents` int NOT NULL,
+	`compare_at_cents` int,
+	`badge` varchar(40),
+	`featured` boolean NOT NULL DEFAULT false,
+	`sort_order` int NOT NULL DEFAULT 0,
+	`track_inventory` boolean NOT NULL DEFAULT true,
+	`stock_qty` int NOT NULL DEFAULT 0,
+	`low_stock_threshold` int NOT NULL DEFAULT 5,
+	`allow_backorder` boolean NOT NULL DEFAULT false,
+	`summary` text,
+	`highlights` json,
+	`specs` json,
+	`in_the_box` json,
+	`option_name` varchar(60),
+	`option_values` json,
+	`art_key` varchar(40),
+	`seo_title` varchar(160),
+	`seo_description` varchar(320),
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `products_id` PRIMARY KEY(`id`),
+	CONSTRAINT `products_slug_uq` UNIQUE(`slug`)
+);
+--> statement-breakpoint
+CREATE TABLE `reviews` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`product_id` int,
+	`name` varchar(80) NOT NULL,
+	`handle` varchar(80),
+	`email` varchar(191),
+	`rating` tinyint NOT NULL,
+	`body` text NOT NULL,
+	`status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+	`source` varchar(40) NOT NULL DEFAULT 'site',
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `reviews_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `settings` (
+	`key` varchar(80) NOT NULL,
+	`value` json NOT NULL,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `settings_key` PRIMARY KEY(`key`)
+);
+--> statement-breakpoint
+CREATE TABLE `subscribers` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`email` varchar(191) NOT NULL,
+	`source` varchar(40) NOT NULL DEFAULT 'footer',
+	`unsubscribed_at` datetime,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `subscribers_id` PRIMARY KEY(`id`),
+	CONSTRAINT `subscribers_email_uq` UNIQUE(`email`)
+);
+--> statement-breakpoint
+ALTER TABLE `activity_log` ADD CONSTRAINT `activity_log_admin_id_admin_users_id_fk` FOREIGN KEY (`admin_id`) REFERENCES `admin_users`(`id`) ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `admin_sessions` ADD CONSTRAINT `admin_sessions_user_id_admin_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `admin_users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `order_events` ADD CONSTRAINT `order_events_order_id_orders_id_fk` FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `order_events` ADD CONSTRAINT `order_events_admin_id_admin_users_id_fk` FOREIGN KEY (`admin_id`) REFERENCES `admin_users`(`id`) ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `order_items` ADD CONSTRAINT `order_items_order_id_orders_id_fk` FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `order_items` ADD CONSTRAINT `order_items_product_id_products_id_fk` FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `orders` ADD CONSTRAINT `orders_customer_id_customers_id_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `product_images` ADD CONSTRAINT `product_images_product_id_products_id_fk` FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `products` ADD CONSTRAINT `products_category_id_categories_id_fk` FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `reviews` ADD CONSTRAINT `reviews_product_id_products_id_fk` FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX `activity_log_created_idx` ON `activity_log` (`created_at`);--> statement-breakpoint
+CREATE INDEX `admin_sessions_user_idx` ON `admin_sessions` (`user_id`);--> statement-breakpoint
+CREATE INDEX `login_attempts_ip_idx` ON `login_attempts` (`ip`,`created_at`);--> statement-breakpoint
+CREATE INDEX `login_attempts_email_idx` ON `login_attempts` (`email`,`created_at`);--> statement-breakpoint
+CREATE INDEX `messages_status_idx` ON `messages` (`status`,`created_at`);--> statement-breakpoint
+CREATE INDEX `order_events_order_idx` ON `order_events` (`order_id`);--> statement-breakpoint
+CREATE INDEX `order_items_order_idx` ON `order_items` (`order_id`);--> statement-breakpoint
+CREATE INDEX `order_items_product_idx` ON `order_items` (`product_id`);--> statement-breakpoint
+CREATE INDEX `orders_status_idx` ON `orders` (`status`);--> statement-breakpoint
+CREATE INDEX `orders_created_idx` ON `orders` (`created_at`);--> statement-breakpoint
+CREATE INDEX `orders_email_idx` ON `orders` (`email`);--> statement-breakpoint
+CREATE INDEX `orders_customer_idx` ON `orders` (`customer_id`);--> statement-breakpoint
+CREATE INDEX `product_images_product_idx` ON `product_images` (`product_id`,`sort_order`);--> statement-breakpoint
+CREATE INDEX `products_status_idx` ON `products` (`status`);--> statement-breakpoint
+CREATE INDEX `products_category_idx` ON `products` (`category_id`);--> statement-breakpoint
+CREATE INDEX `reviews_status_idx` ON `reviews` (`status`);--> statement-breakpoint
+CREATE INDEX `reviews_product_idx` ON `reviews` (`product_id`);
