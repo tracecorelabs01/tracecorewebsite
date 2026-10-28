@@ -12,6 +12,7 @@
     "db:migrate": "tsx --env-file-if-exists=.env.local scripts/db/migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/db/seed.ts",
     "db:setup": "npm run db:migrate && npm run db:seed",
+    "db:add-hardware": "tsx --env-file-if-exists=.env.local scripts/db/add-setup-hardware.ts",
     "admin:create": "tsx --env-file-if-exists=.env.local scripts/admin/create.ts",
     "db:sql": "tsx scripts/db/export-sql.ts"
   },

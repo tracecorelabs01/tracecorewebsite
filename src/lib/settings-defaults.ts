@@ -15,6 +15,8 @@ export interface StoreSettings {
   orderNote: string;
   /** Hours an unpaid order holds its stock before it's cancelled and restocked. 0 = hold until staff act. */
   reservationHours: number;
+  /** Percent off a cart holding a complete setup (DMA card + fuser + input device). 0 = off. */
+  setupDiscountPercent: number;
 }
 
 export const defaultSettings: StoreSettings = {
@@ -27,4 +29,5 @@ export const defaultSettings: StoreSettings = {
   payments: [...site.payments],
   orderNote: "Thanks for your order! We'll email you payment instructions and a confirmation shortly. Questions? Reply to that email or message us on Discord.",
   reservationHours: 48,
+  setupDiscountPercent: 10,
 };

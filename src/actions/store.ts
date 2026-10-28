@@ -3,9 +3,10 @@
 import { revalidateTag } from "next/cache";
 import { and, count, eq, gt, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { customers, discountCodes, getDb, isDbConfigured, messages, orderEvents, orderItems, orders, products, subscribers } from "@/db";
+import { categories, customers, discountCodes, getDb, isDbConfigured, messages, orderEvents, orderItems, orders, products, subscribers } from "@/db";
 import { getCatalog, getStoreSettings, TAGS } from "@/lib/catalog/server";
 import { MAX_QTY } from "@/lib/catalog/types";
+import { isCompleteSetup, setupDiscountCode } from "@/lib/setup-builder";
 import { sendOrderEmails } from "@/lib/email";
 import { getClientIp } from "@/lib/request";
 
@@ -130,6 +131,13 @@ async function priceCart(lines: CartInput, code?: string): Promise<Priced> {
     if (err) return { ok: false, error: err };
     const cents = row!.kind === "percent" ? Math.round((subtotalCents * Math.min(100, row!.value)) / 100) : Math.min(row!.value, subtotalCents);
     discount = { id: row!.id, code: row!.code, cents };
+  } else if (settings.setupDiscountPercent > 0) {
+    // No code: a complete setup (DMA card + fuser + input device) gets the automatic setup discount.
+    const categoryIds = [...new Set(rows.map((r) => r.categoryId).filter((id): id is number => id != null))];
+    const cats = categoryIds.length ? await db.select({ slug: categories.slug }).from(categories).where(inArray(categories.id, categoryIds)) : [];
+    if (isCompleteSetup(cats.map((c) => c.slug))) {
+      discount = { id: null, code: setupDiscountCode(settings.setupDiscountPercent), cents: Math.round((subtotalCents * settings.setupDiscountPercent) / 100) };
+    }
   }
   const shippingCents = subtotalCents >= settings.freeShippingThreshold * 100 ? 0 : Math.round(settings.flatShipping * 100);
   const totalCents = Math.max(0, subtotalCents - (discount?.cents ?? 0)) + shippingCents;
@@ -145,6 +153,14 @@ export async function previewDiscount(code: string, lines: CartInput): Promise<{
   const priced = await priceCart(parsedLines.data, parsedCode.data);
   if (!priced.ok) return { ok: false, error: priced.error };
   return { ok: true, code: priced.discount!.code, discountCents: priced.discount!.cents };
+}
+
+/** The automatic setup discount this cart earns, or null. Checkout shows it whenever no code is applied. */
+export async function previewSetupDiscount(lines: CartInput): Promise<{ code: string; cents: number } | null> {
+  const parsed = z.array(lineSchema).min(1).max(50).safeParse(lines);
+  if (!parsed.success) return null;
+  const priced = await priceCart(parsed.data);
+  return priced.ok && priced.discount ? { code: priced.discount.code, cents: priced.discount.cents } : null;
 }
 
 /* ───────────── place order ───────────── */

@@ -114,6 +114,12 @@ export function SettingsForm({
             <Input name="reservationHours" type="number" min={0} max={720} step={1} inputMode="numeric" defaultValue={settings.reservationHours} className="tabular-nums" />
           </Field>
         </Card>
+
+        <Card title="Setup Builder" description="Customers who check out with a DMA card, a video fuser and an input device get this discount automatically. A discount code replaces it.">
+          <Field label="Setup discount (%)" name="setupDiscountPercent" hint="Use 0 to turn it off. Up to 50.">
+            <Input name="setupDiscountPercent" type="number" min={0} max={50} step={1} inputMode="numeric" defaultValue={settings.setupDiscountPercent} className="tabular-nums" />
+          </Field>
+        </Card>
       </div>
 
       <div className="space-y-4 xl:sticky xl:top-24 xl:self-start">

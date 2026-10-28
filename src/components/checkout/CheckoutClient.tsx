@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useRef, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertTriangle, Bitcoin, Check, CreditCard, Info, Loader2, Lock, ShoppingBag, Tag, Wallet, X } from "lucide-react";
-import { placeOrder, previewDiscount, type PlaceOrderResult } from "@/actions/store";
+import { placeOrder, previewDiscount, previewSetupDiscount, type PlaceOrderResult } from "@/actions/store";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { ButtonLink } from "@/components/ui/Button";
@@ -54,7 +54,21 @@ export function CheckoutClient({ demo }: { demo: boolean }) {
   }, []);
 
   const cartInput = lines.map((l) => ({ slug: l.slug, option: l.option, qty: l.qty }));
-  const discountCents = discount?.cents ?? 0;
+  const cartKey = JSON.stringify(cartInput);
+  // The server decides whether the cart is a complete setup; a code replaces the setup discount.
+  const [setupQuote, setSetupQuote] = useState<{ key: string; discount: { code: string; cents: number } | null } | null>(null);
+  const checkSetup = !demo && hydrated && !discount && lines.length > 0;
+  useEffect(() => {
+    if (!checkSetup) return;
+    let current = true;
+    previewSetupDiscount(JSON.parse(cartKey)).then((d) => current && setSetupQuote({ key: cartKey, discount: d }));
+    return () => {
+      current = false;
+    };
+  }, [cartKey, checkSetup]);
+  // Only trust a quote for the cart as it is now.
+  const setupDiscount = checkSetup && setupQuote?.key === cartKey ? setupQuote.discount : null;
+  const discountCents = (discount ?? setupDiscount)?.cents ?? 0;
   const shipping = subtotal >= settings.freeShippingThreshold || subtotal === 0 ? 0 : settings.flatShipping;
   const total = Math.max(0, subtotal - discountCents / 100) + shipping;
 
@@ -311,9 +325,9 @@ export function CheckoutClient({ demo }: { demo: boolean }) {
                 <dt className="text-muted">Subtotal</dt>
                 <dd>{formatPrice(subtotal)}</dd>
               </div>
-              {discount && (
+              {(discount ?? setupDiscount) && (
                 <div className="flex justify-between">
-                  <dt className="text-muted">Discount</dt>
+                  <dt className="text-muted">{discount ? "Discount" : `Setup discount (${settings.setupDiscountPercent}%)`}</dt>
                   <dd className="text-ok">−{formatPrice(discountCents / 100)}</dd>
                 </div>
               )}
