@@ -108,6 +108,15 @@ export function Select({ className, children, ...props }: ComponentProps<"select
   );
 }
 
+/** A select that submits its (GET) form as soon as it changes, for filter bars. */
+export function AutoSubmitSelect({ className, children, ...props }: Omit<ComponentProps<"select">, "onChange">) {
+  return (
+    <select className={cn(inputClass, "pr-8", className)} onChange={(e) => e.currentTarget.form?.requestSubmit()} {...props}>
+      {children}
+    </select>
+  );
+}
+
 export function Toggle({ name, label, defaultChecked, description }: { name: string; label: string; defaultChecked?: boolean; description?: string }) {
   return (
     <label className="flex cursor-pointer items-start gap-3">
