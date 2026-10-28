@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Check, HelpCircle, Info, Pencil, RotateCcw, Shop
 import type { Product, ProductVisual as Visual } from "@/lib/catalog/types";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { ProductVisual } from "@/components/product/ProductVisual";
+import { Kicker } from "@/components/ui/bits";
 import { Button } from "@/components/ui/Button";
 import { EASE_EXPO } from "@/components/ui/motion";
 import { useCart } from "@/lib/cart-store";
@@ -150,8 +151,28 @@ export function SetupBuilder({ products }: { products: Product[] }) {
   };
 
   return (
-    <section className="container-x pb-28">
+    <section id="build" className="container-x scroll-mt-28 pb-28">
       <div className="mx-auto max-w-5xl">
+        <header className="mb-10">
+          <Kicker>Setup builder</Kicker>
+          <h2 className="type-h2 mt-5">
+            {setupDiscountPercent > 0 ? (
+              <>
+                Configure your bundle,
+                <br />
+                <span className="text-gradient">save an extra {setupDiscountPercent}%.</span>
+              </>
+            ) : (
+              <>
+                Build your <span className="text-gradient">setup.</span>
+              </>
+            )}
+          </h2>
+          <p className="mt-4 max-w-2xl text-muted">
+            {"Answer four quick questions and we'll put together a complete setup for you."}
+            {setupDiscountPercent > 0 && ` Take the whole bundle and the extra ${setupDiscountPercent}% comes off automatically.`}
+          </p>
+        </header>
         <Progress step={step} onJump={go} />
 
         <div className="relative mt-8 overflow-hidden rounded-[28px] border border-line bg-ink-900/50 p-5 sm:p-8">

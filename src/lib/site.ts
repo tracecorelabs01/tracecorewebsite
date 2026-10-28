@@ -35,7 +35,7 @@ export const site = {
   ],
   nav: [
     { label: "Shop", href: "/shop" },
-    { label: "Setup Builder", href: "/build" },
+    { label: "Setup Builder", href: "/shop#build" },
     { label: "DMA Cards", href: "/shop?category=dma" },
     { label: "Ferrum", href: "/product/ferrum" },
     { label: "FAQ", href: "/faq" },

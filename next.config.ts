@@ -32,6 +32,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
+  // The setup builder now lives on the shop page.
+  async redirects() {
+    return [{ source: "/build", destination: "/shop#build", permanent: true }];
+  },
   cacheComponents: true,
   partialPrefetching: true,
   images: {
