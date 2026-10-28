@@ -7,6 +7,7 @@ import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { ArrowRight, Globe2, ShieldCheck, Truck } from "lucide-react";
 import { LogoMark } from "@/components/brand/Logo";
 import { FerrumShowcase } from "./FerrumShowcase";
+import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { Stars } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/Button";
 import { EASE_EXPO, Magnetic, RevealLines, pauseOffscreen } from "@/components/ui/motion";
@@ -27,6 +28,7 @@ function StaticMark() {
 
 export function Hero({ rating, ferrumPrice }: { rating: ReviewSummary | null; ferrumPrice?: number }) {
   const play = useUi((s) => s.introDone);
+  const { setupDiscountPercent } = useStoreSettings();
   const fade = (delay: number) => ({
     initial: { opacity: 0, y: 24 },
     animate: play ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 },
@@ -67,8 +69,8 @@ export function Hero({ rating, ferrumPrice }: { rating: ReviewSummary | null; fe
           />
 
           <motion.p {...fade(0.55)} className="mt-7 max-w-xl text-lg leading-relaxed text-muted">
-            FPGA-powered DMA cards, precision input devices and the accessories that tie them together — quality-checked by hand, shipped worldwide and backed by a
-            real support team.
+            FPGA-powered DMA cards, precision input devices and the accessories that tie them together — quality-checked by hand, shipped worldwide and backed by
+            24/7 support.
           </motion.p>
 
           <motion.div {...fade(0.68)} className="mt-9 flex flex-wrap items-center gap-3">
@@ -80,6 +82,21 @@ export function Hero({ rating, ferrumPrice }: { rating: ReviewSummary | null; fe
             <ButtonLink href="/product/ferrum" variant="ghost" size="lg">
               Meet Ferrum
             </ButtonLink>
+          </motion.div>
+
+          <motion.div {...fade(0.75)} className="mt-5">
+            <Link
+              href="/shop#build"
+              className="group inline-flex items-center gap-3 rounded-full border border-line-strong bg-ink-900/60 py-1.5 pl-1.5 pr-4 backdrop-blur transition-colors hover:border-blaze/60"
+            >
+              <span className="shrink-0 rounded-full bg-brand px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
+                {setupDiscountPercent > 0 ? "Bundle deal" : "Setup builder"}
+              </span>
+              <span className="text-sm text-fg/80">
+                {setupDiscountPercent > 0 ? `Configure your setup now and save an extra ${setupDiscountPercent}%` : "Configure your setup in four quick questions"}
+              </span>
+              <ArrowRight className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-1" />
+            </Link>
           </motion.div>
 
           <motion.ul {...fade(0.82)} className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 text-sm text-muted">
