@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ShoppingBag, Trash2, Truck, X } from "lucide-react";
+import { previewSetupDiscount } from "@/actions/store";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { QuantityStepper } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/Button";
@@ -25,7 +26,23 @@ export function CartDrawer() {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
 
-  const { freeShippingThreshold } = useStoreSettings();
+  const { freeShippingThreshold, setupDiscountPercent } = useStoreSettings();
+
+  // The server decides whether the cart is a complete setup, the same check checkout makes.
+  const cartKey = JSON.stringify(lines.map((l) => ({ slug: l.slug, option: l.option, qty: l.qty })));
+  const [setupQuote, setSetupQuote] = useState<{ key: string; cents: number } | null>(null);
+  useEffect(() => {
+    if (!open || cartKey === "[]" || setupDiscountPercent <= 0) return;
+    let current = true;
+    previewSetupDiscount(JSON.parse(cartKey))
+      .then((d) => current && setSetupQuote({ key: cartKey, cents: d?.cents ?? 0 }))
+      .catch(() => {});
+    return () => {
+      current = false;
+    };
+  }, [open, cartKey, setupDiscountPercent]);
+  // Only trust a quote for the cart as it is now.
+  const setupCents = setupQuote?.key === cartKey ? setupQuote.cents : 0;
   const remaining = Math.max(0, freeShippingThreshold - subtotal);
   const progress = freeShippingThreshold > 0 ? Math.min(1, subtotal / freeShippingThreshold) : 1;
 
@@ -162,9 +179,21 @@ export function CartDrawer() {
 
             {lines.length > 0 && (
               <footer className="relative border-t border-line bg-ink-950/60 px-6 pb-6 pt-5">
+                {setupCents > 0 && (
+                  <div className="mb-3 space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted">Subtotal</span>
+                      <span>{formatPrice(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-ok">
+                      <span>Setup discount ({setupDiscountPercent}%)</span>
+                      <span>−{formatPrice(setupCents / 100)}</span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-baseline justify-between">
-                  <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Subtotal</span>
-                  <span className="font-display text-3xl">{formatPrice(subtotal)}</span>
+                  <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted">{setupCents > 0 ? "Total" : "Subtotal"}</span>
+                  <span className="font-display text-3xl">{formatPrice(subtotal - setupCents / 100)}</span>
                 </div>
                 <p className="mt-1 text-xs text-dim">Shipping and taxes calculated at checkout.</p>
                 <ButtonLink href="/checkout" onClick={close} size="lg" className="mt-5 w-full">
