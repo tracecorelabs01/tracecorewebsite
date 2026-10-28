@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Star } from "lucide-react";
+import { bulkModerateReviews } from "@/actions/admin/reviews";
+import { BulkForm, BulkSelectAll, type BulkAction } from "@/components/admin/BulkForm";
 import { AddReviewForm } from "@/components/admin/community/AddReviewForm";
 import { ReviewCard } from "@/components/admin/community/ReviewCard";
 import { Card, EmptyState, FilterTabs, PageHeader, Pagination, qs } from "@/components/admin/ui";
@@ -18,6 +20,12 @@ const EMPTY: Record<ReviewStatus | "all", { title: string; description: string }
   rejected: { title: "No rejected reviews", description: "Reviews you reject stay here, hidden from the storefront." },
   all: { title: "No reviews yet", description: "Reviews from customers will show up here." },
 };
+
+const bulkActions: BulkAction[] = [
+  { value: "approved", label: "Approve (publish)" },
+  { value: "rejected", label: "Reject (hide)" },
+  { value: "delete", label: "Delete", confirm: "Delete {n}? This can't be undone." },
+];
 
 export default async function ReviewsPage({ searchParams }: PageProps<"/admin/reviews">) {
   const user = await requireAdmin("staff");
@@ -47,22 +55,33 @@ export default async function ReviewsPage({ searchParams }: PageProps<"/admin/re
 
       <div className={cn("grid gap-4", canAdd && "xl:grid-cols-3")}>
         <div className={cn("space-y-3", canAdd && "xl:col-span-2")}>
-          {rows.length === 0 ? (
-            <Card>
-              <EmptyState
-                icon={<Star className="size-5" />}
-                title={empty.title}
-                description={status === "all" && canAdd ? "Add genuine reviews from Trustpilot, Discord or email with the form." : empty.description}
-              />
-            </Card>
-          ) : (
-            rows.map((r) => <ReviewCard key={r.id} review={r} />)
-          )}
-          {pageCount > 1 && (
-            <Card padded={false} className="[&_nav]:border-t-0">
-              <Pagination page={page} pageCount={pageCount} href={(n) => `/admin/reviews${qs({ status: statusParam, page: n })}`} />
-            </Card>
-          )}
+          <BulkForm key={`${status}|${page}`} ids={rows.map((r) => r.id)} actions={bulkActions} run={bulkModerateReviews} noun={["review", "reviews"]}>
+            {rows.length === 0 ? (
+              <Card>
+                <EmptyState
+                  icon={<Star className="size-5" />}
+                  title={empty.title}
+                  description={status === "all" && canAdd ? "Add genuine reviews from Trustpilot, Discord or email with the form." : empty.description}
+                />
+              </Card>
+            ) : (
+              <>
+                <label className="mb-3 flex w-fit cursor-pointer items-center gap-2.5 px-1 text-sm text-muted">
+                  <BulkSelectAll /> Select all on this page
+                </label>
+                <div className="space-y-3">
+                  {rows.map((r) => (
+                    <ReviewCard key={r.id} review={r} />
+                  ))}
+                </div>
+                {pageCount > 1 && (
+                  <Card padded={false} className="mt-3 [&_nav]:border-t-0">
+                    <Pagination page={page} pageCount={pageCount} href={(n) => `/admin/reviews${qs({ status: statusParam, page: n })}`} />
+                  </Card>
+                )}
+              </>
+            )}
+          </BulkForm>
         </div>
 
         {canAdd && (

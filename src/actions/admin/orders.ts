@@ -5,8 +5,9 @@ import { asc, eq } from "drizzle-orm";
 import type { ActionState } from "@/components/admin/forms";
 import { getDb, orderEvents, orderItems, orders } from "@/db";
 import { logActivity } from "@/lib/admin/audit";
+import { bulkInput } from "@/lib/admin/format";
 import { plural, restockItems, wasRestocked, type NewEvent, type Tx } from "@/lib/admin/order-stock";
-import { addressLines, isOrderStatus, isPaymentStatus, type OrderStatus } from "@/lib/admin/orders";
+import { addressLines, isOrderStatus, isPaymentStatus, type OrderStatus, type PaymentStatus } from "@/lib/admin/orders";
 import { requireAdmin, type AdminUser } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
 import { sendShippingEmail } from "@/lib/email";
@@ -94,12 +95,20 @@ async function notifyShipped(orderId: number, user: AdminUser) {
 
 /* ───────────── status ───────────── */
 
+/** What happened to one order; `changed` is false when nothing was written. */
+type Outcome = { ok: boolean; message: string; changed: boolean };
+
 export async function updateOrderStatus(orderId: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin("staff");
   const to = str(fd.get("status"));
   if (!isOrderStatus(to)) return { ok: false, message: "Choose a status.", fieldErrors: { status: "Choose a status." } };
-  const restock = fd.get("restock") === "on";
+  const { ok, message, changed } = await changeStatus(user, orderId, to, fd.get("restock") === "on");
+  if (changed) refresh();
+  return { ok, message };
+}
 
+/** Move one order to `to` with all its side effects (timeline, restock, shipping email). The caller refreshes the page. */
+async function changeStatus(user: AdminUser, orderId: number, to: OrderStatus, restock: boolean): Promise<Outcome> {
   const result = await getDb().transaction(async (tx) => {
     const order = await lockOrder(tx, orderId);
     if (!order) return halt(false, "Order not found.");
@@ -123,18 +132,17 @@ export async function updateOrderStatus(orderId: number, _prev: ActionState, fd:
     await addEvents(tx, orderId, user, events);
     return { halted: false as const, order, restocked, notes };
   });
-  if (result.halted) return result.state;
+  if (result.halted) return { ...result.state, changed: false };
 
   const { order, restocked, notes } = result;
   await logActivity(user, "update", "order", orderId, `Order ${order.number}: ${order.status} → ${to}${restocked ? `, restocked ${plural(restocked, "unit")}` : ""}`);
   if (restocked) updateTag(TAGS.catalog);
   // Customers hear about it once: no new "shipped" email when correcting a delivered order.
   const emailed = to === "shipped" && order.status !== "delivered" && (await notifyShipped(orderId, user));
-  refresh();
 
   const parts = [restocked ? `Status updated — ${plural(restocked, "unit")} restocked.` : "Status updated.", ...notes];
   if (emailed) parts.push("Shipping confirmation emailed.");
-  return { ok: true, message: parts.join(" ") };
+  return { ok: true, message: parts.join(" "), changed: true };
 }
 
 /* ───────────── payment ───────────── */
@@ -145,25 +153,34 @@ export async function updatePayment(orderId: number, _prev: ActionState, fd: For
   const ref = str(fd.get("paymentRef"));
   if (!isPaymentStatus(to)) return { ok: false, message: "Choose a payment status.", fieldErrors: { paymentStatus: "Choose a payment status." } };
   if (ref.length > 191) return { ok: false, message: "That reference is too long.", fieldErrors: { paymentRef: "Keep it under 191 characters." } };
-  const advance = fd.get("advance") === "on";
+  const { ok, message, changed } = await changePayment(user, orderId, to, ref, fd.get("advance") === "on");
+  if (changed) refresh();
+  return { ok, message };
+}
 
+/**
+ * Set one order's payment status. `ref` replaces the payment reference; pass undefined to keep it.
+ * With `advance`, a pending order marked paid moves to processing. The caller refreshes the page.
+ */
+async function changePayment(user: AdminUser, orderId: number, to: PaymentStatus, ref: string | undefined, advance: boolean): Promise<Outcome> {
   const result = await getDb().transaction(async (tx) => {
     const order = await lockOrder(tx, orderId);
     if (!order) return halt(false, "Order not found.");
+    const nextRef = ref === undefined ? order.paymentRef : ref || null;
     const statusChanged = order.paymentStatus !== to;
-    const refChanged = (ref || null) !== order.paymentRef;
+    const refChanged = nextRef !== order.paymentRef;
     if (!statusChanged && !refChanged) return halt(true, "No changes to save.");
 
     const now = new Date();
-    const patch: OrderPatch = { paymentStatus: to, paymentRef: ref || null };
+    const patch: OrderPatch = { paymentStatus: to, paymentRef: nextRef };
     const events: NewEvent[] = [];
     if (statusChanged) {
       // paid_at records when money arrived: kept through a refund, cleared if it turns out it never did.
       if (to === "paid") patch.paidAt = now;
       else if (to === "unpaid" || to === "failed") patch.paidAt = null;
-      events.push({ type: "payment", message: `Payment changed: ${order.paymentStatus} → ${to}${ref ? ` · ref ${ref}` : ""}` });
+      events.push({ type: "payment", message: `Payment changed: ${order.paymentStatus} → ${to}${nextRef ? ` · ref ${nextRef}` : ""}` });
     } else {
-      events.push({ type: "payment", message: ref ? `Payment reference ${order.paymentRef ? "updated" : "added"}: ${ref}` : "Payment reference removed" });
+      events.push({ type: "payment", message: nextRef ? `Payment reference ${order.paymentRef ? "updated" : "added"}: ${nextRef}` : "Payment reference removed" });
     }
     const moved = advance && statusChanged && to === "paid" && order.status === "pending";
     if (moved) {
@@ -174,7 +191,7 @@ export async function updatePayment(orderId: number, _prev: ActionState, fd: For
     await addEvents(tx, orderId, user, events);
     return { halted: false as const, order, statusChanged, moved };
   });
-  if (result.halted) return result.state;
+  if (result.halted) return { ...result.state, changed: false };
 
   const { order, statusChanged, moved } = result;
   await logActivity(
@@ -184,9 +201,34 @@ export async function updatePayment(orderId: number, _prev: ActionState, fd: For
     orderId,
     statusChanged ? `Order ${order.number}: payment ${order.paymentStatus} → ${to}${moved ? ", moved to processing" : ""}` : `Order ${order.number}: payment reference updated`,
   );
-  refresh();
-  if (moved) return { ok: true, message: "Payment marked paid — order moved to processing." };
-  return { ok: true, message: statusChanged ? "Payment updated." : "Payment reference saved." };
+  if (moved) return { ok: true, message: "Payment marked paid — order moved to processing.", changed: true };
+  return { ok: true, message: statusChanged ? "Payment updated." : "Payment reference saved.", changed: true };
+}
+
+/* ───────────── bulk edit ───────────── */
+
+/** Apply one status or payment change to several orders, each with the same rules and side effects as doing it by hand. */
+export async function bulkUpdateOrders(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireAdmin("staff");
+  const { ids, action } = bulkInput(fd);
+  if (!ids.length) return { ok: false, message: "Select at least one order." };
+
+  let apply: (id: number) => Promise<Outcome>;
+  if (action === "status:cancelled+restock") apply = (id) => changeStatus(user, id, "cancelled", true);
+  else if (action.startsWith("status:") && isOrderStatus(action.slice(7))) apply = (id) => changeStatus(user, id, action.slice(7) as OrderStatus, false);
+  else if (action.startsWith("payment:") && isPaymentStatus(action.slice(8))) apply = (id) => changePayment(user, id, action.slice(8) as PaymentStatus, undefined, true);
+  else return { ok: false, message: "Choose an action." };
+
+  // One at a time: each order is its own transaction, exactly as when edited by hand.
+  const outcomes: Outcome[] = [];
+  for (const id of ids) outcomes.push(await apply(id));
+  const changed = outcomes.filter((o) => o.changed).length;
+  if (changed) refresh();
+
+  const skipped = outcomes.filter((o) => !o.changed);
+  const reasons = [...new Set(skipped.map((o) => o.message))].slice(0, 3).join(" ");
+  const message = `Updated ${changed} of ${plural(ids.length, "order")}.${skipped.length ? ` Skipped ${skipped.length}: ${reasons}` : ""}`;
+  return { ok: changed > 0, message };
 }
 
 /* ───────────── shipping ───────────── */

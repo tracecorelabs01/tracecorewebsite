@@ -1,13 +1,13 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, asc, eq, max, ne, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, max, ne, sql } from "drizzle-orm";
 import sharp from "sharp";
 import type { ActionState } from "@/components/admin/forms";
 import { categories, getDb, productImages, products } from "@/db";
 import { logActivity } from "@/lib/admin/audit";
-import { lines, parseCents, slugify } from "@/lib/admin/format";
+import { bulkInput, lines, parseCents, slugify } from "@/lib/admin/format";
 import { requireAdmin } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
 import { ART_KEYS } from "@/lib/catalog/types";
@@ -130,6 +130,76 @@ export async function deleteProduct(productId: number) {
   await logActivity(user, "delete", "product", productId, `Deleted product ${p?.name ?? productId}`);
   updateTag(TAGS.catalog);
   redirect("/admin/products?deleted=1");
+}
+
+/* ───────────── bulk edit ───────────── */
+
+export async function bulkUpdateProducts(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireAdmin("admin");
+  const { ids, action, value } = bulkInput(fd);
+  if (!ids.length) return { ok: false, message: "Select at least one product." };
+  const db = getDb();
+  const rows = await db.select({ id: products.id, name: products.name }).from(products).where(inArray(products.id, ids));
+  if (!rows.length) return { ok: false, message: "Those products no longer exist." };
+  const where = inArray(
+    products.id,
+    rows.map((r) => r.id),
+  );
+  const n = `${rows.length} product${rows.length === 1 ? "" : "s"}`;
+  const num = Number(value);
+  let done: string;
+
+  if (action.startsWith("status:")) {
+    const status = action.slice(7) as (typeof STATUSES)[number];
+    if (!STATUSES.includes(status)) return { ok: false, message: "Choose an action." };
+    await db.update(products).set({ status }).where(where);
+    done = `Set ${n} to ${status}`;
+  } else if (action === "category") {
+    let category: { id: number; name: string } | null = null;
+    if (value !== "none") {
+      [category] = Number.isInteger(num) ? await db.select({ id: categories.id, name: categories.name }).from(categories).where(eq(categories.id, num)).limit(1) : [];
+      if (!category) return { ok: false, message: "Choose a category." };
+    }
+    await db
+      .update(products)
+      .set({ categoryId: category?.id ?? null })
+      .where(where);
+    done = category ? `Moved ${n} to ${category.name}` : `Removed ${n} from their category`;
+  } else if (action === "featured:on" || action === "featured:off") {
+    await db.update(products).set({ featured: action === "featured:on" }).where(where);
+    done = `${action === "featured:on" ? "Featured" : "Unfeatured"} ${n}`;
+  } else if (action === "stock-set") {
+    if (!value || !Number.isInteger(num) || num < -9999 || num > 1_000_000) return { ok: false, message: "Enter a whole number for stock." };
+    await db.update(products).set({ stockQty: num }).where(where);
+    done = `Set stock to ${num} on ${n}`;
+  } else if (action === "stock-adjust") {
+    if (!value || !Number.isInteger(num) || num === 0 || Math.abs(num) > 1_000_000) return { ok: false, message: "Enter a whole number to add or remove, e.g. 10 or -5." };
+    await db
+      .update(products)
+      .set({ stockQty: sql`GREATEST(-9999, LEAST(${products.stockQty} + ${num}, 1000000))` })
+      .where(where);
+    done = `Adjusted stock by ${num > 0 ? "+" : ""}${num} on ${n}`;
+  } else if (action === "price-percent") {
+    if (!value || !Number.isFinite(num) || num === 0 || num < -90 || num > 500) return { ok: false, message: "Enter a percentage between -90 and 500, e.g. -10 for 10% off." };
+    await db
+      .update(products)
+      .set({ priceCents: sql`GREATEST(0, ROUND(${products.priceCents} * ${100 + num} / 100))` })
+      .where(where);
+    done = `Changed price by ${num > 0 ? "+" : ""}${num}% on ${n}`;
+  } else if (action === "delete") {
+    const images = await db.select({ key: productImages.storageKey }).from(productImages).where(inArray(productImages.productId, rows.map((r) => r.id)));
+    // Order history keeps its snapshot (product_id is set to NULL on delete).
+    await db.delete(products).where(where);
+    await Promise.all(images.map((i) => (i.key ? deleteObject(i.key) : null)));
+    done = `Deleted ${n}`;
+  } else {
+    return { ok: false, message: "Choose an action." };
+  }
+
+  await logActivity(user, action === "delete" ? "delete" : action.startsWith("stock") ? "stock" : "update", "product", null, `Bulk: ${done}: ${rows.map((r) => r.name).join(", ")}`);
+  updateTag(TAGS.catalog);
+  refresh();
+  return { ok: true, message: `${done}.` };
 }
 
 /* ───────────── images ───────────── */

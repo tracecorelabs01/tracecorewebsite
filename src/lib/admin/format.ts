@@ -59,3 +59,12 @@ export function pageParam(value: string | string[] | undefined) {
   const n = Number(param(value));
   return Number.isInteger(n) && n > 0 ? n : 1;
 }
+
+/** Most rows one bulk action may touch (a page of results is 25). */
+export const BULK_MAX = 100;
+
+/** The selected row ids, chosen action and its value from a bulk-edit form. Ids are deduped, positive integers only. */
+export function bulkInput(fd: FormData) {
+  const ids = [...new Set(fd.getAll("ids").map((v) => Number(v)))].filter((n) => Number.isInteger(n) && n > 0).slice(0, BULK_MAX);
+  return { ids, action: String(fd.get("action") ?? ""), value: String(fd.get("value") ?? "").trim() };
+}

@@ -2,12 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Package, Plus, Star } from "lucide-react";
+import { bulkUpdateProducts } from "@/actions/admin/products";
+import { BulkCheckbox, BulkForm, BulkSelectAll, type BulkAction } from "@/components/admin/BulkForm";
 import { Badge, Card, EmptyState, FilterTabs, LinkButton, PageHeader, Pagination, qs, SearchBox, Table, Td, Th } from "@/components/admin/ui";
 import { StockBadge } from "@/components/admin/StockBadge";
 import { ProductArt } from "@/components/product/ProductArt";
 import { ART_KEYS, type ArtKey } from "@/lib/catalog/types";
 import { money, pageParam, param, shortDate } from "@/lib/admin/format";
-import { listProducts } from "@/lib/admin/products";
+import { listCategories, listProducts } from "@/lib/admin/products";
 import { requireAdmin } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Products" };
@@ -20,9 +22,21 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
   const q = param(sp.q)?.trim() || undefined;
   const status = param(sp.status);
   const page = pageParam(sp.page);
-  const { rows, total, pageCount, counts } = await listProducts({ q, status, page });
+  const [{ rows, total, pageCount, counts }, cats] = await Promise.all([listProducts({ q, status, page }), listCategories()]);
+  const bulkActions: BulkAction[] = [
+    { value: "status:active", label: "Publish (set active)" },
+    { value: "status:draft", label: "Set to draft" },
+    { value: "status:archived", label: "Archive" },
+    { value: "category", label: "Move to category", input: { label: "Category", type: "select", options: [...cats.map((c) => ({ value: String(c.id), label: c.name })), { value: "none", label: "No category" }] } },
+    { value: "stock-set", label: "Set stock to", input: { label: "Units", type: "number", min: -9999, max: 1_000_000, placeholder: "e.g. 25" } },
+    { value: "stock-adjust", label: "Add / remove stock", input: { label: "Change", type: "number", placeholder: "e.g. 10 or -5" } },
+    { value: "price-percent", label: "Change price by %", input: { label: "Percent", type: "number", min: -90, max: 500, step: 0.5, placeholder: "e.g. -10" } },
+    { value: "featured:on", label: "Feature on homepage" },
+    { value: "featured:off", label: "Remove from featured" },
+    { value: "delete", label: "Delete", confirm: "Delete {n}? Their photos are removed too. Past orders keep their details. This can't be undone." },
+  ];
 
-  const tab = (label: string, value?: string) => ({ label, href: `/admin/products${qs({ status: value, q })}`, active: status === value, count: counts[value ?? "all"] ?? 0 });
+  const tab =(label: string, value?: string) => ({ label, href: `/admin/products${qs({ status: value, q })}`, active: status === value, count: counts[value ?? "all"] ?? 0 });
 
   return (
     <>
@@ -41,6 +55,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
         <SearchBox action="/admin/products" defaultValue={q} placeholder="Search name or slug" keep={{ status }} />
       </div>
 
+      <BulkForm key={`${status}|${q}|${page}`} ids={rows.map((p) => p.id)} actions={bulkActions} run={bulkUpdateProducts} noun={["product", "products"]}>
       <Card padded={false}>
         {rows.length === 0 ? (
           <EmptyState
@@ -54,6 +69,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
             <Table>
               <thead>
                 <tr>
+                  <Th className="w-10">
+                    <BulkSelectAll />
+                  </Th>
                   <Th className="w-16" />
                   <Th>Product</Th>
                   <Th>Category</Th>
@@ -66,6 +84,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
               <tbody>
                 {rows.map((p) => (
                   <tr key={p.id} className="transition-colors hover:bg-white/[0.02]">
+                    <Td>
+                      <BulkCheckbox id={p.id} label={p.name} />
+                    </Td>
                     <Td>
                       <div className="relative size-11 overflow-hidden rounded-lg border border-line bg-ink-950">
                         {p.thumb ? (
@@ -103,6 +124,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
           </>
         )}
       </Card>
+      </BulkForm>
     </>
   );
 }

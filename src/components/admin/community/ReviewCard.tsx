@@ -1,5 +1,6 @@
 import { Check, Trash2, X } from "lucide-react";
 import { deleteReview, setReviewStatus } from "@/actions/admin/reviews";
+import { BulkCheckbox } from "@/components/admin/BulkForm";
 import { ConfirmButton } from "@/components/admin/forms";
 import { Badge, Card } from "@/components/admin/ui";
 import { shortDate } from "@/lib/admin/format";
@@ -25,7 +26,10 @@ export function ReviewCard({ review: r }: { review: Review }) {
     <Card>
       <article>
         <header className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
+          <div className="pt-0.5 empty:hidden">
+            <BulkCheckbox id={r.id} label={`review from ${r.name}`} />
+          </div>
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <Stars rating={r.rating} />
               <span className="font-medium text-fg">{r.name}</span>

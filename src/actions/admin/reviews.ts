@@ -1,10 +1,11 @@
 "use server";
 
-import { updateTag } from "next/cache";
-import { eq } from "drizzle-orm";
+import { refresh, updateTag } from "next/cache";
+import { eq, inArray } from "drizzle-orm";
 import type { ActionState } from "@/components/admin/forms";
 import { getDb, products, reviews } from "@/db";
 import { logActivity } from "@/lib/admin/audit";
+import { bulkInput } from "@/lib/admin/format";
 import { requireAdmin } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
 
@@ -41,6 +42,28 @@ export async function deleteReview(reviewId: number) {
     await logActivity(user, "delete", "review", reviewId, `Deleted ${r.rating}-star review from ${r.name}`);
   }
   refreshStorefront();
+}
+
+export async function bulkModerateReviews(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireAdmin("staff");
+  const { ids, action } = bulkInput(fd);
+  if (!ids.length) return { ok: false, message: "Select at least one review." };
+  if (action !== "approved" && action !== "rejected" && action !== "delete") return { ok: false, message: "Choose an action." };
+  const db = getDb();
+  const rows = await db.select({ id: reviews.id, name: reviews.name, rating: reviews.rating }).from(reviews).where(inArray(reviews.id, ids));
+  if (!rows.length) return { ok: false, message: "Those reviews no longer exist." };
+  const where = inArray(
+    reviews.id,
+    rows.map((r) => r.id),
+  );
+  const n = `${rows.length} review${rows.length === 1 ? "" : "s"}`;
+  if (action === "delete") await db.delete(reviews).where(where);
+  else await db.update(reviews).set({ status: action }).where(where);
+  const done = action === "delete" ? `Deleted ${n}` : `${action === "approved" ? "Approved" : "Rejected"} ${n}`;
+  await logActivity(user, action === "delete" ? "delete" : action === "approved" ? "approve" : "reject", "review", null, `Bulk: ${done}: ${rows.map((r) => `${r.rating}★ ${r.name}`).join(", ")}`);
+  refreshStorefront();
+  refresh();
+  return { ok: true, message: `${done}.` };
 }
 
 /** Import a genuine review received elsewhere (Trustpilot, Discord, email). Published straight away. */

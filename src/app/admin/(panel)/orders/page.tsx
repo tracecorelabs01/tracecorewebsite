@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Download, Receipt } from "lucide-react";
+import { bulkUpdateOrders } from "@/actions/admin/orders";
+import { BulkCheckbox, BulkForm, BulkSelectAll, type BulkAction } from "@/components/admin/BulkForm";
 import { Card, EmptyState, FilterTabs, LinkButton, OrderStatusBadge, PageHeader, Pagination, PaymentBadge, qs, SearchBox, Table, Td, Th } from "@/components/admin/ui";
 import { ORDER_STATUSES, PAYMENT_STATUSES } from "@/db";
 import { money, pageParam, param, shortDate } from "@/lib/admin/format";
@@ -12,6 +14,17 @@ export const metadata: Metadata = { title: "Orders" };
 export const instant = false;
 
 const label = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const bulkActions: BulkAction[] = [
+  { value: "payment:paid", label: "Mark paid (pending → processing)" },
+  { value: "status:processing", label: "Mark processing" },
+  { value: "status:shipped", label: "Mark shipped (emails customers)" },
+  { value: "status:delivered", label: "Mark delivered" },
+  { value: "status:cancelled+restock", label: "Cancel and restock", confirm: "Cancel {n} and put their items back in stock?" },
+  { value: "status:cancelled", label: "Cancel without restocking", confirm: "Cancel {n} without returning their stock?" },
+  { value: "payment:unpaid", label: "Mark unpaid" },
+  { value: "payment:refunded", label: "Mark payment refunded" },
+];
 
 export default async function OrdersPage({ searchParams }: PageProps<"/admin/orders">) {
   await requireAdmin("staff");
@@ -60,6 +73,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
         </div>
       </div>
 
+      <BulkForm key={`${status}|${payment}|${q}|${page}`} ids={rows.map((o) => o.id)} actions={bulkActions} run={bulkUpdateOrders} noun={["order", "orders"]}>
       <Card padded={false}>
         {rows.length === 0 ? (
           <EmptyState
@@ -79,6 +93,9 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
             <Table>
               <thead>
                 <tr>
+                  <Th className="w-10">
+                    <BulkSelectAll />
+                  </Th>
                   <Th>Order</Th>
                   <Th>Customer</Th>
                   <Th>Items</Th>
@@ -90,6 +107,9 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
               <tbody>
                 {rows.map((o) => (
                   <tr key={o.id} className="transition-colors hover:bg-white/[0.02]">
+                    <Td>
+                      <BulkCheckbox id={o.id} label={`order ${o.number}`} />
+                    </Td>
                     <Td>
                       <Link href={`/admin/orders/${o.id}`} className="font-mono text-sm text-fg hover:text-amber">
                         {o.number}
@@ -120,6 +140,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
           </>
         )}
       </Card>
+      </BulkForm>
     </>
   );
 }
