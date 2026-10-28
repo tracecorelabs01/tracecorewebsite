@@ -39,10 +39,14 @@ export async function getReviewsData(): Promise<{ reviews: PublicReview[]; summa
 
 /* ───────────── cached loaders ───────────── */
 
+// "minutes": pages are sent with s-maxage=60. Hostinger's CDN honours it, so a longer life would keep
+// serving old pages after an admin change (updateTag only refreshes this server, not the CDN).
+const STOREFRONT_CACHE = "minutes";
+
 async function loadCatalog(): Promise<Catalog> {
   "use cache";
   cacheTag(TAGS.catalog);
-  cacheLife("hours");
+  cacheLife(STOREFRONT_CACHE);
 
   const db = getDb();
   const [cats, rows, images, ratings] = await Promise.all([
@@ -109,7 +113,7 @@ export function stockStatus(row: { trackInventory: boolean; stockQty: number; lo
 async function loadSettings(): Promise<StoreSettings> {
   "use cache";
   cacheTag(TAGS.settings);
-  cacheLife("hours");
+  cacheLife(STOREFRONT_CACHE);
   const [row] = await getDb().select().from(settingsT).where(eq(settingsT.key, "store")).limit(1);
   return resolveSettings(row?.value);
 }
@@ -117,7 +121,7 @@ async function loadSettings(): Promise<StoreSettings> {
 async function loadReviews(): Promise<{ reviews: PublicReview[]; summary: ReviewSummary | null }> {
   "use cache";
   cacheTag(TAGS.reviews);
-  cacheLife("hours");
+  cacheLife(STOREFRONT_CACHE);
   const db = getDb();
   const [rows, [agg]] = await Promise.all([
     db

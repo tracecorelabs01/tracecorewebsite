@@ -6,7 +6,7 @@ import { SETUP_PRODUCT_SLUGS } from "@/lib/setup-builder";
 
 export const metadata: Metadata = {
   title: "Setup Builder",
-  description: "Answer five quick questions about your PC and display, and we'll put together the DMA card, fuser and controller that fit.",
+  description: "Answer four quick questions and we'll put together a complete DMA setup that fits your budget and your monitor.",
 };
 
 export default async function BuildPage() {
@@ -22,7 +22,7 @@ export default async function BuildPage() {
             setup.
           </span>,
         ]}
-        description="Tell us about your PC and display. We'll match the card, fuser and controller that fit, with a discount when you take the full setup."
+        description="Not sure what you need? Answer four quick questions and we'll put together the right setup for you, with a discount when you take the whole thing."
       />
       <SetupBuilder products={products.filter((p) => SETUP_PRODUCT_SLUGS.has(p.slug))} />
     </>
