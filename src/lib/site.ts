@@ -41,7 +41,7 @@ export const site = {
     { label: "FAQ", href: "/faq" },
     { label: "Support", href: "/support" },
   ],
-  payments: ["Visa", "Mastercard", "Amex", "PayPal", "Apple Pay", "Crypto"],
+  payments: ["Visa", "Mastercard", "PayPal", "Crypto"],
 } as const;
 
 export type Site = typeof site;

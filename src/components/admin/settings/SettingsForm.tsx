@@ -97,8 +97,8 @@ export function SettingsForm({
           </div>
         </Card>
 
-        <Card title="Payment methods" description="Shown as badges in the footer — list only what you accept.">
-          <Field label="Methods" name="payments" hint="One per line, up to 10 (30 characters each).">
+        <Card title="Payment methods" description="Shown as logos in the footer, on the shop page and at checkout. List only what you accept.">
+          <Field label="Methods" name="payments" hint="One per line, up to 10. These get their logo: Visa, Mastercard, Amex, PayPal, Apple Pay, Google Pay, Razorpay, Bitcoin, Ethereum, USDT, Litecoin, and Crypto (shows BTC, ETH, USDT and LTC). Anything else shows as text.">
             <Textarea name="payments" defaultValue={settings.payments.join("\n")} rows={4} placeholder={"Visa\nMastercard\nPayPal"} />
           </Field>
         </Card>

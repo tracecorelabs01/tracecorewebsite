@@ -5,6 +5,7 @@ import { useActionState, useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { LogoMark } from "@/components/brand/Logo";
+import { PaymentLogos, TrustBadges } from "@/components/ui/Badges";
 import { ButtonLink } from "@/components/ui/Button";
 import { DiscordIcon, TikTokIcon, XIcon, YouTubeIcon } from "@/components/ui/icons";
 import { Magnetic, RevealLines } from "@/components/ui/motion";
@@ -117,13 +118,13 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-16 flex flex-col gap-6 border-t border-line py-8 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {settings.payments.map((p) => (
-              <span key={p} className="rounded-md border border-line-strong bg-ink-850 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-                {p}
-              </span>
-            ))}
+        <TrustBadges className="mt-16 border-t border-line pt-10" />
+
+        <div className="mt-10 flex flex-col gap-6 border-t border-line py-8 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h3 className="type-kicker text-dim">Accepted payment methods</h3>
+            <PaymentLogos className="mt-4" />
+            <p className="mt-3 text-xs text-dim">Cards are processed securely by Razorpay. PayPal and crypto payment details are sent after checkout.</p>
           </div>
           <div className="flex items-center gap-1">
             {socials.map(({ href, Icon, label }) => (

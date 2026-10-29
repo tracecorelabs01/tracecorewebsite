@@ -8,6 +8,7 @@ import { confirmPayment, startPayment } from "@/actions/payment";
 import { placeOrder, previewDiscount, previewSetupDiscount, type PlaceOrderResult } from "@/actions/store";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { ProductVisual } from "@/components/product/ProductVisual";
+import { PaymentLogos, TrustBadges } from "@/components/ui/Badges";
 import { ButtonLink } from "@/components/ui/Button";
 import { EASE_EXPO } from "@/components/ui/motion";
 import { selectSubtotal, useCart } from "@/lib/cart-store";
@@ -433,6 +434,10 @@ export function CheckoutClient({ demo, cardOnline }: { demo: boolean; cardOnline
               </Link>
               .
             </p>
+            <div className="mt-5 space-y-4 border-t border-line pt-5">
+              <PaymentLogos size="sm" className="justify-center" />
+              <TrustBadges compact />
+            </div>
           </div>
         </aside>
       </form>
