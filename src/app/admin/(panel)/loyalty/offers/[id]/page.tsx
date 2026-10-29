@@ -5,7 +5,7 @@ import { deleteOffer, saveOffer } from "@/actions/admin/loyalty";
 import { ConfirmButton } from "@/components/admin/forms";
 import { LoyaltyOfferForm } from "@/components/admin/LoyaltyOfferForm";
 import { Card, PageHeader } from "@/components/admin/ui";
-import { getOffer } from "@/lib/admin/loyalty";
+import { getOffer, listOfferProducts } from "@/lib/admin/loyalty";
 import { requireAdmin } from "@/lib/auth/session";
 import { rewardLabel } from "@/lib/loyalty";
 
@@ -18,7 +18,7 @@ export default async function EditOfferPage({ params }: PageProps<"/admin/loyalt
   const { id } = await params;
   const offerId = Number(id);
   if (!Number.isInteger(offerId) || offerId < 1) notFound();
-  const offer = await getOffer(offerId);
+  const [offer, products] = await Promise.all([getOffer(offerId), listOfferProducts()]);
   if (!offer) notFound();
 
   return (
@@ -34,7 +34,7 @@ export default async function EditOfferPage({ params }: PageProps<"/admin/loyalt
         }
       />
       <Card title="Offer details" description="Changes apply to future redemptions. Codes already issued keep the reward they were redeemed for.">
-        <LoyaltyOfferForm action={saveOffer.bind(null, offer.id)} offer={offer} />
+        <LoyaltyOfferForm action={saveOffer.bind(null, offer.id)} offer={offer} products={products} />
       </Card>
     </>
   );

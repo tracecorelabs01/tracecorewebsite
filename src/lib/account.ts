@@ -90,7 +90,7 @@ export function listActiveOffers() {
 /** Reward codes this customer redeemed, newest first. */
 export function listMyCodes(customerId: number) {
   return getDb()
-    .select({ code: discountCodes.code, kind: discountCodes.kind, value: discountCodes.value, minSubtotalCents: discountCodes.minSubtotalCents, usedCount: discountCodes.usedCount, maxUses: discountCodes.maxUses, isActive: discountCodes.isActive, createdAt: discountCodes.createdAt })
+    .select({ code: discountCodes.code, kind: discountCodes.kind, value: discountCodes.value, minSubtotalCents: discountCodes.minSubtotalCents, productIds: discountCodes.productIds, usedCount: discountCodes.usedCount, maxUses: discountCodes.maxUses, isActive: discountCodes.isActive, createdAt: discountCodes.createdAt })
     .from(discountCodes)
     .where(eq(discountCodes.customerId, customerId))
     .orderBy(desc(discountCodes.createdAt), desc(discountCodes.id));

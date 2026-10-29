@@ -8,6 +8,7 @@ import { getCatalog, getSetupBuilder, getStoreSettings, TAGS } from "@/lib/catal
 import { MAX_QTY } from "@/lib/catalog/types";
 import { isCompleteSetup, setupDiscountCode } from "@/lib/setup-builder";
 import { sendOrderEmails } from "@/lib/email";
+import { listNames, withProductNames } from "@/lib/loyalty";
 import { isRazorpayConfigured, PAID_NOTE } from "@/lib/razorpay";
 import { getClientIp } from "@/lib/request";
 
@@ -130,7 +131,14 @@ async function priceCart(lines: CartInput, code?: string): Promise<Priced> {
     const [row] = await db.select().from(discountCodes).where(eq(discountCodes.code, code.toUpperCase())).limit(1);
     const err = discountError(row, subtotalCents);
     if (err) return { ok: false, error: err };
-    const cents = row!.kind === "percent" ? Math.round((subtotalCents * Math.min(100, row!.value)) / 100) : Math.min(row!.value, subtotalCents);
+    // A code limited to some products only discounts those lines.
+    const only = row!.productIds?.length ? new Set(row!.productIds) : null;
+    const base = only ? priced.filter((l) => l.productId != null && only.has(l.productId)).reduce((n, l) => n + l.lineTotalCents, 0) : subtotalCents;
+    if (only && base === 0) {
+      const [{ productNames }] = await withProductNames([row!]);
+      return { ok: false, error: productNames.length ? `That code only works on ${listNames(productNames)}. Add it to your cart to use it.` : "That code is for a product that's no longer sold." };
+    }
+    const cents = row!.kind === "percent" ? Math.round((base * Math.min(100, row!.value)) / 100) : Math.min(row!.value, base);
     discount = { id: row!.id, code: row!.code, cents };
   } else if (settings.setupDiscountPercent > 0) {
     // No code: a complete setup (a product from each category the Setup Builder requires) gets the automatic setup discount.

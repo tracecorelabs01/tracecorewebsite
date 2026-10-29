@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, count, desc, eq, gt, isNotNull, sql, sum } from "drizzle-orm";
-import { customers, discountCodes, getDb, loyaltyLedger, loyaltyOffers } from "@/db";
-import { pointsBalance } from "@/lib/loyalty";
+import { customers, discountCodes, getDb, loyaltyLedger, loyaltyOffers, products } from "@/db";
+import { pointsBalance, withProductNames } from "@/lib/loyalty";
 
 /** Headline numbers for the Loyalty page. */
 export async function getLoyaltyStats() {
@@ -28,13 +28,22 @@ export async function getLoyaltyStats() {
   };
 }
 
-export function listOffers() {
-  return getDb().select().from(loyaltyOffers).orderBy(desc(loyaltyOffers.isActive), asc(loyaltyOffers.sortOrder), asc(loyaltyOffers.pointsCost), asc(loyaltyOffers.id));
+export async function listOffers() {
+  return withProductNames(await getDb().select().from(loyaltyOffers).orderBy(desc(loyaltyOffers.isActive), asc(loyaltyOffers.sortOrder), asc(loyaltyOffers.pointsCost), asc(loyaltyOffers.id)));
 }
 
 export async function getOffer(id: number) {
   const [row] = await getDb().select().from(loyaltyOffers).where(eq(loyaltyOffers.id, id)).limit(1);
-  return row ?? null;
+  return row ? (await withProductNames([row]))[0] : null;
+}
+
+/** Products an offer can be limited to: everything not archived, live ones first. */
+export function listOfferProducts() {
+  return getDb()
+    .select({ id: products.id, name: products.name, priceCents: products.priceCents, status: products.status })
+    .from(products)
+    .where(sql`${products.status} <> 'archived'`)
+    .orderBy(asc(products.status), asc(products.name));
 }
 
 /** Latest points changes across all customers. */

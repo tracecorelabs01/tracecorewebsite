@@ -5,7 +5,7 @@ import { saveLoyaltySettings, saveOffer, setOfferActive } from "@/actions/admin/
 import { ActionForm, ConfirmButton, Field, FormStatus, Input, SubmitButton, Toggle } from "@/components/admin/forms";
 import { LoyaltyOfferForm } from "@/components/admin/LoyaltyOfferForm";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, StatCard, Table, Td, Th, buttonClass } from "@/components/admin/ui";
-import { getLoyaltyStats, listOffers, listRecentPoints } from "@/lib/admin/loyalty";
+import { getLoyaltyStats, listOfferProducts, listOffers, listRecentPoints } from "@/lib/admin/loyalty";
 import { dateTime, param } from "@/lib/admin/format";
 import { requireAdmin } from "@/lib/auth/session";
 import { getLoyaltyConfig, rewardLabel } from "@/lib/loyalty";
@@ -19,7 +19,7 @@ const n = (v: number) => v.toLocaleString("en-US");
 
 export default async function LoyaltyPage({ searchParams }: PageProps<"/admin/loyalty">) {
   await requireAdmin("admin");
-  const [config, stats, offers, recent, sp] = await Promise.all([getLoyaltyConfig(), getLoyaltyStats(), listOffers(), listRecentPoints(), searchParams]);
+  const [config, stats, offers, recent, products, sp] = await Promise.all([getLoyaltyConfig(), getLoyaltyStats(), listOffers(), listRecentPoints(), listOfferProducts(), searchParams]);
 
   return (
     <>
@@ -134,7 +134,7 @@ export default async function LoyaltyPage({ searchParams }: PageProps<"/admin/lo
 
           <div id="new-offer" className="scroll-mt-24">
             <Card title="New offer" description="For example: 10,000 points for $10 off, or 25,000 points for 15% off orders over $200.">
-              <LoyaltyOfferForm action={saveOffer.bind(null, null)} resetOnSuccess submitLabel="Create offer" />
+              <LoyaltyOfferForm action={saveOffer.bind(null, null)} products={products} resetOnSuccess submitLabel="Create offer" />
             </Card>
           </div>
         </div>

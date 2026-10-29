@@ -291,6 +291,8 @@ export const discountCodes = mysqlTable(
     isActive: boolean("is_active").notNull().default(true),
     /** Set on single-use codes a customer got for loyalty points; they're listed under Loyalty, not Discounts. */
     customerId: int("customer_id").references(() => customers.id, { onDelete: "cascade" }),
+    /** Only these products are discounted; null means the whole order. */
+    productIds: jsonCol<number[]>("product_ids"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -381,6 +383,8 @@ export const loyaltyOffers = mysqlTable("loyalty_offers", {
   // percent: 1–100, fixed: cents
   value: int("value").notNull(),
   minSubtotalCents: int("min_subtotal_cents").notNull().default(0),
+  /** Only these products are discounted by the codes it issues; null means the whole order. */
+  productIds: jsonCol<number[]>("product_ids"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: int("sort_order").notNull().default(0),
   createdAt: createdAt(),

@@ -2,9 +2,9 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { ActionState } from "@/components/admin/forms";
-import { customers, getDb, loyaltyLedger, loyaltyOffers, settings } from "@/db";
+import { customers, getDb, loyaltyLedger, loyaltyOffers, products, settings } from "@/db";
 import { logActivity } from "@/lib/admin/audit";
 import { parseCents } from "@/lib/admin/format";
 import { requireAdmin } from "@/lib/auth/session";
@@ -57,16 +57,27 @@ function parseOffer(fd: FormData) {
   const minSubtotal = parseCents(fd.get("minSubtotal"));
   if (Number.isNaN(minSubtotal) || (minSubtotal ?? 0) > MAX_CENTS) fieldErrors.minSubtotal = "Enter an amount, or leave blank for no minimum.";
 
-  return { fieldErrors, data: { title, description, pointsCost, kind: kind as "percent" | "fixed", value, minSubtotalCents: minSubtotal ?? 0, isActive: fd.get("isActive") === "on" } };
+  // "Specific products" with none ticked is a mistake, not "everything".
+  const productIds = str(fd.get("appliesTo")) === "products" ? [...new Set(fd.getAll("productIds").map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0))] : null;
+  if (productIds && !productIds.length) fieldErrors.productIds = "Tick at least one product, or choose Whole order.";
+
+  return {
+    fieldErrors,
+    data: { title, description, pointsCost, kind: kind as "percent" | "fixed", value, minSubtotalCents: minSubtotal ?? 0, productIds, isActive: fd.get("isActive") === "on" },
+  };
 }
 
 export async function saveOffer(offerId: number | null, _prev: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin("admin");
   if (offerId !== null && !Number.isInteger(offerId)) return { ok: false, message: "Unknown offer." };
   const { data, fieldErrors } = parseOffer(fd);
+  const db = getDb();
+  if (data.productIds?.length) {
+    const found = await db.select({ id: products.id }).from(products).where(inArray(products.id, data.productIds));
+    if (found.length !== data.productIds.length) fieldErrors.productIds = "Some of those products were just deleted. Reload the page and pick again.";
+  }
   if (Object.keys(fieldErrors).length) return { ok: false, message: "Please fix the highlighted fields.", fieldErrors };
 
-  const db = getDb();
   let id = offerId;
   if (id) {
     const [existing] = await db.select({ id: loyaltyOffers.id }).from(loyaltyOffers).where(eq(loyaltyOffers.id, id)).limit(1);
@@ -76,7 +87,8 @@ export async function saveOffer(offerId: number | null, _prev: ActionState, fd: 
     [{ id }] = await db.insert(loyaltyOffers).values(data).$returningId();
   }
   // Codes already issued keep the value they were redeemed for.
-  await logActivity(user, offerId ? "update" : "create", "loyalty_offer", id, `${offerId ? "Updated" : "Created"} loyalty offer "${data.title}": ${rewardLabel(data)} for ${data.pointsCost.toLocaleString("en-US")} points`.slice(0, 255));
+  const scope = data.productIds ? ` (${data.productIds.length} product${data.productIds.length === 1 ? "" : "s"})` : "";
+  await logActivity(user, offerId ? "update" : "create", "loyalty_offer", id, `${offerId ? "Updated" : "Created"} loyalty offer "${data.title}": ${rewardLabel(data)}${scope} for ${data.pointsCost.toLocaleString("en-US")} points`.slice(0, 255));
   refresh();
   return { ok: true, message: offerId ? "Offer saved." : `Offer "${data.title}" created.` };
 }

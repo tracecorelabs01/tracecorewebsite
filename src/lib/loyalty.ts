@@ -1,6 +1,6 @@
 import "server-only";
-import { and, eq, sum } from "drizzle-orm";
-import { customers, discountCodes, getDb, loyaltyLedger, loyaltyOffers, orders, settings } from "@/db";
+import { and, eq, inArray, sum } from "drizzle-orm";
+import { customers, discountCodes, getDb, loyaltyLedger, loyaltyOffers, orders, products, settings } from "@/db";
 import type { Tx } from "@/lib/admin/order-stock";
 
 // Loyalty points: earned on paid orders, spent on offers set up in /admin/loyalty. Every change is a
@@ -106,7 +106,7 @@ export async function redeemOffer(customerId: number, offerId: number): Promise<
       if (dupe) continue;
       [{ id: codeId }] = await tx
         .insert(discountCodes)
-        .values({ code, kind: offer.kind, value: offer.value, minSubtotalCents: offer.minSubtotalCents, maxUses: 1, isActive: true, customerId })
+        .values({ code, kind: offer.kind, value: offer.value, minSubtotalCents: offer.minSubtotalCents, productIds: offer.productIds, maxUses: 1, isActive: true, customerId })
         .$returningId();
     }
     if (!codeId) throw new Error("Couldn't create a unique reward code");
@@ -115,8 +115,25 @@ export async function redeemOffer(customerId: number, offerId: number): Promise<
   });
 }
 
-/** "$5 off" / "10% off", plus any minimum. Values as stored: percent or cents. */
-export function rewardLabel(r: { kind: "percent" | "fixed"; value: number; minSubtotalCents?: number }) {
-  const off = r.kind === "percent" ? `${r.value}% off` : `$${(r.value / 100).toFixed(r.value % 100 ? 2 : 0)} off`;
-  return r.minSubtotalCents ? `${off} orders over $${(r.minSubtotalCents / 100).toFixed(r.minSubtotalCents % 100 ? 2 : 0)}` : off;
+/** "Ferrum and MAKCU"; long lists end in "and 3 more". */
+export function listNames(names: string[]) {
+  const shown = names.length > 4 ? [...names.slice(0, 3), `${names.length - 3} more`] : names;
+  return new Intl.ListFormat("en-US", { type: "conjunction" }).format(shown);
+}
+
+/** Offers or codes with the names of the products they're limited to (`productNames`, empty for the whole order). Deleted products are left out. */
+export async function withProductNames<T extends { productIds: number[] | null }>(rows: T[]) {
+  const ids = [...new Set(rows.flatMap((r) => r.productIds ?? []))];
+  const found = ids.length ? await getDb().select({ id: products.id, name: products.name }).from(products).where(inArray(products.id, ids)) : [];
+  const names = new Map(found.map((p) => [p.id, p.name]));
+  return rows.map((r) => ({ ...r, productNames: (r.productIds ?? []).flatMap((id) => names.get(id) ?? []) }));
+}
+
+/** "$5 off", "10% off Ferrum", "10% off orders over $200". Values as stored: percent or cents. */
+export function rewardLabel(r: { kind: "percent" | "fixed"; value: number; minSubtotalCents?: number; productNames?: string[] }) {
+  const dollars = (cents: number) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
+  const off = r.kind === "percent" ? `${r.value}% off` : `${dollars(r.value)} off`;
+  const what = r.productNames?.length ? ` ${listNames(r.productNames)}` : "";
+  const min = r.minSubtotalCents ? `${what ? " on" : ""} orders over ${dollars(r.minSubtotalCents)}` : "";
+  return `${off}${what}${min}`;
 }

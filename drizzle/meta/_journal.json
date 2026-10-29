@@ -29,6 +29,13 @@
       "when": 1793294186131,
       "tag": "0003_razorpay",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1793298100131,
+      "tag": "0004_offer_products",
+      "breakpoints": true
     }
   ]
 }

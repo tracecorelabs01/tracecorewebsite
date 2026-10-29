@@ -4,7 +4,7 @@ import { CopyCode, RedeemButton } from "@/components/account/AccountForms";
 import { AccountShell, Panel, Pill, shortDay } from "@/components/account/AccountShell";
 import { listActiveOffers, listMyCodes, listMyPoints } from "@/lib/account";
 import { requireCustomer } from "@/lib/auth/customer";
-import { getLoyaltyConfig, pointsBalance, rewardLabel } from "@/lib/loyalty";
+import { getLoyaltyConfig, listNames, pointsBalance, rewardLabel, withProductNames } from "@/lib/loyalty";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Rewards", robots: { index: false } };
@@ -15,7 +15,13 @@ const KIND_LABEL = { order: "Order", redeem: "Reward", adjust: "Adjustment" } as
 
 export default async function RewardsPage() {
   const me = await requireCustomer();
-  const [balance, loyalty, offers, codes, history] = await Promise.all([pointsBalance(me.id), getLoyaltyConfig(), listActiveOffers(), listMyCodes(me.id), listMyPoints(me.id)]);
+  const [balance, loyalty, offers, codes, history] = await Promise.all([
+    pointsBalance(me.id),
+    getLoyaltyConfig(),
+    listActiveOffers().then(withProductNames),
+    listMyCodes(me.id).then(withProductNames),
+    listMyPoints(me.id),
+  ]);
   const unused = codes.filter((c) => c.isActive && (c.maxUses == null || c.usedCount < c.maxUses));
 
   return (
@@ -64,6 +70,7 @@ export default async function RewardsPage() {
                     <div className="flex-1">
                       <p className="font-display text-2xl uppercase">{o.title}</p>
                       <p className="mt-1 text-sm text-muted">{o.description || rewardLabel(o)}</p>
+                      {o.description && o.productNames.length > 0 && <p className="mt-1 text-xs text-dim">Only on {listNames(o.productNames)}</p>}
                     </div>
                     <div className="flex items-end justify-between gap-3">
                       <p className="font-mono text-sm">
