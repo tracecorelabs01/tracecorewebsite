@@ -262,8 +262,27 @@ CREATE INDEX `products_category_idx` ON `products` (`category_id`);
 CREATE INDEX `reviews_status_idx` ON `reviews` (`status`);
 CREATE INDEX `reviews_product_idx` ON `reviews` (`product_id`);;
 
+-- 0001_expenses
+CREATE TABLE `expenses` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`spent_on` date NOT NULL,
+	`amount_cents` int NOT NULL,
+	`category` varchar(60) NOT NULL,
+	`vendor` varchar(120) NOT NULL DEFAULT '',
+	`description` varchar(500) NOT NULL DEFAULT '',
+	`payment_method` varchar(40) NOT NULL DEFAULT '',
+	`reference` varchar(120) NOT NULL DEFAULT '',
+	`created_by` int,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `expenses_id` PRIMARY KEY(`id`)
+);
+ALTER TABLE `expenses` ADD CONSTRAINT `expenses_created_by_admin_users_id_fk` FOREIGN KEY (`created_by`) REFERENCES `admin_users`(`id`) ON DELETE set null ON UPDATE no action;
+CREATE INDEX `expenses_spent_on_idx` ON `expenses` (`spent_on`);
+CREATE INDEX `expenses_category_idx` ON `expenses` (`category`);;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Mark the migrations above as applied for `npm run db:migrate`.
 CREATE TABLE IF NOT EXISTS `__drizzle_migrations` (id serial primary key, hash text not null, created_at bigint);
-INSERT INTO `__drizzle_migrations` (`hash`, `created_at`) VALUES ('22e3352ca9f2f2a48992f186b23da5f04e7806f4f5236bc3545050ca8e00a8f1', 1793097030220);
+INSERT INTO `__drizzle_migrations` (`hash`, `created_at`) VALUES ('4ebaa753ea54c7f66421b7791b23720755593257e756d3af4818537ef63ccb49', 1793097030220), ('9e60b1deeda9d45c08b99f47b15f2943ea5ca17a5ed54fa4f4d687f6ee0f4fa8', 1793257643089);

@@ -68,6 +68,8 @@ docker rm -f tcl-mysql     # delete it (and its data)
 | Products | Create/edit products, photos (auto-converted to WebP), pricing, options, specs, stock, SEO | admin |
 | Categories | Shop tabs and ordering | admin |
 | Discounts | Percentage/fixed codes with limits and date windows | admin |
+| Expenses | Record business spending; spend, revenue, profit and margin by period and category, 12-month view, CSV export | admin |
+| Setup builder | The shop page configurator: bundle discount, every question and answer, product picks, fuser specs, add-ons | admin |
 | Settings | Announcement bar, shipping thresholds, social links, stats, payment badges, order note | admin |
 | Activity | Audit log of every change | admin |
 | Staff | Add staff, roles, disable accounts, reset passwords | owner |
@@ -99,7 +101,7 @@ Set `RESEND_API_KEY`, `EMAIL_FROM` and `ORDER_ALERT_EMAIL` to send order confirm
 | --- | --- |
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run db:setup` | `db:migrate` + `db:seed` |
-| `npm run db:migrate` | Apply SQL migrations in `/drizzle` to `DATABASE_URL` |
+| `npm run db:migrate` | Apply SQL migrations in `/drizzle` to `DATABASE_URL` (the server also applies new ones when it starts) |
 | `npm run db:seed` | Import starter categories/products/settings (skips anything that exists; never seeds reviews or orders) |
 | `npm run db:generate` | After editing `src/db/schema.ts`, generate a new migration |
 | `npm run db:sql` | Rebuild `database/schema.sql` for phpMyAdmin |

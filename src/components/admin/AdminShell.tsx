@@ -22,6 +22,7 @@ import {
   TicketPercent,
   UserCircle2,
   Users,
+  Wallet,
   X,
 } from "lucide-react";
 import { logout } from "@/actions/admin/auth";
@@ -43,6 +44,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: typeof P
       { href: "/admin/discounts", label: "Discounts", icon: TicketPercent, min: "admin" },
     ],
   },
+  { group: "Finance", items: [{ href: "/admin/expenses", label: "Expenses", icon: Wallet, min: "admin" }] },
   {
     group: "Catalog",
     items: [
@@ -81,7 +83,7 @@ export function AdminShell({ user, counts, children }: { user: { name: string; e
   }, [pathname]);
 
   const nav = (
-    <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-5" aria-label="Admin">
+    <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-3 py-5" aria-label="Admin">
       {NAV.map((group) => {
         const items = group.items.filter((i) => RANK[user.role] >= RANK[i.min ?? "staff"]);
         if (!items.length) return null;
@@ -97,7 +99,7 @@ export function AdminShell({ user, counts, children }: { user: { name: string; e
                     <Link
                       href={href}
                       className={cn(
-                        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                        "group relative flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm transition-colors",
                         active ? "bg-white/[0.07] text-fg" : "text-muted hover:bg-white/[0.04] hover:text-fg",
                       )}
                     >

@@ -6,6 +6,7 @@ import {
   boolean,
   char,
   customType,
+  date,
   datetime,
   index,
   int,
@@ -320,6 +321,27 @@ export const subscribers = mysqlTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("subscribers_email_uq").on(t.email)],
+);
+
+/* ───────────── Finance ───────────── */
+
+/** Money the business spends, recorded in /admin/expenses. Dated by the day it was paid (no time zone). */
+export const expenses = mysqlTable(
+  "expenses",
+  {
+    id: id(),
+    spentOn: date("spent_on", { mode: "string" }).notNull(),
+    amountCents: int("amount_cents").notNull(),
+    category: varchar("category", { length: 60 }).notNull(),
+    vendor: varchar("vendor", { length: 120 }).notNull().default(""),
+    description: varchar("description", { length: 500 }).notNull().default(""),
+    paymentMethod: varchar("payment_method", { length: 40 }).notNull().default(""),
+    reference: varchar("reference", { length: 120 }).notNull().default(""),
+    createdBy: int("created_by").references(() => adminUsers.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("expenses_spent_on_idx").on(t.spentOn), index("expenses_category_idx").on(t.category)],
 );
 
 /* ───────────── Settings & audit ───────────── */

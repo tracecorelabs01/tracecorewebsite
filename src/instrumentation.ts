@@ -6,6 +6,15 @@ export async function register() {
   // Node server only: not the edge runtime, and never during `next build` (it would write to the live database).
   if (process.env.NEXT_RUNTIME !== "nodejs" || process.env.NEXT_PHASE === "phase-production-build" || !process.env.DATABASE_URL) return;
 
+  // New tables ship with the code in /drizzle. Apply any this database doesn't have yet, so a deploy needs no
+  // manual `npm run db:migrate`. Already-applied migrations are skipped (tracked in __drizzle_migrations).
+  try {
+    const [{ migrate }, { getDb }] = await Promise.all([import("drizzle-orm/mysql2/migrator"), import("@/db")]);
+    await migrate(getDb(), { migrationsFolder: "drizzle" });
+  } catch (err) {
+    console.error("[db] applying migrations failed; run `npm run db:migrate`", err);
+  }
+
   const { releaseExpiredOrders } = await import("@/lib/admin/expire-orders");
   const sweep = () =>
     releaseExpiredOrders()
