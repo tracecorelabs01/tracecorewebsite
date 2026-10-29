@@ -12,7 +12,7 @@ const TABS = [
 ] as const;
 
 /** Hero, tabs and sign-out shared by the signed-in account pages. */
-export function AccountShell({ active, title, description, children }: { active: (typeof TABS)[number]["href"]; title: ReactNode; description?: ReactNode; children: ReactNode }) {
+export function AccountShell({ active, title, description, children }: { active?: (typeof TABS)[number]["href"]; title: ReactNode; description?: ReactNode; children: ReactNode }) {
   return (
     <>
       <PageHero kicker="Your account" crumbs={[{ label: "Home", href: "/" }, { label: "Account" }]} lines={[title]} description={description} />

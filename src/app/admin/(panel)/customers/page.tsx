@@ -1,17 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Download, Users } from "lucide-react";
+import { Download, UserPlus, Users } from "lucide-react";
 import { Card, EmptyState, LinkButton, PageHeader, Pagination, qs, SearchBox, Table, Td, Th } from "@/components/admin/ui";
 import { listCustomers } from "@/lib/admin/customers";
 import { money, pageParam, param, shortDate } from "@/lib/admin/format";
-import { requireAdmin } from "@/lib/auth/session";
+import { hasRole, requireAdmin } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Customers" };
 // Admin pages read the session and live data on every request.
 export const instant = false;
 
 export default async function CustomersPage({ searchParams }: PageProps<"/admin/customers">) {
-  await requireAdmin("staff");
+  const user = await requireAdmin("staff");
   const sp = await searchParams;
   const q = param(sp.q)?.trim() || undefined;
   const page = pageParam(sp.page);
@@ -23,10 +23,17 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
         title="Customers"
         description={`${total.toLocaleString("en-US")} customer${total === 1 ? "" : "s"}${q ? ` matching “${q}”` : ""} · spend counts paid orders only`}
         actions={
-          // `download` makes this a plain browser download rather than a client-side navigation.
-          <LinkButton href="/api/admin/export/customers" variant="secondary" prefetch={false} download>
-            <Download className="size-4" /> Export CSV
-          </LinkButton>
+          <>
+            {/* `download` makes this a plain browser download rather than a client-side navigation. */}
+            <LinkButton href="/api/admin/export/customers" variant="secondary" prefetch={false} download>
+              <Download className="size-4" /> Export CSV
+            </LinkButton>
+            {hasRole(user, "admin") && (
+              <LinkButton href="/admin/customers/new">
+                <UserPlus className="size-4" /> Add customer
+              </LinkButton>
+            )}
+          </>
         }
       />
       <div className="mb-4 flex justify-end">
@@ -38,7 +45,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
           <EmptyState
             icon={<Users className="size-5" />}
             title={q ? "No customers match your search" : "No customers yet"}
-            description={q ? "Try a different search." : "Customers are added automatically when they place an order."}
+            description={q ? "Try a different search." : "Customers are added when they place an order, or with Add customer."}
           />
         ) : (
           <>

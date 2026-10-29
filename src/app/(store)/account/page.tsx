@@ -48,7 +48,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
         <div className="rounded-3xl border border-line bg-ink-900/60 p-6">
           <p className="type-kicker text-dim">Signed in as</p>
           <p className="mt-3 break-all text-lg">{me.email}</p>
-          <Link href="/account/activate" className="mt-2 inline-block text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
+          <Link href="/account/password" className="mt-2 inline-block text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
             Change password
           </Link>
         </div>

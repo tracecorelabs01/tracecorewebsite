@@ -93,6 +93,35 @@ export async function openAccount(_prev: AccountFormState, fd: FormData): Promis
   redirect("/account?welcome=1");
 }
 
+/** Change the password while signed in. Signs out every other browser. */
+export async function changePassword(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
+  const me = await requireCustomer();
+  const current = String(fd.get("current") ?? "");
+  const password = String(fd.get("password") ?? "");
+  const confirm = String(fd.get("confirm") ?? "");
+
+  const fieldErrors: Record<string, string> = {};
+  if (!current) fieldErrors.current = "Enter your current password.";
+  if (password.length < PASSWORD_MIN) fieldErrors.password = `Use at least ${PASSWORD_MIN} characters.`;
+  else if (password.length > 200) fieldErrors.password = "Use 200 characters or fewer.";
+  else if (confirm !== password) fieldErrors.confirm = "The passwords don't match.";
+  if (Object.keys(fieldErrors).length) return { ok: false, message: "Please check the highlighted fields.", fieldErrors };
+
+  const key = `account:${me.email}`;
+  const ip = await getClientIp();
+  if (await isLoginBlocked(key, ip)) return BLOCKED;
+  const db = getDb();
+  const [c] = await db.select({ passwordHash: customers.passwordHash }).from(customers).where(eq(customers.id, me.id)).limit(1);
+  const valid = Boolean(c?.passwordHash) && (await verifyPassword(current, c!.passwordHash!));
+  await recordLoginAttempt(key, ip, valid);
+  if (!valid) return { ok: false, message: "Please check the highlighted fields.", fieldErrors: { current: "That isn't your current password." } };
+
+  await db.update(customers).set({ passwordHash: await hashPassword(password) }).where(eq(customers.id, me.id));
+  await revokeCustomerSessions(me.id);
+  await createCustomerSession(me.id);
+  return { ok: true, message: "Password changed. Other devices have been signed out." };
+}
+
 export async function logout() {
   await destroyCustomerSession();
   redirect("/account/login?out=1");

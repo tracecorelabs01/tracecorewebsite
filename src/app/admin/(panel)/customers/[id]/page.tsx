@@ -1,25 +1,26 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CircleDollarSign, Mail, Receipt, Wallet } from "lucide-react";
-import { saveCustomerNotes } from "@/actions/admin/customers";
+import { CheckCircle2, CircleDollarSign, Mail, Receipt, Wallet } from "lucide-react";
+import { saveCustomerNotes, setCustomerPassword } from "@/actions/admin/customers";
 import { adjustPoints } from "@/actions/admin/loyalty";
 import { ActionForm, Field, Input, SubmitButton, Textarea } from "@/components/admin/forms";
 import { buttonClass, Card, DescriptionList, EmptyState, LinkButton, OrderStatusBadge, PageHeader, PaymentBadge, qs, StatCard, Table, Td, Th } from "@/components/admin/ui";
 import { getCustomer } from "@/lib/admin/customers";
-import { dateTime, money, shortDate } from "@/lib/admin/format";
+import { dateTime, money, param, shortDate } from "@/lib/admin/format";
 import { getCustomerLoyalty } from "@/lib/admin/loyalty";
+import { PASSWORD_MIN } from "@/lib/auth/password";
 import { hasRole, requireAdmin } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Customer" };
 // Admin pages read the session and live data on every request.
 export const instant = false;
 
-export default async function CustomerPage({ params }: PageProps<"/admin/customers/[id]">) {
+export default async function CustomerPage({ params, searchParams }: PageProps<"/admin/customers/[id]">) {
   const user = await requireAdmin("staff");
   const customerId = Number((await params).id);
   if (!Number.isInteger(customerId)) notFound();
-  const [data, loyalty] = await Promise.all([getCustomer(customerId), getCustomerLoyalty(customerId)]);
+  const [data, loyalty, sp] = await Promise.all([getCustomer(customerId), getCustomerLoyalty(customerId), searchParams]);
   if (!data) notFound();
   const { customer, stats, orders } = data;
   const name = `${customer.firstName} ${customer.lastName}`.trim();
@@ -36,6 +37,11 @@ export default async function CustomerPage({ params }: PageProps<"/admin/custome
           </a>
         }
       />
+      {param(sp.created) && (
+        <p className="mb-4 flex items-center gap-2 rounded-xl border border-ok/30 bg-ok/10 px-4 py-3 text-sm">
+          <CheckCircle2 className="size-4 text-ok" /> Customer created. They can log in at /account/login with the temporary password.
+        </p>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
@@ -118,6 +124,21 @@ export default async function CustomerPage({ params }: PageProps<"/admin/custome
               ]}
             />
           </Card>
+          {hasRole(user, "admin") && (
+            <Card
+              title="Account"
+              description={loyalty.accountCreatedAt ? "Set a new password if they're locked out. It signs them out everywhere." : "Open an account so they can log in and see their orders and points."}
+            >
+              <ActionForm action={setCustomerPassword.bind(null, customer.id)} resetOnSuccess className="space-y-3">
+                <Field label={loyalty.accountCreatedAt ? "New password" : "Temporary password"} name="password" hint={`At least ${PASSWORD_MIN} characters. Share it privately.`}>
+                  <Input name="password" type="password" minLength={PASSWORD_MIN} autoComplete="new-password" />
+                </Field>
+                <SubmitButton variant="secondary" size="sm" pendingText="Saving…">
+                  {loyalty.accountCreatedAt ? "Set new password" : "Open account"}
+                </SubmitButton>
+              </ActionForm>
+            </Card>
+          )}
           <Card title="Loyalty points" description={`Balance: ${loyalty.balance.toLocaleString("en-US")} points`}>
             {loyalty.history.length === 0 ? (
               <p className="text-sm text-muted">No points yet. They&apos;re added when this customer&apos;s orders are marked paid.</p>

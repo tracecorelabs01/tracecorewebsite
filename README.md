@@ -60,7 +60,7 @@ docker rm -f tcl-mysql     # delete it (and its data)
 | --- | --- | --- |
 | Dashboard | 30-day revenue, orders, AOV, revenue chart, items needing attention, top products, low stock | staff |
 | Orders | Filter/search, update status, mark paid, tracking numbers, internal notes, timeline, restock on cancel, CSV export | staff |
-| Customers | Order history, lifetime spend, notes, CSV export | staff |
+| Customers | Order history, lifetime spend, notes, CSV export; add customers and open or reset their accounts (admin) | staff |
 | Inventory | Quick stock counts and low-stock thresholds | staff |
 | Reviews | Moderate submitted reviews, import genuine reviews from Trustpilot/Discord | staff (import: admin) |
 | Messages | Support inbox from the contact form | staff |
@@ -85,7 +85,7 @@ Checkout validates every line against the database (prices, options, stock — n
 
 ### Customer accounts and loyalty
 
-Customers can open an account (`/account`) only after an order is paid: they enter the order's email and number and choose a password. The same form resets a forgotten password, so no email setup is needed. An account shows every order placed with that email, loyalty points with their history, rewards to redeem, and reviews.
+Customers can open an account (`/account`) only after an order is paid: they enter the order's email and number and choose a password. The same form resets a forgotten password, so no email setup is needed. Admins can also add a customer with an account, or open or reset one, from **Customers** with a temporary password the customer changes under their account. An account shows every order placed with that email, loyalty points with their history, rewards to redeem, and reviews.
 
 Points are added when an order is marked paid (by default 100 per $1 of products after discounts; shipping doesn't earn) and taken back if it's refunded, cancelled or marked unpaid. Offers are set up under **Loyalty**; redeeming one spends the points and issues a single-use `PTS-` discount code. Reviews from accounts are verified buyers only and wait for approval in **Reviews**.
 
