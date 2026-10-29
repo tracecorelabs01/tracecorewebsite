@@ -133,12 +133,14 @@ function methods(names: readonly string[]) {
   return out;
 }
 
-/** Accepted payment methods as logo tiles, from Settings → Payment methods. */
-export function PaymentLogos({ size = "md", className }: { size?: "sm" | "md"; className?: string }) {
+/** Accepted payment methods as logo tiles, with an optional label beside them. Renders nothing while none are set up. */
+export function PaymentLogos({ size = "md", label, className }: { size?: "sm" | "md"; label?: string; className?: string }) {
   const { payments } = useStoreSettings();
-  return (
-    <ul aria-label="Accepted payment methods" className={cn("flex flex-wrap gap-2", className)}>
-      {methods(payments).map((m) => (
+  const list = methods(payments);
+  if (!list.length) return null;
+  const logos = (
+    <ul aria-label="Accepted payment methods" className={cn("flex flex-wrap gap-2", !label && className)}>
+      {list.map((m) => (
         <li
           key={m.key}
           title={m.label}
@@ -157,13 +159,20 @@ export function PaymentLogos({ size = "md", className }: { size?: "sm" | "md"; c
       ))}
     </ul>
   );
+  if (!label) return logos;
+  return (
+    <div className={className}>
+      <span className="type-kicker text-dim">{label}</span>
+      {logos}
+    </div>
+  );
 }
 
 /** The store's promises: secure payment, lab-tested hardware, tracked shipping and real support. */
 export function TrustBadges({ compact = false, className }: { compact?: boolean; className?: string }) {
-  const { freeShippingThreshold } = useStoreSettings();
+  const { freeShippingThreshold, payments } = useStoreSettings();
   const items = [
-    { Icon: ShieldCheck, title: "Secure checkout", text: "Card payments encrypted and processed by Razorpay" },
+    { Icon: ShieldCheck, title: "Secure checkout", text: payments.includes("razorpay") ? "Card payments encrypted and processed by Razorpay" : "Encrypted checkout. We never see your card details" },
     { Icon: FlaskConical, title: "Lab-tested", text: "Every unit is tested in our lab before it ships" },
     { Icon: Truck, title: "Tracked shipping", text: `Worldwide, free on orders over $${freeShippingThreshold.toLocaleString("en-US")}` },
     { Icon: Headset, title: "Real support", text: "Real people on Discord, 7 days a week" },

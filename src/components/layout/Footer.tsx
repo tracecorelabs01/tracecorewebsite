@@ -130,12 +130,14 @@ export function Footer() {
         <TrustBadges className="mt-16 border-t border-line pt-10" />
 
         <div className="mt-10 flex flex-col gap-6 border-t border-line py-8 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h3 className="type-kicker text-dim">Accepted payment methods</h3>
-            <PaymentLogos className="mt-4" />
-            <p className="mt-3 text-xs text-dim">{paymentNote(settings)}</p>
-          </div>
-          <div className="flex items-center gap-1">
+          {settings.payments.length > 0 && (
+            <div>
+              <h3 className="type-kicker text-dim">Accepted payment methods</h3>
+              <PaymentLogos className="mt-4" />
+              <p className="mt-3 text-xs text-dim">{paymentNote(settings)}</p>
+            </div>
+          )}
+          <div className="flex items-center gap-1 md:ml-auto">
             {socials.map(({ href, Icon, label }) => (
               <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} className="grid size-10 place-items-center rounded-full text-muted transition-colors hover:bg-white/5 hover:text-fg">
                 <Icon className="size-[18px]" />

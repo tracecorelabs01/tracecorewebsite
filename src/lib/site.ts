@@ -24,7 +24,7 @@ export const site = {
     "Free worldwide shipping on orders over $250",
     "Every unit is tested in our lab before dispatch",
     "24/7 support on Discord",
-    "Secure checkout · Card · PayPal · Crypto",
+    "Secure card checkout through Razorpay",
   ],
   // PLACEHOLDER — replace with your real numbers.
   stats: [

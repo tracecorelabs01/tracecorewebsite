@@ -22,7 +22,7 @@ export const faqGroups: FaqGroup[] = [
       },
       {
         q: "Which payment methods do you accept?",
-        a: "Debit and credit cards (Visa, Mastercard) through Razorpay's secure checkout, plus PayPal and popular cryptocurrencies. Card payments are encrypted end to end, and we never see or store your full card number.",
+        a: "Debit and credit cards (Visa, Mastercard) through Razorpay's secure checkout. Card payments are encrypted end to end, and we never see or store your full card number.",
       },
       {
         q: "Can I change or cancel my order?",

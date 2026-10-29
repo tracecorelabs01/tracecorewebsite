@@ -27,7 +27,8 @@ export const defaultSettings: StoreSettings = {
   supportEmail: site.email,
   links: { ...site.links },
   stats: site.stats.map((s) => ({ ...s })),
-  manualPayments: { paypal: true, crypto: true },
+  // Off until switched on in Settings: cards through Razorpay are the store's payment method.
+  manualPayments: { paypal: false, crypto: false },
   orderNote: "Thanks for your order! We'll email you payment instructions and a confirmation shortly. Questions? Reply to that email or message us on Discord.",
   reservationHours: 48,
   setupDiscountPercent: 10,

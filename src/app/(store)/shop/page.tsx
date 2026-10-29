@@ -31,10 +31,7 @@ export default async function ShopPage() {
       <section className="container-x pb-16">
         <div className="rounded-3xl border border-line bg-ink-900/60 p-6 md:p-8">
           <TrustBadges />
-          <div className="mt-6 flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <span className="type-kicker text-dim">Pay your way</span>
-            <PaymentLogos size="sm" />
-          </div>
+          <PaymentLogos size="sm" label="Pay your way" className="mt-6 flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between" />
         </div>
       </section>
       <SetupBuilder config={builder} products={products.filter((p) => builderSlugs.has(p.slug))} />

@@ -216,7 +216,7 @@ function SecureCell() {
           <Lock className="size-7 text-white" />
         </span>
       </div>
-      <CellText title="Secure checkout">Card through Razorpay, PayPal or crypto, encrypted end to end.</CellText>
+      <CellText title="Secure checkout">Card payments through Razorpay, encrypted end to end.</CellText>
     </div>
   );
 }
