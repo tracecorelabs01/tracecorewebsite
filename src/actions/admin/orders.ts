@@ -10,6 +10,7 @@ import { plural, restockItems, wasRestocked, type NewEvent, type Tx } from "@/li
 import { addressLines, isOrderStatus, isPaymentStatus, type OrderStatus, type PaymentStatus } from "@/lib/admin/orders";
 import { requireAdmin, type AdminUser } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
+import { announcePaidOrder } from "@/lib/discord";
 import { sendShippingEmail } from "@/lib/email";
 import { syncOrderPoints } from "@/lib/loyalty";
 
@@ -205,6 +206,7 @@ async function changePayment(user: AdminUser, orderId: number, to: PaymentStatus
   if (result.halted) return { ...result.state, changed: false };
 
   const { order, statusChanged, moved } = result;
+  if (statusChanged && to === "paid") await announcePaidOrder(orderId);
   await logActivity(
     user,
     "update",

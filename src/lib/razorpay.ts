@@ -10,6 +10,7 @@ import { and, asc, eq, isNull, like } from "drizzle-orm";
 import { getDb, orderEvents, orderItems, orders } from "@/db";
 import { money } from "@/lib/admin/format";
 import type { NewEvent, Tx } from "@/lib/admin/order-stock";
+import { announcePaidOrder } from "@/lib/discord";
 import { sendOrderEmails } from "@/lib/email";
 import { syncOrderPoints } from "@/lib/loyalty";
 
@@ -176,7 +177,7 @@ export async function settlePayment(p: RazorpayPayment): Promise<SettleOutcome> 
     return { outcome: "paid" as const, order };
   });
 
-  if (result.outcome === "paid") await emailPaidOrder(result.order);
+  if (result.outcome === "paid") await Promise.all([emailPaidOrder(result.order), announcePaidOrder(result.order.id)]);
   return result.outcome;
 }
 

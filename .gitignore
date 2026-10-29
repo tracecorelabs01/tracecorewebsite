@@ -41,3 +41,13 @@ yarn-error.log*
 next-env.d.ts
 /storage
 !.env.example
+!.env.example
+
+# discord bot (discord-bot/)
+discord-bot/data/
+__pycache__/
+*.pyc
+.venv/
+
+# archives (the old bot zip contains a token)
+*.zip
