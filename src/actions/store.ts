@@ -7,7 +7,8 @@ import { categories, customers, discountCodes, getDb, isDbConfigured, messages, 
 import { getCatalog, getSetupBuilder, getStoreSettings, TAGS } from "@/lib/catalog/server";
 import { MAX_QTY } from "@/lib/catalog/types";
 import { isCompleteSetup, setupDiscountCode } from "@/lib/setup-builder";
-import { sendOrderEmails } from "@/lib/email";
+import { sendContactAlert, sendNewsletterWelcome } from "@/lib/emails/account";
+import { emailOrder } from "@/lib/emails/orders";
 import { listNames, withProductNames } from "@/lib/loyalty";
 import { isRazorpayConfigured, PAID_NOTE } from "@/lib/razorpay";
 import { getClientIp } from "@/lib/request";
@@ -264,6 +265,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
 
   const email = data.email.toLowerCase();
   let number = "";
+  let placedId = 0;
   try {
     await db.transaction(async (tx) => {
       for (const l of priced.lines) {
@@ -343,6 +345,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           .$returningId();
       }
       if (!orderId) throw new CheckoutError("Couldn't create your order. Please try again.");
+      placedId = orderId;
 
       await tx.insert(orderItems).values(
         priced.lines.map((l) => ({
@@ -368,7 +371,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   revalidateTag(TAGS.catalog, "max");
   // Card orders paid online are confirmed by email once the payment is in (src/lib/razorpay.ts).
   const payOnline = data.paymentMethod === "card" && isRazorpayConfigured();
-  if (!payOnline) await sendOrderEmails({ number, email, firstName: data.firstName, paymentMethod: data.paymentMethod, note: settings.orderNote, ...summary });
+  if (!payOnline) await emailOrder(placedId, "received", { note: settings.orderNote });
 
   return { ok: true, order: { number, email, ...summary, note: payOnline ? PAID_NOTE : settings.orderNote, demo: false, payOnline } };
 }
@@ -384,6 +387,7 @@ export async function subscribe(_prev: FormState, formData: FormData): Promise<F
   if (isDbConfigured()) {
     try {
       await getDb().insert(subscribers).values({ email: parsed.data, source: "footer" });
+      await sendNewsletterWelcome(parsed.data);
     } catch (err) {
       const dup = (err as { cause?: { code?: string }; code?: string }).cause?.code ?? (err as { code?: string }).code;
       if (dup !== "ER_DUP_ENTRY") {
@@ -418,7 +422,8 @@ export async function sendMessage(_prev: FormState, formData: FormData): Promise
       .where(and(eq(messages.ip, ip), gt(messages.createdAt, sql`UTC_TIMESTAMP() - INTERVAL 1 HOUR`)));
     if ((recent?.n ?? 0) >= 5) return { ok: false, message: "You've sent several messages recently — we'll get back to you soon." };
     const d = parsed.data;
-    await db.insert(messages).values({ name: d.name, email: d.email.toLowerCase(), orderNumber: d.order || null, topic: d.topic, body: d.message, ip });
+    const [{ id }] = await db.insert(messages).values({ name: d.name, email: d.email.toLowerCase(), orderNumber: d.order || null, topic: d.topic, body: d.message, ip }).$returningId();
+    await sendContactAlert({ id, name: d.name, email: d.email.toLowerCase(), topic: d.topic, body: d.message, orderNumber: d.order || null });
   }
   return { ok: true, message: "Message sent." };
 }

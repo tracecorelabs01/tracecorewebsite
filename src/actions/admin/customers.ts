@@ -9,6 +9,9 @@ import { logActivity } from "@/lib/admin/audit";
 import { isDuplicateKey, isEmail } from "@/lib/admin/staff";
 import { revokeCustomerSessions } from "@/lib/auth/customer";
 import { hashPassword, PASSWORD_MIN } from "@/lib/auth/password";
+import { createResetToken } from "@/lib/auth/reset";
+import { url } from "@/lib/email";
+import { sendPasswordChanged, sendWelcome } from "@/lib/emails/account";
 import { requireAdmin } from "@/lib/auth/session";
 
 const NOTES_MAX = 5000;
@@ -76,6 +79,8 @@ export async function createCustomer(_prev: ActionState, fd: FormData): Promise<
     };
   }
   await logActivity(user, "create", "customer", id, `Created an account for ${email}`);
+  // They can sign in with the temporary password, or choose their own from the email.
+  await sendWelcome(email, firstName || null, url(`/account/reset?token=${await createResetToken("customer", id, 72)}`));
   redirect(`/admin/customers/${id}?created=1`);
 }
 
@@ -87,7 +92,7 @@ export async function setCustomerPassword(customerId: number, _prev: ActionState
   if (pwError) return { ok: false, message: pwError, fieldErrors: { password: pwError } };
 
   const db = getDb();
-  const [customer] = await db.select({ email: customers.email, hadAccount: customers.passwordHash }).from(customers).where(eq(customers.id, customerId)).limit(1);
+  const [customer] = await db.select({ email: customers.email, firstName: customers.firstName, hadAccount: customers.passwordHash }).from(customers).where(eq(customers.id, customerId)).limit(1);
   if (!customer) return { ok: false, message: "Customer not found." };
   await db
     .update(customers)
@@ -96,6 +101,8 @@ export async function setCustomerPassword(customerId: number, _prev: ActionState
   await revokeCustomerSessions(customerId);
   const opened = !customer.hadAccount;
   await logActivity(user, "password", "customer", customerId, `${opened ? "Opened an account" : "Reset the account password"} for ${customer.email}`);
+  if (opened) await sendWelcome(customer.email, customer.firstName || null, url(`/account/reset?token=${await createResetToken("customer", customerId, 72)}`));
+  else await sendPasswordChanged(customer.email, customer.firstName || null, "customer");
   refresh();
   return {
     ok: true,

@@ -41,6 +41,6 @@ export default function LoginPage({ searchParams }: PageProps<"/admin/login">) {
 async function LoginGate({ searchParams }: Pick<PageProps<"/admin/login">, "searchParams">) {
   const dbReady = isDbConfigured();
   if (dbReady && (await getCurrentAdmin())) redirect("/admin");
-  const { next } = await searchParams;
-  return <LoginForm next={typeof next === "string" ? next : undefined} dbReady={dbReady} />;
+  const { next, reset } = await searchParams;
+  return <LoginForm next={typeof next === "string" ? next : undefined} dbReady={dbReady} reset={reset === "1"} />;
 }

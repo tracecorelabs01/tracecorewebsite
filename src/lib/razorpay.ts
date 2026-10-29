@@ -6,12 +6,12 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { and, asc, eq, isNull, like } from "drizzle-orm";
-import { getDb, orderEvents, orderItems, orders } from "@/db";
+import { and, eq, isNull, like } from "drizzle-orm";
+import { getDb, orderEvents, orders } from "@/db";
 import { money } from "@/lib/admin/format";
 import type { NewEvent, Tx } from "@/lib/admin/order-stock";
 import { announcePaidOrder } from "@/lib/discord";
-import { sendOrderEmails } from "@/lib/email";
+import { emailOrder } from "@/lib/emails/orders";
 import { syncOrderPoints } from "@/lib/loyalty";
 
 const API = "https://api.razorpay.com/v1";
@@ -177,22 +177,9 @@ export async function settlePayment(p: RazorpayPayment): Promise<SettleOutcome> 
     return { outcome: "paid" as const, order };
   });
 
-  if (result.outcome === "paid") await Promise.all([emailPaidOrder(result.order), announcePaidOrder(result.order.id)]);
+  // Card orders get their confirmation and invoice once the money is in, not when they're placed.
+  if (result.outcome === "paid") await Promise.all([emailOrder(result.order.id, "paid"), announcePaidOrder(result.order.id)]);
   return result.outcome;
-}
-
-/** Card orders paid online get their confirmation once the money is in, not when they're placed. */
-async function emailPaidOrder(order: typeof orders.$inferSelect) {
-  try {
-    const lines = await getDb()
-      .select({ name: orderItems.productName, option: orderItems.optionValue, qty: orderItems.quantity, lineTotalCents: orderItems.lineTotalCents })
-      .from(orderItems)
-      .where(eq(orderItems.orderId, order.id))
-      .orderBy(asc(orderItems.id));
-    await sendOrderEmails({ ...order, lines, paymentMethod: `${order.paymentMethod} (paid through Razorpay)`, note: PAID_NOTE });
-  } catch (err) {
-    console.error("[razorpay] order email", err);
-  }
 }
 
 /** A failed attempt goes on the timeline only; the customer can still pay. */
@@ -206,16 +193,20 @@ export async function recordFailedPayment(p: RazorpayPayment) {
 
 /** Refunds are issued in the Razorpay dashboard; a full refund marks the payment refunded (and takes back its points). */
 export async function recordRefund(refund: RazorpayRefund, payment: RazorpayPayment) {
-  await getDb().transaction(async (tx) => {
+  const refundedOrderId = await getDb().transaction(async (tx) => {
     const order = await lockOrder(tx, payment.order_id);
-    if (!order || (await onTimeline(tx, order.id, refund.id))) return;
+    if (!order || (await onTimeline(tx, order.id, refund.id))) return null;
     const events: NewEvent[] = [{ type: "payment", message: `Refund of ${money(refund.amount, payment.currency)} processed in Razorpay · ${refund.id}` }];
     if ((payment.amount_refunded ?? 0) >= payment.amount && order.paymentStatus === "paid") {
       await tx.update(orders).set({ paymentStatus: "refunded" }).where(eq(orders.id, order.id));
       events.push({ type: "payment", message: "Payment changed: paid → refunded" });
       const points = await syncOrderPoints(tx, order.id);
       if (points < 0) events.push({ type: "payment", message: `${(-points).toLocaleString("en-US")} loyalty points taken back` });
+      await addEvents(tx, order.id, events);
+      return order.id;
     }
     await addEvents(tx, order.id, events);
+    return null;
   });
+  if (refundedOrderId) await emailOrder(refundedOrderId, "refunded");
 }

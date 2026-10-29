@@ -1,17 +1,17 @@
 "use server";
 
 import { refresh, updateTag } from "next/cache";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { ActionState } from "@/components/admin/forms";
-import { getDb, orderEvents, orderItems, orders } from "@/db";
+import { getDb, orderEvents, orders } from "@/db";
 import { logActivity } from "@/lib/admin/audit";
 import { bulkInput } from "@/lib/admin/format";
 import { plural, restockItems, wasRestocked, type NewEvent, type Tx } from "@/lib/admin/order-stock";
-import { addressLines, isOrderStatus, isPaymentStatus, type OrderStatus, type PaymentStatus } from "@/lib/admin/orders";
+import { isOrderStatus, isPaymentStatus, type OrderStatus, type PaymentStatus } from "@/lib/admin/orders";
 import { requireAdmin, type AdminUser } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
 import { announcePaidOrder } from "@/lib/discord";
-import { sendShippingEmail } from "@/lib/email";
+import { emailOrder, type OrderEmail } from "@/lib/emails/orders";
 import { syncOrderPoints } from "@/lib/loyalty";
 
 type Order = typeof orders.$inferSelect;
@@ -71,36 +71,6 @@ const pointsEvent = (points: number): NewEvent => ({
   message: points > 0 ? `Customer earned ${points.toLocaleString("en-US")} loyalty points` : `${(-points).toLocaleString("en-US")} loyalty points taken back`,
 });
 
-/** Best-effort shipping confirmation. Records an event only when the email actually went out. */
-async function notifyShipped(orderId: number, user: AdminUser) {
-  try {
-    const db = getDb();
-    const [[order], lines] = await Promise.all([
-      db.select().from(orders).where(eq(orders.id, orderId)).limit(1),
-      db
-        .select({ name: orderItems.productName, option: orderItems.optionValue, qty: orderItems.quantity })
-        .from(orderItems)
-        .where(eq(orderItems.orderId, orderId))
-        .orderBy(asc(orderItems.id)),
-    ]);
-    if (!order) return false;
-    const sent = await sendShippingEmail({
-      number: order.number,
-      email: order.email,
-      firstName: order.firstName,
-      carrier: order.trackingCarrier,
-      trackingNumber: order.trackingNumber,
-      lines,
-      shipTo: addressLines(order),
-    });
-    if (sent) await db.insert(orderEvents).values({ orderId, adminId: user.id, type: "email", message: `Shipping confirmation emailed to ${order.email}`.slice(0, 500) });
-    return sent;
-  } catch (err) {
-    console.error("[orders] shipping email", err);
-    return false;
-  }
-}
-
 /* ───────────── status ───────────── */
 
 /** What happened to one order; `changed` is false when nothing was written. */
@@ -147,11 +117,12 @@ async function changeStatus(user: AdminUser, orderId: number, to: OrderStatus, r
   const { order, restocked, notes } = result;
   await logActivity(user, "update", "order", orderId, `Order ${order.number}: ${order.status} → ${to}${restocked ? `, restocked ${plural(restocked, "unit")}` : ""}`);
   if (restocked) updateTag(TAGS.catalog);
-  // Customers hear about it once: no new "shipped" email when correcting a delivered order.
-  const emailed = to === "shipped" && order.status !== "delivered" && (await notifyShipped(orderId, user));
+  // Customers hear about each step once: stepping back from delivered to shipped is a correction, not news.
+  const email: OrderEmail | null = to === "shipped" ? (order.status === "delivered" ? null : "shipped") : to === "delivered" || to === "cancelled" || to === "refunded" ? to : null;
+  const emailed = email !== null && (await emailOrder(orderId, email));
 
   const parts = [restocked ? `Status updated — ${plural(restocked, "unit")} restocked.` : "Status updated.", ...notes];
-  if (emailed) parts.push("Shipping confirmation emailed.");
+  if (emailed) parts.push("The customer has been emailed.");
   return { ok: true, message: parts.join(" "), changed: true };
 }
 
@@ -206,7 +177,8 @@ async function changePayment(user: AdminUser, orderId: number, to: PaymentStatus
   if (result.halted) return { ...result.state, changed: false };
 
   const { order, statusChanged, moved } = result;
-  if (statusChanged && to === "paid") await announcePaidOrder(orderId);
+  if (statusChanged && to === "paid") await Promise.all([announcePaidOrder(orderId), emailOrder(orderId, "paid")]);
+  if (statusChanged && to === "refunded") await emailOrder(orderId, "refunded");
   await logActivity(
     user,
     "update",
@@ -285,11 +257,13 @@ export async function updateShipping(orderId: number, _prev: ActionState, fd: Fo
   const { order, trackingChanged, ship } = result;
   const did = [trackingChanged && "tracking updated", ship && `${order.status} → shipped`].filter(Boolean).join(", ");
   await logActivity(user, "update", "order", orderId, `Order ${order.number}: ${did}`);
-  const emailed = ship && (await notifyShipped(orderId, user));
+  // Marking shipped sends the shipping email (with tracking); new tracking on an order that's already out sends an update.
+  const out = order.status === "shipped" || order.status === "delivered";
+  const emailed = ship ? await emailOrder(orderId, "shipped") : trackingChanged && out && trackingNumber ? await emailOrder(orderId, "tracking") : false;
   refresh();
 
   const message = ship ? (trackingChanged ? "Tracking saved — order marked shipped." : "Order marked shipped.") : "Tracking saved.";
-  return { ok: true, message: emailed ? `${message} Shipping confirmation emailed.` : message };
+  return { ok: true, message: emailed ? `${message} The customer has been emailed.` : message };
 }
 
 /* ───────────── internal note ───────────── */

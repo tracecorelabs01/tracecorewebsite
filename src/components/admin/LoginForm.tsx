@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
-import { AlertCircle, Loader2, Lock } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Lock } from "lucide-react";
 import { login } from "@/actions/admin/auth";
 import { LogoMark } from "@/components/brand/Logo";
 import { inputClass } from "./ui";
 
-export function LoginForm({ next, dbReady }: { next?: string; dbReady: boolean }) {
+export function LoginForm({ next, dbReady, reset = false }: { next?: string; dbReady: boolean; reset?: boolean }) {
   const [state, action, pending] = useActionState(login, null);
 
   return (
@@ -14,6 +15,11 @@ export function LoginForm({ next, dbReady }: { next?: string; dbReady: boolean }
       <LogoMark className="mb-8 h-9 lg:hidden" />
       <h2 className="font-display text-4xl uppercase">Sign in</h2>
       <p className="mt-2 text-sm text-muted">Staff access only.</p>
+      {reset && (
+        <p className="mt-6 flex items-center gap-2 rounded-xl border border-ok/30 bg-ok/10 p-3 text-sm text-ok" role="status">
+          <CheckCircle2 className="size-4" /> Password changed. Sign in with your new one.
+        </p>
+      )}
 
       {!dbReady && (
         <p className="mt-6 rounded-xl border border-warn/30 bg-warn/10 p-3 text-sm text-fg/90">
@@ -47,6 +53,9 @@ export function LoginForm({ next, dbReady }: { next?: string; dbReady: boolean }
           {pending ? "Signing in" : "Sign in"}
         </button>
       </form>
+      <Link href="/admin/forgot" className="mt-5 inline-block text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
+        Forgot your password?
+      </Link>
     </div>
   );
 }

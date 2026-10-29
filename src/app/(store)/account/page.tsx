@@ -30,6 +30,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
       {param(sp.welcome) && (
         <p className="mb-6 rounded-2xl border border-ok/30 bg-ok/10 px-5 py-4 text-sm text-ok">Your account is ready. Every paid order now earns points you can spend on rewards.</p>
       )}
+      {param(sp.reset) && <p className="mb-6 rounded-2xl border border-ok/30 bg-ok/10 px-5 py-4 text-sm text-ok">Your password has been changed. Other devices have been signed out.</p>}
 
       <div className="mb-8 grid gap-4 md:grid-cols-3">
         <Link href="/account/rewards" className="group rounded-3xl border border-line bg-ink-900/60 p-6 transition-colors hover:border-blaze/50">

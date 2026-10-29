@@ -83,7 +83,7 @@ function rewardCode() {
 }
 
 /** Spend points on an offer: issues a single-use discount code for this customer. */
-export async function redeemOffer(customerId: number, offerId: number): Promise<{ ok: true; code: string } | { ok: false; message: string }> {
+export async function redeemOffer(customerId: number, offerId: number): Promise<{ ok: true; code: string; title: string } | { ok: false; message: string }> {
   const config = await getLoyaltyConfig();
   if (!config.enabled) return { ok: false, message: "Rewards are paused right now." };
   return getDb().transaction(async (tx) => {
@@ -111,7 +111,7 @@ export async function redeemOffer(customerId: number, offerId: number): Promise<
     }
     if (!codeId) throw new Error("Couldn't create a unique reward code");
     await tx.insert(loyaltyLedger).values({ customerId, points: -offer.pointsCost, kind: "redeem", discountCodeId: codeId, note: offer.title.slice(0, 255) });
-    return { ok: true as const, code };
+    return { ok: true as const, code, title: offer.title };
   });
 }
 

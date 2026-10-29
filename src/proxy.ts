@@ -4,6 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 // Real authorisation happens server-side in requireAdmin() on every page/action.
 
 const SESSION_COOKIE = "tcl_admin";
+/** Admin pages a signed-out visitor may open. */
+const PUBLIC = new Set(["/admin/login", "/admin/forgot", "/admin/reset"]);
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -13,7 +15,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login" && !hasSession) {
+  if (pathname.startsWith("/admin") && !PUBLIC.has(pathname) && !hasSession) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin/login";
     url.search = pathname === "/admin" ? "" : `?next=${encodeURIComponent(pathname + search)}`;

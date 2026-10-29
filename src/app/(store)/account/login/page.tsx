@@ -34,12 +34,18 @@ export default async function LoginPage({ searchParams }: PageProps<"/account/lo
             <div className="mt-6">
               <LoginForm next={param(sp.next)} />
             </div>
+            <Link href="/account/forgot" className="mt-5 inline-block text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
+              Forgot your password?
+            </Link>
           </div>
           <div className="rounded-3xl border border-line bg-ink-900/30 p-6 md:p-8">
             <h2 className="font-display text-3xl uppercase">First time here?</h2>
             <p className="mt-3 text-muted">
-              Your account opens after your first paid order. Use the email and order number from your order confirmation to set a password. Forgot your password? The same
-              form sets a new one.
+              Your account opens after your first paid order. Use the email and order number from your order confirmation to set a password, or{" "}
+              <Link href="/account/forgot" className="text-fg underline-offset-4 hover:underline">
+                get a link by email
+              </Link>
+              .
             </p>
             <Link
               href="/account/activate"

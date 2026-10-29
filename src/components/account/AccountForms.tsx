@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { Check, Copy, Loader2, Star } from "lucide-react";
-import { changePassword, login, openAccount, redeem, submitReview, type AccountFormState } from "@/actions/account";
+import { changePassword, login, openAccount, redeem, requestPasswordReset, resetPassword, submitReview, type AccountFormState } from "@/actions/account";
 import { cn } from "@/lib/utils";
 
 type Action = (prev: AccountFormState, fd: FormData) => Promise<AccountFormState>;
@@ -82,6 +82,35 @@ export function OpenAccountForm({ email, order }: { email?: string; order?: stri
         <Status state={state} />
         <Submit pending={pending} className="sm:ml-auto">
           Open my account
+        </Submit>
+      </div>
+    </form>
+  );
+}
+
+export function ForgotPasswordForm({ email }: { email?: string }) {
+  const { state, pending, onSubmit } = useAccountForm(requestPasswordReset);
+  if (state?.ok) return <Status state={state} />;
+  return (
+    <form onSubmit={onSubmit} noValidate className="grid gap-5">
+      <Field label="Email you ordered with" name="email" type="email" autoComplete="email" defaultValue={email} error={state?.fieldErrors?.email} required />
+      <Status state={state} />
+      <Submit pending={pending}>Email me a link</Submit>
+    </form>
+  );
+}
+
+export function ResetPasswordForm({ token }: { token: string }) {
+  const { state, pending, onSubmit } = useAccountForm(resetPassword.bind(null, token));
+  const e = state?.fieldErrors ?? {};
+  return (
+    <form onSubmit={onSubmit} noValidate className="grid gap-5 sm:grid-cols-2">
+      <Field label="New password" name="password" type="password" autoComplete="new-password" error={e.password} hint="At least 10 characters." required />
+      <Field label="Repeat password" name="confirm" type="password" autoComplete="new-password" error={e.confirm} required />
+      <div className="flex flex-col gap-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+        <Status state={state} />
+        <Submit pending={pending} className="sm:ml-auto">
+          Save password
         </Submit>
       </div>
     </form>

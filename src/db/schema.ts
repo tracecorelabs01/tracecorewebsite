@@ -175,6 +175,21 @@ export const customers = mysqlTable(
   (t) => [uniqueIndex("customers_email_uq").on(t.email)],
 );
 
+/** "Set your password" links, emailed to customers and staff. Single use, and stored only as a hash. */
+export const passwordResets = mysqlTable(
+  "password_resets",
+  {
+    // SHA-256 of the token; the raw token only ever lives in the emailed link.
+    id: char("id", { length: 64 }).primaryKey(),
+    kind: mysqlEnum("kind", ["customer", "admin"]).notNull(),
+    subjectId: int("subject_id").notNull(),
+    expiresAt: datetime("expires_at").notNull(),
+    usedAt: datetime("used_at"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("password_resets_subject_idx").on(t.kind, t.subjectId)],
+);
+
 export const customerSessions = mysqlTable(
   "customer_sessions",
   {

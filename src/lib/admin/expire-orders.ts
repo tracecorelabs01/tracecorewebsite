@@ -6,6 +6,7 @@ import { and, eq, gt, lt, sql } from "drizzle-orm";
 import { discountCodes, getDb, orderEvents, orders, settings } from "@/db";
 import { STORE_SETTINGS_KEY } from "@/lib/admin/settings";
 import { resolveSettings } from "@/lib/settings";
+import { emailOrder } from "@/lib/emails/orders";
 import { plural, restockItems, type NewEvent } from "./order-stock";
 
 /** Cancel pending, unpaid orders older than the reservation time; restock them and give back their discount use. Returns how many were released. */
@@ -20,7 +21,7 @@ export async function releaseExpiredOrders() {
 
   let released = 0;
   for (const { id } of stale) {
-    released += await db.transaction(async (tx) => {
+    const done = await db.transaction(async (tx) => {
       // Re-check under lock: staff may have marked it paid or changed it since the scan.
       const [order] = await tx.select().from(orders).where(and(eq(orders.id, id), expired)).limit(1).for("update");
       if (!order) return 0;
@@ -39,6 +40,8 @@ export async function releaseExpiredOrders() {
       await tx.insert(orderEvents).values(events.map((e) => ({ orderId: id, type: e.type, message: e.message.slice(0, 500) })));
       return 1;
     });
+    released += done;
+    if (done) await emailOrder(id, "cancelled");
   }
   return released;
 }

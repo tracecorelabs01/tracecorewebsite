@@ -93,9 +93,29 @@ Customers can open an account (`/account`) only after an order is paid: they ent
 
 Points are added when an order is marked paid (by default 100 per $1 of products after discounts; shipping doesn't earn) and taken back if it's refunded, cancelled or marked unpaid. Offers are set up under **Loyalty**; redeeming one spends the points and issues a single-use `PTS-` discount code. Reviews from accounts are verified buyers only and wait for approval in **Reviews**.
 
-### Email (optional)
+### Email (Resend)
 
-Set `RESEND_API_KEY`, `EMAIL_FROM` and `ORDER_ALERT_EMAIL` to send order confirmations, shipping notifications and new-order alerts via [Resend](https://resend.com). Without them the store works and simply doesn't email.
+Set `RESEND_API_KEY` (a sending-only key for your domain), `EMAIL_FROM` and `ORDER_ALERT_EMAIL`. Without them the store works and simply doesn't email. Every email shares one themed layout (`src/lib/email.ts`), has a plain-text version, replies to `EMAIL_REPLY_TO` (or `ORDER_ALERT_EMAIL`), links to the Discord from Settings, and carries an idempotency key so a retry never sends it twice.
+
+| Email | Sent when |
+| --- | --- |
+| Order received (with invoice, amount due) | A PayPal/crypto order is placed |
+| Payment received + invoice | Razorpay confirms a card payment, or staff mark an order paid |
+| Shipped (tracking number + "Track your package") | Staff mark an order shipped |
+| Tracking update | Tracking changes on an order that's already shipped |
+| Delivered (warranty dates, review link) | Staff mark an order delivered |
+| Cancelled | Staff cancel an order, or an unpaid order's reservation runs out |
+| Refunded | Staff mark it refunded, or a full refund is made in Razorpay |
+| Welcome | An account is opened (by the customer, or by staff with a "set your password" link) |
+| Set / reset password link | "Forgot password" on `/account/forgot` (customers) or `/admin/forgot` (staff); links work once, for an hour |
+| Password changed | Any password change or reset |
+| Reward code | A customer redeems points |
+| Newsletter welcome | Someone signs up in the footer |
+| Staff: new order, contact form message | To `ORDER_ALERT_EMAIL`; replying goes to the customer |
+
+Order emails are templates in `src/lib/emails/orders.ts` and each send is noted on the order's timeline; account emails are in `src/lib/emails/account.ts`.
+
+Newsletter campaigns: sign-ups are stored under **Subscribers**. Send campaigns as Resend broadcasts; import new subscribers into Resend first (Subscribers → Export CSV, then Resend → Contacts → Import).
 
 ### Security
 
