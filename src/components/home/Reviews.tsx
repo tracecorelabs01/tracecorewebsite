@@ -31,12 +31,12 @@ export function Reviews({ reviews, summary }: { reviews: Review[]; summary: Revi
       </div>
 
       <div className="mt-16 space-y-5">
-        <CssMarquee duration={70}>
+        <CssMarquee>
           {reviews.slice(0, half).map((r, i) => (
             <ReviewCard key={i} review={r} />
           ))}
         </CssMarquee>
-        <CssMarquee duration={80} reverse>
+        <CssMarquee reverse>
           {reviews.slice(half).map((r, i) => (
             <ReviewCard key={i} review={r} />
           ))}

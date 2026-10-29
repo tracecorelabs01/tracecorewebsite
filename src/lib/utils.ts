@@ -27,12 +27,6 @@ export function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
 }
 
-/** Wrap v into [min, max) — used by the infinite marquee. */
-export function wrap(min: number, max: number, v: number) {
-  const range = max - min;
-  return ((((v - min) % range) + range) % range) + min;
-}
-
 /** Small deterministic PRNG so decorative "random" layouts match between server and client. */
 export function seeded(seed: number) {
   let s = seed >>> 0;

@@ -51,7 +51,7 @@ export function Header() {
         data-offscreen={!barOpen && barFolded ? "" : undefined}
       >
         {hasBar && (
-          <CssMarquee duration={38} className="h-[34px] items-center [mask-image:none]">
+          <CssMarquee className="h-[34px] items-center [mask-image:none]">
             {[...settings.announcements, ...settings.announcements].map((msg, i) => (
               <span key={i} className="flex items-center gap-6 pr-6 font-mono text-[11px] font-medium uppercase tracking-[0.18em]">
                 {msg}
