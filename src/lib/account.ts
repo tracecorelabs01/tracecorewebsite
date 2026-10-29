@@ -1,8 +1,47 @@
 import "server-only";
 import { and, asc, count, desc, eq, inArray, isNotNull, sum } from "drizzle-orm";
-import { discountCodes, getDb, loyaltyLedger, loyaltyOffers, orderItems, orders, products, reviews } from "@/db";
+import { customers, discountCodes, getDb, loyaltyLedger, loyaltyOffers, orderItems, orders, products, reviews } from "@/db";
 
 // Read-only queries for the customer account pages. Every one is scoped to the signed-in customer's id.
+
+export type CheckoutDetails = NonNullable<Awaited<ReturnType<typeof getCheckoutDetails>>>;
+
+/** What checkout fills in for a signed-in customer: their details, with the address from their latest order. */
+export async function getCheckoutDetails(customerId: number) {
+  const db = getDb();
+  const [[c], [last]] = await Promise.all([
+    db.select({ email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone, country: customers.country }).from(customers).where(eq(customers.id, customerId)).limit(1),
+    db
+      .select({
+        firstName: orders.firstName,
+        lastName: orders.lastName,
+        phone: orders.phone,
+        address1: orders.address1,
+        address2: orders.address2,
+        city: orders.city,
+        region: orders.region,
+        postalCode: orders.postalCode,
+        country: orders.country,
+      })
+      .from(orders)
+      .where(eq(orders.customerId, customerId))
+      .orderBy(desc(orders.createdAt), desc(orders.id))
+      .limit(1),
+  ]);
+  if (!c) return null;
+  return {
+    email: c.email,
+    firstName: last?.firstName || c.firstName,
+    lastName: last?.lastName || c.lastName,
+    phone: last?.phone || c.phone || "",
+    address1: last?.address1 ?? "",
+    address2: last?.address2 ?? "",
+    city: last?.city ?? "",
+    region: last?.region ?? "",
+    postalCode: last?.postalCode ?? "",
+    country: last?.country || c.country || "",
+  };
+}
 
 export async function listMyOrders(customerId: number) {
   const db = getDb();

@@ -157,7 +157,7 @@ function Editor({ config, percent: savedPercent, products, categories, catalog, 
         {tab === "summary" && <SummaryPanel value={draft.summary} onChange={patch("summary")} percent={percent} {...ctx} />}
         {tab === "preview" && (
           <Card title="Preview" description="The builder as customers will see it, with your unsaved changes. Products that aren't published show as unavailable, just like on the store. Adding to the cart is turned off here.">
-            <StoreSettingsProvider value={{ ...settings, setupDiscountPercent: Number.isFinite(percent) ? percent : 0 }}>
+            <StoreSettingsProvider value={{ ...settings, payments: [], setupDiscountPercent: Number.isFinite(percent) ? percent : 0 }}>
               <div className="-mx-5 -mb-5 pt-2 [&>section]:pb-8">
                 <SetupBuilder config={normalizeSetupBuilder(draft)} products={catalog} preview />
               </div>

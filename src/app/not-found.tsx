@@ -1,10 +1,10 @@
 import { LogoMark } from "@/components/brand/Logo";
 import { StoreShell } from "@/components/layout/StoreShell";
 import { ButtonLink } from "@/components/ui/Button";
-import { getStoreSettings } from "@/lib/catalog/server";
+import { getPublicSettings } from "@/lib/catalog/server";
 
 export default async function NotFound() {
-  const settings = await getStoreSettings();
+  const settings = await getPublicSettings();
   return (
     <StoreShell settings={settings}>
     <section className="relative isolate flex min-h-[100svh] items-center overflow-hidden pt-28">

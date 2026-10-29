@@ -6,7 +6,8 @@ import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { cn } from "@/lib/utils";
 
 // Trust points and accepted-payment logos, shown in the footer, on the shop page and at checkout.
-// The payment list is Settings → Payment methods; names below get their logo, anything else shows as text.
+// The payment list is worked out on the server from what's set up (getPublicSettings): Razorpay and its
+// enabled card networks, plus PayPal and crypto while they're switched on. Keys without a logo show as text.
 // Logo paths from Simple Icons (CC0); the marks belong to their owners and appear here as acceptance marks.
 
 type Logo = { label: string; mark: ReactNode; ticker?: string };

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, Bitcoin, Check, CreditCard, Info, Loader2, Lock, ShoppingBag, Tag, Wallet, X } from "lucide-react";
+import { AlertTriangle, Bitcoin, Check, CreditCard, Info, Loader2, Lock, ShoppingBag, Tag, UserRound, Wallet, X } from "lucide-react";
 import { confirmPayment, startPayment } from "@/actions/payment";
 import { placeOrder, previewDiscount, previewSetupDiscount, type PlaceOrderResult } from "@/actions/store";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
+import type { CheckoutDetails } from "@/lib/account";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { PaymentLogos, TrustBadges } from "@/components/ui/Badges";
 import { ButtonLink } from "@/components/ui/Button";
@@ -17,7 +18,7 @@ import { cn, formatPrice } from "@/lib/utils";
 
 const countries = ["United States", "Canada", "United Kingdom", "Germany", "France", "Netherlands", "Sweden", "Poland", "Australia", "India", "Other"];
 const methods = [
-  { id: "card", label: "Card", sub: "Visa · Mastercard · Amex · Apple Pay", Icon: CreditCard },
+  { id: "card", label: "Card", sub: "Debit or credit card", Icon: CreditCard },
   { id: "paypal", label: "PayPal", sub: "Pay with your PayPal balance or card", Icon: Wallet },
   { id: "crypto", label: "Crypto", sub: "BTC · ETH · USDT · LTC", Icon: Bitcoin },
 ] as const;
@@ -49,7 +50,7 @@ function loadRazorpay() {
   });
 }
 
-export function CheckoutClient({ demo, cardOnline }: { demo: boolean; cardOnline: boolean }) {
+export function CheckoutClient({ demo, cardOnline, details }: { demo: boolean; cardOnline: boolean; details: CheckoutDetails | null }) {
   const hydrated = useUi((s) => s.hydrated);
   const lines = useCart((s) => s.lines);
   const subtotal = useCart(selectSubtotal);
@@ -216,24 +217,30 @@ export function CheckoutClient({ demo, cardOnline }: { demo: boolean; cardOnline
       <form onSubmit={submit} noValidate className="grid gap-10 lg:grid-cols-12">
         <div className="space-y-10 lg:col-span-7">
           <Fieldset step="01" title="Contact">
-            <Field label="Email" name="email" type="email" autoComplete="email" required className="sm:col-span-2" error={fieldErrors.email} />
-            <Field label="Phone (optional)" name="phone" type="tel" autoComplete="tel" className="sm:col-span-2" error={fieldErrors.phone} />
+            {details && (
+              <p className="flex items-center gap-2 text-sm text-muted sm:col-span-2">
+                <UserRound className="size-4 shrink-0 text-blaze" />
+                Signed in as {details.email}. Your saved details are filled in below.
+              </p>
+            )}
+            <Field label="Email" name="email" type="email" autoComplete="email" required className="sm:col-span-2" defaultValue={details?.email} error={fieldErrors.email} />
+            <Field label="Phone (optional)" name="phone" type="tel" autoComplete="tel" className="sm:col-span-2" defaultValue={details?.phone} error={fieldErrors.phone} />
           </Fieldset>
 
           <Fieldset step="02" title="Shipping">
-            <Field label="First name" name="firstName" autoComplete="given-name" required error={fieldErrors.firstName} />
-            <Field label="Last name" name="lastName" autoComplete="family-name" required error={fieldErrors.lastName} />
-            <Field label="Address" name="address1" autoComplete="address-line1" required className="sm:col-span-2" error={fieldErrors.address1} />
-            <Field label="Apartment, suite (optional)" name="address2" autoComplete="address-line2" className="sm:col-span-2" />
-            <Field label="City" name="city" autoComplete="address-level2" required error={fieldErrors.city} />
-            <Field label="State / region (optional)" name="region" autoComplete="address-level1" />
-            <Field label="Postal code" name="zip" autoComplete="postal-code" required error={fieldErrors.postalCode} />
+            <Field label="First name" name="firstName" autoComplete="given-name" required defaultValue={details?.firstName} error={fieldErrors.firstName} />
+            <Field label="Last name" name="lastName" autoComplete="family-name" required defaultValue={details?.lastName} error={fieldErrors.lastName} />
+            <Field label="Address" name="address1" autoComplete="address-line1" required className="sm:col-span-2" defaultValue={details?.address1} error={fieldErrors.address1} />
+            <Field label="Apartment, suite (optional)" name="address2" autoComplete="address-line2" className="sm:col-span-2" defaultValue={details?.address2} />
+            <Field label="City" name="city" autoComplete="address-level2" required defaultValue={details?.city} error={fieldErrors.city} />
+            <Field label="State / region (optional)" name="region" autoComplete="address-level1" defaultValue={details?.region} />
+            <Field label="Postal code" name="zip" autoComplete="postal-code" required defaultValue={details?.postalCode} error={fieldErrors.postalCode} />
             <label>
               <span className="type-kicker text-dim">Country</span>
               <select
                 name="country"
                 required
-                defaultValue=""
+                defaultValue={details && countries.includes(details.country) ? details.country : ""}
                 className={cn("mt-2 h-12 w-full rounded-xl border bg-ink-900 px-4 text-fg outline-none transition-colors focus:border-blaze", fieldErrors.country ? "border-ember" : "border-line-strong")}
               >
                 <option value="" disabled>
@@ -254,7 +261,7 @@ export function CheckoutClient({ demo, cardOnline }: { demo: boolean; cardOnline
 
           <Fieldset step="03" title="Payment">
             <div className="grid gap-3 sm:col-span-2" role="radiogroup" aria-label="Payment method">
-              {methods.map(({ id, label, sub, Icon }) => (
+              {methods.filter((m) => m.id === "card" || settings.manualPayments[m.id]).map(({ id, label, sub, Icon }) => (
                 <label
                   key={id}
                   className={cn(

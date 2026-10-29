@@ -228,6 +228,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   }
   const data = parsed.data;
   const settings = await getStoreSettings();
+  if (data.paymentMethod !== "card" && !settings.manualPayments[data.paymentMethod]) {
+    return { ok: false, error: "That payment method isn't available any more. Please choose another." };
+  }
   const priced = await priceCart(data.lines, data.discountCode || undefined);
   if (!priced.ok) return { ok: false, error: priced.error, cartIssues: priced.cartIssues };
 

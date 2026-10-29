@@ -4,6 +4,7 @@
 // instructions like the other methods.
 
 import "server-only";
+import { cacheLife } from "next/cache";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, asc, eq, isNull, like } from "drizzle-orm";
 import { getDb, orderEvents, orderItems, orders } from "@/db";
@@ -65,6 +66,27 @@ export const checkoutSignatureValid = (razorpayOrderId: string, paymentId: strin
 export function webhookSignatureValid(body: string, signature: string) {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
   return Boolean(secret && signature) && sameHmac(body, secret!, signature);
+}
+
+const NETWORKS = { VISA: "visa", MC: "mastercard", AMEX: "amex", DICL: "Diners Club", JCB: "JCB" } as const;
+
+/** Card networks switched on for the Razorpay account (international ones; checkout is in USD), for the payment logos. */
+export async function razorpayCardNetworks(): Promise<string[]> {
+  "use cache";
+  cacheLife("hours");
+  try {
+    // Public endpoint: the key id alone is enough.
+    const res = await fetch(`${API}/methods`, {
+      headers: { Authorization: `Basic ${Buffer.from(`${process.env.RAZORPAY_KEY_ID}:`).toString("base64")}` },
+      signal: AbortSignal.timeout(5_000),
+    });
+    const enabled: Record<string, number> = (await res.json())?.card_networks ?? {};
+    const networks = Object.entries(NETWORKS).flatMap(([code, key]) => (enabled[code] ? [key] : []));
+    if (networks.length) return networks;
+  } catch (err) {
+    console.error("[razorpay] card networks", err);
+  }
+  return ["visa", "mastercard"];
 }
 
 export const fetchPayment = (id: string) => api<RazorpayPayment>(`/payments/${encodeURIComponent(id)}`);

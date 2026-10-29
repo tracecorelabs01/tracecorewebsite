@@ -15,7 +15,7 @@ import { resolveSettings, storeSettingsSchema, type StoreSettings } from "@/lib/
 const STAT_ROWS = 4;
 const LINK_KEYS = ["discord", "x", "youtube", "tiktok"] as const;
 const MONEY_FIELDS = new Set(["freeShippingThreshold", "flatShipping"]);
-const LIST_NOUNS = { announcements: "announcement", payments: "payment method" } as const;
+const LIST_NOUNS = { announcements: "announcement" } as const;
 const SECTIONS: Record<keyof StoreSettings, string> = {
   announcements: "announcements",
   freeShippingThreshold: "free-shipping threshold",
@@ -23,7 +23,7 @@ const SECTIONS: Record<keyof StoreSettings, string> = {
   supportEmail: "support email",
   links: "links",
   stats: "homepage stats",
-  payments: "payment methods",
+  manualPayments: "payment methods",
   orderNote: "order note",
   reservationHours: "unpaid order reservation time",
   setupDiscountPercent: "setup discount",
@@ -50,7 +50,6 @@ const isWebUrl = (v: string) => {
 
 // The setup discount is edited on the Setup builder page, so this form leaves it as it is.
 function readForm(fd: FormData): Omit<StoreSettings, "setupDiscountPercent"> {
-  const payments = lines(fd.get("payments"));
   return {
     announcements: lines(fd.get("announcements")),
     freeShippingThreshold: dollars(fd.get("freeShippingThreshold")),
@@ -62,8 +61,7 @@ function readForm(fd: FormData): Omit<StoreSettings, "setupDiscountPercent"> {
       // Keep 0 implicit, like the built-in defaults.
       return { value: num(fd.get(`stats.${i}.value`)), suffix: str(fd.get(`stats.${i}.suffix`)), label: str(fd.get(`stats.${i}.label`)), ...(decimals ? { decimals } : {}) };
     }),
-    // The footer keys badges by name, so drop repeats.
-    payments: payments.filter((p, i) => payments.findIndex((o) => o.toLowerCase() === p.toLowerCase()) === i),
+    manualPayments: { paypal: fd.get("paypal") === "on", crypto: fd.get("crypto") === "on" },
     orderNote: str(fd.get("orderNote")),
     reservationHours: num(fd.get("reservationHours")),
   };
@@ -72,7 +70,7 @@ function readForm(fd: FormData): Omit<StoreSettings, "setupDiscountPercent"> {
 /** Turn a zod issue into [form field name, message the admin can act on]. */
 function describeIssue(issue: z.core.$ZodIssue): [string, string] {
   const [top, index] = issue.path;
-  if (top === "announcements" || top === "payments") {
+  if (top === "announcements") {
     const noun = LIST_NOUNS[top];
     if (issue.code === "too_big" && issue.origin === "array") return [top, `Add up to ${issue.maximum} ${noun}s, one per line.`];
     const line = typeof index === "number" ? `Line ${index + 1}` : "One line";

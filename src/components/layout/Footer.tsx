@@ -10,8 +10,17 @@ import { ButtonLink } from "@/components/ui/Button";
 import { DiscordIcon, TikTokIcon, XIcon, YouTubeIcon } from "@/components/ui/icons";
 import { Magnetic, RevealLines } from "@/components/ui/motion";
 import { subscribe } from "@/actions/store";
+import type { PublicSettings } from "@/lib/settings-defaults";
 import { site } from "@/lib/site";
 import { useStoreSettings } from "./StoreSettings";
+
+/** "Cards are processed securely by Razorpay. PayPal and crypto payment details are sent after checkout." for what's on. */
+function paymentNote({ payments, manualPayments }: PublicSettings) {
+  const manual = [manualPayments.paypal && "PayPal", manualPayments.crypto && "crypto"].filter(Boolean).join(" and ");
+  return [payments.includes("razorpay") && "Cards are processed securely by Razorpay.", manual && `${manual[0].toUpperCase()}${manual.slice(1)} payment details are sent after checkout.`]
+    .filter(Boolean)
+    .join(" ");
+}
 
 const columns = [
   {
@@ -124,7 +133,7 @@ export function Footer() {
           <div>
             <h3 className="type-kicker text-dim">Accepted payment methods</h3>
             <PaymentLogos className="mt-4" />
-            <p className="mt-3 text-xs text-dim">Cards are processed securely by Razorpay. PayPal and crypto payment details are sent after checkout.</p>
+            <p className="mt-3 text-xs text-dim">{paymentNote(settings)}</p>
           </div>
           <div className="flex items-center gap-1">
             {socials.map(({ href, Icon, label }) => (

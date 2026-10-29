@@ -1,11 +1,11 @@
 "use client";
 
 import { createContext, use, type ReactNode } from "react";
-import { defaultSettings, type StoreSettings } from "@/lib/settings-defaults";
+import { defaultPublicSettings, type PublicSettings } from "@/lib/settings-defaults";
 
-const StoreSettingsContext = createContext<StoreSettings>(defaultSettings);
+const StoreSettingsContext = createContext<PublicSettings>(defaultPublicSettings);
 
-export function StoreSettingsProvider({ value, children }: { value: StoreSettings; children: ReactNode }) {
+export function StoreSettingsProvider({ value, children }: { value: PublicSettings; children: ReactNode }) {
   return <StoreSettingsContext value={value}>{children}</StoreSettingsContext>;
 }
 

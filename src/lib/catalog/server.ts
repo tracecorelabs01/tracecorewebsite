@@ -4,7 +4,9 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { categories as categoriesT, getDb, isDbConfigured, productImages, products as productsT, reviews as reviewsT, settings as settingsT } from "@/db";
 import { categories as demoCategories, products as demoProducts } from "@/data/products";
 import { reviews as demoReviews, ratingSummary as demoSummary } from "@/data/reviews";
+import { isRazorpayConfigured, razorpayCardNetworks } from "@/lib/razorpay";
 import { defaultSettings, resolveSettings, type StoreSettings } from "@/lib/settings";
+import type { PublicSettings } from "@/lib/settings-defaults";
 import { defaultSetupBuilder, type SetupBuilderConfig } from "@/lib/setup-builder";
 import { resolveSetupBuilder, SETUP_BUILDER_KEY } from "@/lib/setup-builder-schema";
 import { ART_KEYS, type ArtKey, type CategoryInfo, type Product, type ProductVisual, type PublicReview, type ReviewSummary, type StockStatus } from "./types";
@@ -31,6 +33,13 @@ export async function getProductBySlug(slug: string) {
 export async function getStoreSettings(): Promise<StoreSettings> {
   if (!isDbConfigured()) return defaultSettings;
   return loadSettings();
+}
+
+/** Settings for the storefront, with the payment logos worked out from what's actually set up. */
+export async function getPublicSettings(): Promise<PublicSettings> {
+  const [settings, cards] = await Promise.all([getStoreSettings(), isRazorpayConfigured() ? razorpayCardNetworks() : []]);
+  const payments = [...(cards.length ? ["razorpay", ...cards] : []), ...(settings.manualPayments.paypal ? ["paypal"] : []), ...(settings.manualPayments.crypto ? ["crypto"] : [])];
+  return { ...settings, payments };
 }
 
 /** The Setup Builder's questions and product picks, managed in /admin/setup-builder. */

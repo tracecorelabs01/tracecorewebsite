@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { StoreSettings } from "@/lib/settings-defaults";
-import { ActionForm, Field, FormStatus, Input, Select, SubmitButton, Textarea, type ActionState } from "@/components/admin/forms";
+import { ActionForm, Field, FormStatus, Input, Select, SubmitButton, Textarea, Toggle, type ActionState } from "@/components/admin/forms";
 import { Card } from "@/components/admin/ui";
 
 const LINKS = [
@@ -97,10 +97,17 @@ export function SettingsForm({
           </div>
         </Card>
 
-        <Card title="Payment methods" description="Shown as logos in the footer, on the shop page and at checkout. List only what you accept.">
-          <Field label="Methods" name="payments" hint="One per line, up to 10. These get their logo: Visa, Mastercard, Amex, PayPal, Apple Pay, Google Pay, Razorpay, Bitcoin, Ethereum, USDT, Litecoin, and Crypto (shows BTC, ETH, USDT and LTC). Anything else shows as text.">
-            <Textarea name="payments" defaultValue={settings.payments.join("\n")} rows={4} placeholder={"Visa\nMastercard\nPayPal"} />
-          </Field>
+        <Card
+          title="Payment methods"
+          description="What checkout offers. The payment logos in the footer, on the shop page and at checkout follow these automatically."
+        >
+          <p className="text-sm text-muted">
+            Cards are paid through Razorpay. Their logos match the card networks switched on in your Razorpay account, so a network shows up once Razorpay enables it.
+          </p>
+          <div className="mt-4 space-y-3">
+            <Toggle name="paypal" label="PayPal" description="Customers get payment instructions after placing the order." defaultChecked={settings.manualPayments.paypal} />
+            <Toggle name="crypto" label="Crypto (BTC, ETH, USDT, LTC)" description="Customers get payment instructions after placing the order." defaultChecked={settings.manualPayments.crypto} />
+          </div>
         </Card>
 
         <Card title="Order note" description="Shown to customers right after checkout and included in their order confirmation email.">
