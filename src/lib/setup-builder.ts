@@ -222,7 +222,7 @@ export const defaultSetupBuilder: SetupBuilderConfig = {
     enabled: true,
     options: [
       { product: "makcu", title: "Compact", description: "Small and affordable." },
-      { product: "ferrum", title: "Premium", description: "Machined aluminium, plug-and-play." },
+      { product: "ferrum", title: "Premium", description: "Plastic shell, drivers included." },
     ],
     role: "Input device",
     whatItDoes: "Plugs in between your mouse and your main PC.",

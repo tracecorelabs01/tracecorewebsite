@@ -11,7 +11,7 @@ export const site = {
   email: "support@tracecorelab.com", // PLACEHOLDER
   currency: "USD",
   freeShippingThreshold: 250,
-  flatShipping: 15,
+  flatShipping: 35,
   // Shows a notice on /checkout until a payment provider is wired up.
   checkoutDemoMode: true,
   links: {

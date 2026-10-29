@@ -62,17 +62,17 @@ const demoProducts: DemoProduct[] = [
       { kind: "image", src: "/products/ferrum-banner.webp", alt: "Ferrum product banner" },
     ],
     summary:
-      "A palm-sized USB device in a bead-blasted aluminium shell. Plug-and-play, driverless and built to sit quietly on your desk for years.",
+      "A palm-sized USB device in a plastic shell. Drivers are included, and it's built to sit quietly on your desk for years.",
     highlights: [
-      "Machined aluminium housing",
-      "Plug-and-play USB-C, no drivers",
+      "Plastic housing",
+      "USB-C, drivers included",
       "Mouse and keyboard passthrough",
       "Firmware updates over USB",
     ],
     specs: [
       { label: "Interface", value: "USB-C" },
       { label: "Passthrough", value: "Mouse + keyboard" },
-      { label: "Housing", value: "Bead-blasted aluminium" },
+      { label: "Housing", value: "Plastic" },
       { label: "Dimensions", value: "64 × 46 × 9 mm" },
       { label: "Weight", value: "38 g" },
       { label: "Warranty", value: "12 months" },
