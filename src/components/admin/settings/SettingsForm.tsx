@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import type { StoreSettings } from "@/lib/settings-defaults";
 import { ActionForm, Field, FormStatus, Input, Select, SubmitButton, Textarea, type ActionState } from "@/components/admin/forms";
@@ -115,10 +116,14 @@ export function SettingsForm({
           </Field>
         </Card>
 
-        <Card title="Setup Builder" description="Customers who check out with a DMA card, a video fuser and an input device get this discount automatically. A discount code replaces it.">
-          <Field label="Setup discount (%)" name="setupDiscountPercent" hint="Use 0 to turn it off. Up to 50.">
-            <Input name="setupDiscountPercent" type="number" min={0} max={50} step={1} inputMode="numeric" defaultValue={settings.setupDiscountPercent} className="tabular-nums" />
-          </Field>
+        <Card title="Setup builder" description="The bundle discount, the builder's questions and the products it recommends.">
+          <p className="text-sm text-muted">
+            The setup discount is {settings.setupDiscountPercent > 0 ? `${settings.setupDiscountPercent}%` : "off"}. Change it, and everything else in the builder, on the{" "}
+            <Link href="/admin/setup-builder" className="text-amber underline-offset-4 hover:underline">
+              Setup builder page
+            </Link>
+            .
+          </p>
         </Card>
       </div>
 

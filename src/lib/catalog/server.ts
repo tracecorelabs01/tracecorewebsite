@@ -5,6 +5,8 @@ import { categories as categoriesT, getDb, isDbConfigured, productImages, produc
 import { categories as demoCategories, products as demoProducts } from "@/data/products";
 import { reviews as demoReviews, ratingSummary as demoSummary } from "@/data/reviews";
 import { defaultSettings, resolveSettings, type StoreSettings } from "@/lib/settings";
+import { defaultSetupBuilder, type SetupBuilderConfig } from "@/lib/setup-builder";
+import { resolveSetupBuilder, SETUP_BUILDER_KEY } from "@/lib/setup-builder-schema";
 import { ART_KEYS, type ArtKey, type CategoryInfo, type Product, type ProductVisual, type PublicReview, type ReviewSummary, type StockStatus } from "./types";
 
 // Cache tags — admin mutations call updateTag() with these.
@@ -29,6 +31,12 @@ export async function getProductBySlug(slug: string) {
 export async function getStoreSettings(): Promise<StoreSettings> {
   if (!isDbConfigured()) return defaultSettings;
   return loadSettings();
+}
+
+/** The Setup Builder's questions and product picks, managed in /admin/setup-builder. */
+export async function getSetupBuilder(): Promise<SetupBuilderConfig> {
+  if (!isDbConfigured()) return defaultSetupBuilder;
+  return loadSetupBuilder();
 }
 
 /** Approved reviews for the homepage. Demo mode shows clearly-labelled samples. */
@@ -116,6 +124,14 @@ async function loadSettings(): Promise<StoreSettings> {
   cacheLife(STOREFRONT_CACHE);
   const [row] = await getDb().select().from(settingsT).where(eq(settingsT.key, "store")).limit(1);
   return resolveSettings(row?.value);
+}
+
+async function loadSetupBuilder(): Promise<SetupBuilderConfig> {
+  "use cache";
+  cacheTag(TAGS.settings);
+  cacheLife(STOREFRONT_CACHE);
+  const [row] = await getDb().select().from(settingsT).where(eq(settingsT.key, SETUP_BUILDER_KEY)).limit(1);
+  return resolveSetupBuilder(row?.value);
 }
 
 async function loadReviews(): Promise<{ reviews: PublicReview[]; summary: ReviewSummary | null }> {

@@ -4,7 +4,7 @@ import { revalidateTag } from "next/cache";
 import { and, count, eq, gt, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { categories, customers, discountCodes, getDb, isDbConfigured, messages, orderEvents, orderItems, orders, products, subscribers } from "@/db";
-import { getCatalog, getStoreSettings, TAGS } from "@/lib/catalog/server";
+import { getCatalog, getSetupBuilder, getStoreSettings, TAGS } from "@/lib/catalog/server";
 import { MAX_QTY } from "@/lib/catalog/types";
 import { isCompleteSetup, setupDiscountCode } from "@/lib/setup-builder";
 import { sendOrderEmails } from "@/lib/email";
@@ -132,10 +132,13 @@ async function priceCart(lines: CartInput, code?: string): Promise<Priced> {
     const cents = row!.kind === "percent" ? Math.round((subtotalCents * Math.min(100, row!.value)) / 100) : Math.min(row!.value, subtotalCents);
     discount = { id: row!.id, code: row!.code, cents };
   } else if (settings.setupDiscountPercent > 0) {
-    // No code: a complete setup (DMA card + fuser + input device) gets the automatic setup discount.
+    // No code: a complete setup (a product from each category the Setup Builder requires) gets the automatic setup discount.
     const categoryIds = [...new Set(rows.map((r) => r.categoryId).filter((id): id is number => id != null))];
-    const cats = categoryIds.length ? await db.select({ slug: categories.slug }).from(categories).where(inArray(categories.id, categoryIds)) : [];
-    if (isCompleteSetup(cats.map((c) => c.slug))) {
+    const [cats, builder] = await Promise.all([
+      categoryIds.length ? db.select({ slug: categories.slug }).from(categories).where(inArray(categories.id, categoryIds)) : [],
+      getSetupBuilder(),
+    ]);
+    if (isCompleteSetup(cats.map((c) => c.slug), builder.discountCategories)) {
       discount = { id: null, code: setupDiscountCode(settings.setupDiscountPercent), cents: Math.round((subtotalCents * settings.setupDiscountPercent) / 100) };
     }
   }

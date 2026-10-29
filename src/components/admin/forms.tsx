@@ -55,6 +55,11 @@ export function ActionForm({
   );
 }
 
+/** The surrounding ActionForm's last result and pending flag. */
+export function useActionForm() {
+  return use(FormContext);
+}
+
 export function FormStatus({ className }: { className?: string }) {
   const { state } = use(FormContext);
   if (!state?.message) return null;
@@ -117,10 +122,25 @@ export function AutoSubmitSelect({ className, children, ...props }: Omit<Compone
   );
 }
 
-export function Toggle({ name, label, defaultChecked, description }: { name: string; label: string; defaultChecked?: boolean; description?: string }) {
+/** Switch; pass `checked` + `onCheckedChange` to control it from state. */
+export function Toggle({
+  name,
+  label,
+  defaultChecked,
+  description,
+  checked,
+  onCheckedChange,
+}: {
+  name?: string;
+  label: string;
+  defaultChecked?: boolean;
+  description?: string;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+}) {
   return (
     <label className="flex cursor-pointer items-start gap-3">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="peer sr-only" />
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} checked={checked} onChange={onCheckedChange && ((e) => onCheckedChange(e.target.checked))} className="peer sr-only" />
       <span className="relative mt-0.5 h-5 w-9 shrink-0 rounded-full border border-line-strong bg-ink-850 transition-colors after:absolute after:left-0.5 after:top-0.5 after:size-3.5 after:rounded-full after:bg-muted after:transition-transform peer-checked:border-transparent peer-checked:bg-brand peer-checked:after:translate-x-4 peer-checked:after:bg-white peer-focus-visible:outline-2 peer-focus-visible:outline-blaze" />
       <span>
         <span className="block text-sm text-fg">{label}</span>

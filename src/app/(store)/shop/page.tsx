@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { SetupBuilder } from "@/components/build/SetupBuilder";
 import { PageHero } from "@/components/ui/PageHero";
 import { ShopClient, ShopSkeleton } from "@/components/shop/ShopClient";
-import { getCatalog } from "@/lib/catalog/server";
-import { SETUP_PRODUCT_SLUGS } from "@/lib/setup-builder";
+import { getCatalog, getSetupBuilder } from "@/lib/catalog/server";
+import { builderProductSlugs } from "@/lib/setup-builder";
 
 export const metadata: Metadata = {
   title: "Shop",
@@ -12,7 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ShopPage() {
-  const { products, categories } = await getCatalog();
+  const [{ products, categories }, builder] = await Promise.all([getCatalog(), getSetupBuilder()]);
+  const builderSlugs = builderProductSlugs(builder);
   return (
     <>
       <PageHero
@@ -26,7 +27,7 @@ export default async function ShopPage() {
         ]}
         description="Every card, device and accessory we make — tested before dispatch, shipped worldwide, and backed by our team."
       />
-      <SetupBuilder products={products.filter((p) => SETUP_PRODUCT_SLUGS.has(p.slug))} />
+      <SetupBuilder config={builder} products={products.filter((p) => builderSlugs.has(p.slug))} />
       <Suspense fallback={<ShopSkeleton />}>
         <ShopClient products={products} categories={categories} />
       </Suspense>

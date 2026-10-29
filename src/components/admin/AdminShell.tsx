@@ -17,6 +17,7 @@ import {
   Receipt,
   Settings,
   ShieldCheck,
+  SlidersHorizontal,
   Star,
   TicketPercent,
   UserCircle2,
@@ -47,6 +48,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: typeof P
     items: [
       { href: "/admin/products", label: "Products", icon: Package, min: "admin" },
       { href: "/admin/categories", label: "Categories", icon: FolderTree, min: "admin" },
+      { href: "/admin/setup-builder", label: "Setup builder", icon: SlidersHorizontal, min: "admin" },
       { href: "/admin/inventory", label: "Inventory", icon: Boxes, badge: "lowStock" },
     ],
   },
@@ -79,7 +81,7 @@ export function AdminShell({ user, counts, children }: { user: { name: string; e
   }, [pathname]);
 
   const nav = (
-    <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-5" aria-label="Admin">
+    <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-5" aria-label="Admin">
       {NAV.map((group) => {
         const items = group.items.filter((i) => RANK[user.role] >= RANK[i.min ?? "staff"]);
         if (!items.length) return null;

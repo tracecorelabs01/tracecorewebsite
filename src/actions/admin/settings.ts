@@ -48,7 +48,8 @@ const isWebUrl = (v: string) => {
   }
 };
 
-function readForm(fd: FormData): StoreSettings {
+// The setup discount is edited on the Setup builder page, so this form leaves it as it is.
+function readForm(fd: FormData): Omit<StoreSettings, "setupDiscountPercent"> {
   const payments = lines(fd.get("payments"));
   return {
     announcements: lines(fd.get("announcements")),
@@ -65,7 +66,6 @@ function readForm(fd: FormData): StoreSettings {
     payments: payments.filter((p, i) => payments.findIndex((o) => o.toLowerCase() === p.toLowerCase()) === i),
     orderNote: str(fd.get("orderNote")),
     reservationHours: num(fd.get("reservationHours")),
-    setupDiscountPercent: num(fd.get("setupDiscountPercent")),
   };
 }
 
@@ -97,7 +97,10 @@ function describeIssue(issue: z.core.$ZodIssue): [string, string] {
 
 export async function saveSettings(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin("admin");
-  const input = readForm(fd);
+  const db = getDb();
+  const [row] = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, STORE_SETTINGS_KEY)).limit(1);
+  const before = resolveSettings(row?.value);
+  const input: StoreSettings = { ...readForm(fd), setupDiscountPercent: before.setupDiscountPercent };
   const parsed = storeSettingsSchema.safeParse(input);
 
   const fieldErrors: Record<string, string> = {};
@@ -120,13 +123,10 @@ export async function saveSettings(_prev: ActionState, fd: FormData): Promise<Ac
   if (!parsed.success || Object.keys(fieldErrors).length) return { ok: false, message: "Please fix the highlighted fields.", fieldErrors };
 
   const data = parsed.data;
-  const db = getDb();
-  const [row] = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, STORE_SETTINGS_KEY)).limit(1);
   if (row) await db.update(settings).set({ value: data }).where(eq(settings.key, STORE_SETTINGS_KEY));
   else await db.insert(settings).values({ key: STORE_SETTINGS_KEY, value: data }).onDuplicateKeyUpdate({ set: { value: data } });
   updateTag(TAGS.settings);
 
-  const before = resolveSettings(row?.value);
   const changed = (Object.keys(SECTIONS) as (keyof StoreSettings)[]).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(data[k]));
   await logActivity(user, "update", "settings", STORE_SETTINGS_KEY, changed.length ? `Updated store settings: ${changed.map((k) => SECTIONS[k]).join(", ")}` : "Saved store settings (no changes)");
   return { ok: true, message: "Settings saved — live on the store." };

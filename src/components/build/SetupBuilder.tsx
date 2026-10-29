@@ -10,54 +10,49 @@ import { Kicker } from "@/components/ui/bits";
 import { Button } from "@/components/ui/Button";
 import { EASE_EXPO } from "@/components/ui/motion";
 import { useCart } from "@/lib/cart-store";
-import { FUSERS, SCREENS, SETUP_SLUGS, SPEEDS, TIERS, UNSURE_FUSER, fuserFor, isCompleteSetup, maxHzFor, type Resolution, type TierId } from "@/lib/setup-builder";
+import { STEP_ORDER, fill, fuserFor, isCompleteSetup, maxHzFor, numberWord, widestFuser, type BuilderTier, type Heading, type SetupBuilderConfig, type StepKey } from "@/lib/setup-builder";
 import { useUi } from "@/lib/ui-store";
 import { cn, formatPrice } from "@/lib/utils";
 
-const STEPS = [
-  { label: "Budget", title: "What's your budget?", hint: "Pick a starting point. You can change anything before you buy." },
-  { label: "Monitor", title: "What monitor do you use?", hint: "We'll include the fuser that suits it, so the picture just works." },
-  { label: "Second PC", title: "Do you have a second computer?", hint: "Your DMA card connects to a second computer that runs its software. Any modern PC or laptop will do." },
-  { label: "Input", title: "Do you need an input device?", hint: "It plugs in between your mouse and your main PC." },
-  { label: "Your setup", title: "Here's your setup", hint: "Everything you need, matched to your answers. Add extras if you like, then add it all to your cart." },
-] as const;
+type Line = { key: string; role: string; step: StepKey; product: Product; what: string };
 
-/** What each part does, in a sentence anyone can follow. */
-const WHAT_IT_DOES: Record<string, string> = {
-  card: "Goes into a free PCIe slot inside your main PC.",
-  fuser: "Shows the picture from both computers on your one monitor.",
-  pc: "A small second computer that runs the card's software.",
-  input: "Plugs in between your mouse and your main PC.",
-  "usb-c-data-cable": "A longer braided cable, so the card reaches your second computer.",
-  "pcie-riser-kit": "Lets you mount the card where there's more room or airflow.",
-  "thermal-kit": "Keeps the card cool in a cramped case.",
-};
+/** Grid columns for a row of n choice cards. */
+const cols = (n: number) => (n <= 1 ? "" : n === 2 || n === 4 ? "sm:grid-cols-2" : "lg:grid-cols-3");
 
-const INPUT_CHOICES: Record<string, { title: string; sub: string }> = {
-  makcu: { title: "Compact", sub: "Small and affordable." },
-  ferrum: { title: "Premium", sub: "Machined aluminium, plug-and-play." },
-};
-
-type Line = { key: string; role: string; step: number; product: Product; what: string };
-
-export function SetupBuilder({ products }: { products: Product[] }) {
+/** The configurator, driven by the config from /admin/setup-builder. `preview` (admin) can't add to the cart. */
+export function SetupBuilder({ config: c, products, preview }: { config: SetupBuilderConfig; products: Product[]; preview?: boolean }) {
   const { setupDiscountPercent } = useStoreSettings();
   const add = useCart((s) => s.add);
   const openCart = useUi((s) => s.openCart);
   const reduce = useReducedMotion();
 
   const bySlug = new Map(products.map((p) => [p.slug, p]));
-  const fusers = Object.keys(FUSERS).flatMap((s) => bySlug.get(s) ?? []);
-  const inputs = SETUP_SLUGS.inputs.flatMap((s) => bySlug.get(s) ?? []);
-  const extraProducts = SETUP_SLUGS.extras.flatMap((s) => bySlug.get(s) ?? []);
-  const miniPc = bySlug.get(SETUP_SLUGS.miniPc);
-  const cheapestFuser = fusers.length ? Math.min(...fusers.map((f) => f.price)) : 0;
+  const pick = (slugs: string[]) => slugs.flatMap((s) => bySlug.get(s) ?? []);
+  const fusers = pick(c.monitor.fusers.map((f) => f.product));
+  const inputs = pick(c.input.options.map((o) => o.product));
+  const extraProducts = pick(c.summary.addons.map((a) => a.product));
+  const miniPc = bySlug.get(c.pc.product);
+  const speeds = [...c.monitor.speeds].sort((a, b) => a.hz - b.hz);
+  // A question with nothing on sale to offer is skipped.
+  const asks = { monitor: c.monitor.enabled && fusers.length > 0 && c.monitor.screens.length > 0 && speeds.length > 0, pc: c.pc.enabled, input: c.input.enabled && inputs.length > 0 };
+  const steps = STEP_ORDER.filter((k) => k === "budget" || k === "summary" || asks[k]);
+  const questions = steps.length - 1;
+  const cheapestFuser = asks.monitor ? Math.min(...fusers.map((f) => f.price)) : 0;
+
+  const firstScreen = c.monitor.screens[0]?.id ?? "";
+  const capFor = (screen: string) => maxHzFor(c.monitor.fusers, fusers.map((f) => f.slug), screen);
+  // Keep a speed within what our fusers can drive on that screen.
+  const fitHz = (hz: number, screen: string) => {
+    const cap = capFor(screen);
+    return hz <= cap ? hz : ([...speeds].reverse().find((s) => s.hz <= cap)?.hz ?? speeds[0]?.hz ?? 0);
+  };
+  const startHz = () => fitHz(speeds.some((s) => s.hz === c.monitor.defaultHz) ? c.monitor.defaultHz : (speeds[0]?.hz ?? 0), firstScreen);
 
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
-  const [tier, setTier] = useState<TierId>();
-  const [screen, setScreen] = useState<Resolution>("1080p");
-  const [hz, setHz] = useState(144);
+  const [tier, setTier] = useState<string>();
+  const [screen, setScreen] = useState(firstScreen);
+  const [hz, setHz] = useState(startHz);
   const [unsure, setUnsure] = useState(false);
   const [secondPc, setSecondPc] = useState<"have" | "need">();
   const [input, setInput] = useState<string>();
@@ -66,31 +61,41 @@ export function SetupBuilder({ products }: { products: Product[] }) {
   const [options, setOptions] = useState<Record<string, string>>({});
   const [added, setAdded] = useState(false);
 
-  const tierDef = TIERS.find((t) => t.id === tier);
+  const at = Math.min(step, steps.length - 1);
+  const key = steps[at];
+  const tierDef = c.budget.tiers.find((t) => t.id === tier);
   const card = tierDef ? bySlug.get(tierDef.card) : undefined;
-  const maxHz = maxHzFor(
-    fusers.map((f) => f.slug),
-    screen,
-  );
-  const fuser = unsure ? (bySlug.get(UNSURE_FUSER) ?? fuserFor(fusers, "1440p", 240)) : fuserFor(fusers, screen, hz);
-  const inputProduct = input && input !== "none" ? bySlug.get(input) : undefined;
-  const screenLabel = SCREENS.find((s) => s.id === screen)!.label;
-  const speedLabel = SPEEDS.find((s) => s.hz === hz)?.label ?? `${hz} Hz`;
+  const screenDef = c.monitor.screens.find((s) => s.id === screen) ?? c.monitor.screens[0];
+  const maxHz = capFor(screenDef?.id ?? "");
+  const fuser = !asks.monitor ? undefined : unsure ? (bySlug.get(c.monitor.unsureFuser) ?? widestFuser(fusers, c.monitor.fusers)) : fuserFor(fusers, c.monitor.fusers, screenDef?.id ?? "", hz);
+  const inputProduct = asks.input ? inputs.find((p) => p.slug === input) : undefined;
+  const inputOption = c.input.options.find((o) => o.product === inputProduct?.slug);
+  const screenLabel = screenDef?.label ?? "";
+  const speedLabel = speeds.find((s) => s.hz === hz)?.label ?? `${hz} Hz`;
 
   const lines = [
-    card && { key: "card", role: "DMA card", step: 0, product: card, what: WHAT_IT_DOES.card },
-    fuser && { key: "fuser", role: "Video fuser", step: 1, product: fuser, what: WHAT_IT_DOES.fuser },
-    secondPc === "need" && miniPc && { key: "pc", role: "Second PC", step: 2, product: miniPc, what: WHAT_IT_DOES.pc },
-    inputProduct && { key: "input", role: "Input device", step: 3, product: inputProduct, what: WHAT_IT_DOES.input },
-    ...extraProducts.filter((p) => extras.includes(p.slug)).map((p) => ({ key: p.slug, role: "Add-on", step: 4, product: p, what: WHAT_IT_DOES[p.slug] ?? p.tagline })),
+    card && { key: "card", role: c.budget.role, step: "budget", product: card, what: c.budget.whatItDoes },
+    fuser && { key: "fuser", role: c.monitor.role, step: "monitor", product: fuser, what: c.monitor.whatItDoes },
+    asks.pc && secondPc === "need" && miniPc && { key: "pc", role: c.pc.role, step: "pc", product: miniPc, what: c.pc.whatItDoes },
+    inputProduct && { key: "input", role: c.input.role, step: "input", product: inputProduct, what: c.input.whatItDoes },
+    ...extraProducts
+      .filter((p) => extras.includes(p.slug))
+      .map((p) => ({ key: p.slug, role: c.summary.addonRole, step: "summary", product: p, what: c.summary.addons.find((a) => a.product === p.slug)?.description || p.tagline })),
   ].filter((l): l is Line => Boolean(l));
   const buyable = lines.filter((l) => l.product.status !== "sold-out");
   const subtotal = buyable.reduce((n, l) => n + l.product.price, 0);
-  const complete = setupDiscountPercent > 0 && isCompleteSetup(buyable.map((l) => l.product.category));
+  const complete = setupDiscountPercent > 0 && isCompleteSetup(buyable.map((l) => l.product.category), c.discountCategories);
   const discount = complete ? Math.round(subtotal * setupDiscountPercent) / 100 : 0;
+  const discountHint = fill(c.summary.discountHint, { percent: setupDiscountPercent });
 
-  const canContinue = [Boolean(tier), Boolean(fuser), Boolean(secondPc), Boolean(input), buyable.length > 0][step];
-  const last = step === STEPS.length - 1;
+  const canContinue = { budget: Boolean(tier), monitor: Boolean(fuser), pc: Boolean(secondPc), input: Boolean(input), summary: buyable.length > 0 }[key];
+  const last = key === "summary";
+  const recap: Record<Exclude<StepKey, "summary">, string | undefined> = {
+    budget: tierDef?.name,
+    monitor: unsure ? c.monitor.recapUnsure : `${screenLabel}, ${speedLabel}`,
+    pc: secondPc === "need" ? c.pc.recapNeed : c.pc.recapHave,
+    input: inputProduct ? inputOption?.title || inputProduct.name : c.input.recapNone,
+  };
 
   // After navigating, focus the new step's heading so keyboard and screen-reader users land in the right place.
   // The new heading only mounts once the old step has animated out, so focus it from its ref callback.
@@ -104,28 +109,24 @@ export function SetupBuilder({ products }: { products: Product[] }) {
 
   function go(to: number) {
     focusNext.current = true;
-    setDir(to > step ? 1 : -1);
+    setDir(to > at ? 1 : -1);
     setStep(to);
     setAdded(false);
   }
 
-  function chooseTier(id: TierId) {
-    setTier(id);
+  function chooseTier(t: BuilderTier) {
+    setTier(t.id);
     // Suggest the tier's input device until the customer picks one themselves.
-    if (!inputTouched) setInput(TIERS.find((t) => t.id === id)!.input);
+    if (!inputTouched) setInput(t.input || undefined);
   }
 
-  function chooseScreen(id: Resolution) {
+  function chooseScreen(id: string) {
     setScreen(id);
-    // Keep the speed within what our fusers can drive on the new screen.
-    const cap = maxHzFor(
-      fusers.map((f) => f.slug),
-      id,
-    );
-    if (hz > cap) setHz([...SPEEDS].reverse().find((s) => s.hz <= cap)?.hz ?? SPEEDS[0].hz);
+    setHz(fitHz(hz, id));
   }
 
   function addSetup() {
+    if (preview) return;
     for (const l of buyable) add(l.product, 1, options[l.product.slug] ?? l.product.option?.values[0]);
     setAdded(true);
     openCart();
@@ -133,8 +134,8 @@ export function SetupBuilder({ products }: { products: Product[] }) {
 
   function startOver() {
     setTier(undefined);
-    setScreen("1080p");
-    setHz(144);
+    setScreen(firstScreen);
+    setHz(startHz());
     setUnsure(false);
     setSecondPc(undefined);
     setInput(undefined);
@@ -154,75 +155,65 @@ export function SetupBuilder({ products }: { products: Product[] }) {
     <section id="build" className="container-x scroll-mt-28 pb-28">
       <div className="mx-auto max-w-5xl">
         <header className="mb-10">
-          <Kicker>Setup builder</Kicker>
+          {c.intro.kicker && <Kicker>{c.intro.kicker}</Kicker>}
           <h2 className="type-h2 mt-5">
-            {setupDiscountPercent > 0 ? (
-              <>
-                Configure your bundle,
-                <br />
-                <span className="text-gradient">save an extra {setupDiscountPercent}%.</span>
-              </>
-            ) : (
-              <>
-                Build your <span className="text-gradient">setup.</span>
-              </>
-            )}
+            <HeadingText heading={setupDiscountPercent > 0 ? c.intro.headingDiscount : c.intro.heading} percent={setupDiscountPercent} />
           </h2>
           <p className="mt-4 max-w-2xl text-muted">
-            {"Answer four quick questions and we'll put together a complete setup for you."}
-            {setupDiscountPercent > 0 && ` Take the whole bundle and the extra ${setupDiscountPercent}% comes off automatically.`}
+            {fill(c.intro.text, { questions: numberWord(questions) })}
+            {setupDiscountPercent > 0 && c.intro.discountText && ` ${fill(c.intro.discountText, { percent: setupDiscountPercent })}`}
           </p>
         </header>
-        <Progress step={step} onJump={go} />
+        <Progress labels={steps.map((k) => c[k].label)} step={at} onJump={go} />
 
         <div className="relative mt-8 overflow-hidden rounded-[28px] border border-line bg-ink-900/50 p-5 sm:p-8">
           <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_0%,rgb(255_61_0/0.12),transparent_55%)]" />
           <AnimatePresence mode="wait" custom={dir} initial={false}>
-            <motion.div key={step} custom={dir} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: 0.45, ease: EASE_EXPO }} className="relative">
+            <motion.div key={key} custom={dir} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: 0.45, ease: EASE_EXPO }} className="relative">
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-blaze">
-                {last ? "All done" : `Question ${step + 1} of ${STEPS.length - 1}`}
+                {last ? "All done" : `Question ${at + 1} of ${questions}`}
               </p>
               <h2 ref={focusHeading} tabIndex={-1} className="mt-2 font-display text-3xl uppercase outline-none sm:text-4xl">
-                {STEPS[step].title}
+                {c[key].title}
               </h2>
-              <p className="mt-2 max-w-2xl text-sm text-muted">{STEPS[step].hint}</p>
+              {c[key].hint && <p className="mt-2 max-w-2xl text-sm text-muted">{c[key].hint}</p>}
 
               <div className="mt-7">
-                {step === 0 && (
-                  <Choices label="Budget" className="lg:grid-cols-3">
-                    {TIERS.map((t) => {
+                {key === "budget" && (
+                  <Choices label={c.budget.label} className={cols(c.budget.tiers.length)}>
+                    {c.budget.tiers.map((t) => {
                       const tierCard = bySlug.get(t.card);
-                      const from = (tierCard?.price ?? 0) + cheapestFuser + (bySlug.get(t.input)?.price ?? 0);
+                      const from = (tierCard?.price ?? 0) + cheapestFuser + (inputs.find((p) => p.slug === t.input)?.price ?? 0);
                       return (
                         <Choice
                           key={t.id}
                           name="tier"
                           selected={tier === t.id}
-                          onSelect={() => chooseTier(t.id)}
+                          onSelect={() => chooseTier(t)}
                           disabled={!tierCard}
                           visual={tierCard?.visual}
-                          badge={"popular" in t ? "Most popular" : undefined}
-                          title={t.label}
-                          sub={t.blurb}
-                          footer={tierCard ? `Setups from ${formatPrice(from)}` : "Coming soon"}
+                          badge={t.badge || undefined}
+                          title={t.name}
+                          sub={t.description}
+                          footer={tierCard ? fill(c.budget.fromPrice, { price: formatPrice(from) }) : c.budget.comingSoon}
                         />
                       );
                     })}
                   </Choices>
                 )}
 
-                {step === 1 && (
+                {key === "monitor" && (
                   <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
                     <div className={cn("transition-opacity", unsure && "pointer-events-none opacity-40")} aria-disabled={unsure}>
-                      <p className="mb-2.5 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">Screen size</p>
-                      <Choices label="Screen size" className="sm:grid-cols-2">
-                        {SCREENS.map((s) => (
-                          <Choice key={s.id} name="screen" selected={screen === s.id} onSelect={() => chooseScreen(s.id)} title={s.label} sub={s.detail} compact />
+                      <p className="mb-2.5 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">{c.monitor.screenHeading}</p>
+                      <Choices label={c.monitor.screenHeading} className="sm:grid-cols-2">
+                        {c.monitor.screens.map((s) => (
+                          <Choice key={s.id} name="screen" selected={screenDef?.id === s.id} onSelect={() => chooseScreen(s.id)} title={s.label} sub={s.detail} compact />
                         ))}
                       </Choices>
-                      <p className="mb-2.5 mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">Speed (refresh rate)</p>
-                      <div role="radiogroup" aria-label="Speed" className="flex flex-wrap gap-2">
-                        {SPEEDS.map((s) => (
+                      <p className="mb-2.5 mt-6 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">{c.monitor.speedHeading}</p>
+                      <div role="radiogroup" aria-label={c.monitor.speedHeading} className="flex flex-wrap gap-2">
+                        {speeds.map((s) => (
                           <Speed key={s.hz} checked={hz === s.hz} disabled={s.hz > maxHz} onChange={() => setHz(s.hz)} label={s.label} detail={s.detail} />
                         ))}
                       </div>
@@ -236,16 +227,16 @@ export function SetupBuilder({ products }: { products: Product[] }) {
                       >
                         <HelpCircle className="size-5 shrink-0 text-blaze" />
                         <span>
-                          <span className="block font-medium text-fg">{"I'm not sure"}</span>
-                          It is usually in the monitor&apos;s name, or in Windows under Settings › System › Display.
+                          <span className="block font-medium text-fg">{c.monitor.unsureTitle}</span>
+                          {c.monitor.unsureText}
                         </span>
                       </button>
                       <AnimatePresence mode="wait" initial={false}>
                         <motion.div key={fuser?.slug ?? "none"} initial={{ opacity: 0, y: reduce ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -12 }} transition={{ duration: 0.3, ease: EASE_EXPO }}>
                           {fuser ? (
-                            <ProductPreview product={fuser} caption={unsure ? "Works with almost every monitor" : `Works with your ${screenLabel} ${speedLabel} monitor`} />
+                            <ProductPreview product={fuser} heading={c.monitor.previewHeading} caption={unsure ? c.monitor.unsureCaption : fill(c.monitor.matchCaption, { screen: screenLabel, speed: speedLabel })} />
                           ) : (
-                            <Note>{"None of our fusers drives that combination. Try a lower speed, or choose I'm not sure."}</Note>
+                            <Note>{c.monitor.noMatch}</Note>
                           )}
                         </motion.div>
                       </AnimatePresence>
@@ -253,62 +244,66 @@ export function SetupBuilder({ products }: { products: Product[] }) {
                   </div>
                 )}
 
-                {step === 2 && (
-                  <Choices label="Second computer" className="sm:grid-cols-2">
-                    <Choice name="pc" selected={secondPc === "have"} onSelect={() => setSecondPc("have")} title="Yes, I have one" sub="A spare PC or laptop." />
+                {key === "pc" && (
+                  <Choices label={c.pc.label} className="sm:grid-cols-2">
+                    <Choice name="pc" selected={secondPc === "have"} onSelect={() => setSecondPc("have")} title={c.pc.haveTitle} sub={c.pc.haveText} />
                     <Choice
                       name="pc"
                       selected={secondPc === "need"}
                       onSelect={() => setSecondPc("need")}
                       disabled={!miniPc || miniPc.status === "sold-out"}
                       visual={miniPc?.visual}
-                      title="No, add one for me"
-                      sub={miniPc ? `We'll include the ${miniPc.name}.` : "Our mini PC is coming soon."}
+                      title={c.pc.needTitle}
+                      sub={miniPc ? fill(c.pc.needText, { product: miniPc.name }) : c.pc.unavailable}
                       aside={miniPc && formatPrice(miniPc.price)}
                     />
                   </Choices>
                 )}
 
-                {step === 3 && (
-                  <Choices label="Input device" className="lg:grid-cols-3">
-                    {inputs.map((p) => (
+                {key === "input" && (
+                  <Choices label={c.input.label} className={cols(inputs.length + Number(c.input.noneEnabled))}>
+                    {inputs.map((p) => {
+                      const o = c.input.options.find((x) => x.product === p.slug);
+                      return (
+                        <Choice
+                          key={p.slug}
+                          name="input"
+                          selected={input === p.slug}
+                          onSelect={() => {
+                            setInput(p.slug);
+                            setInputTouched(true);
+                          }}
+                          disabled={p.status === "sold-out"}
+                          visual={p.visual}
+                          badge={tierDef?.input === p.slug && c.input.suggestedBadge ? c.input.suggestedBadge : undefined}
+                          title={o?.title || p.name}
+                          sub={`${p.name}. ${o?.description || p.tagline}`}
+                          aside={formatPrice(p.price)}
+                        />
+                      );
+                    })}
+                    {c.input.noneEnabled && (
                       <Choice
-                        key={p.slug}
                         name="input"
-                        selected={input === p.slug}
+                        selected={input === "none"}
                         onSelect={() => {
-                          setInput(p.slug);
+                          setInput("none");
                           setInputTouched(true);
                         }}
-                        disabled={p.status === "sold-out"}
-                        visual={p.visual}
-                        badge={tierDef?.input === p.slug ? "Suggested" : undefined}
-                        title={INPUT_CHOICES[p.slug]?.title ?? p.name}
-                        sub={`${p.name}. ${INPUT_CHOICES[p.slug]?.sub ?? p.tagline}`}
-                        aside={formatPrice(p.price)}
+                        title={c.input.noneTitle}
+                        sub={c.input.noneText}
                       />
-                    ))}
-                    <Choice
-                      name="input"
-                      selected={input === "none"}
-                      onSelect={() => {
-                        setInput("none");
-                        setInputTouched(true);
-                      }}
-                      title="No thanks"
-                      sub="I already have one."
-                    />
+                    )}
                   </Choices>
                 )}
 
-                {step === 4 && (
+                {key === "summary" && (
                   <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
                     <div>
                       <ul className="mb-5 flex flex-wrap gap-2 text-xs">
-                        <Recap label="Budget" value={tierDef?.label} onEdit={() => go(0)} />
-                        <Recap label="Monitor" value={unsure ? "Not sure" : `${screenLabel}, ${speedLabel}`} onEdit={() => go(1)} />
-                        <Recap label="Second PC" value={secondPc === "need" ? "Included" : "Your own"} onEdit={() => go(2)} />
-                        <Recap label="Input" value={inputProduct ? (INPUT_CHOICES[inputProduct.slug]?.title ?? inputProduct.name) : "None"} onEdit={() => go(3)} />
+                        {steps.slice(0, -1).map((k, i) => (
+                          <Recap key={k} label={c[k].label} value={recap[k as keyof typeof recap]} onEdit={() => go(i)} />
+                        ))}
                       </ul>
                       <ul className="divide-y divide-line rounded-2xl border border-line bg-ink-950/40">
                         {lines.map((l, i) => (
@@ -333,8 +328,8 @@ export function SetupBuilder({ products }: { products: Product[] }) {
                             </div>
                             <div className="flex shrink-0 flex-col items-end gap-2">
                               <span className="font-mono text-sm">{formatPrice(l.product.price)}</span>
-                              {l.step < 4 ? (
-                                <button type="button" onClick={() => go(l.step)} aria-label={`Change ${l.role.toLowerCase()}`} className="rounded-lg p-1.5 text-dim transition-colors hover:bg-white/5 hover:text-fg">
+                              {l.step !== "summary" ? (
+                                <button type="button" onClick={() => go(steps.indexOf(l.step))} aria-label={`Change ${l.role.toLowerCase()}`} className="rounded-lg p-1.5 text-dim transition-colors hover:bg-white/5 hover:text-fg">
                                   <Pencil className="size-4" />
                                 </button>
                               ) : (
@@ -349,7 +344,7 @@ export function SetupBuilder({ products }: { products: Product[] }) {
 
                       {extraProducts.some((p) => !extras.includes(p.slug)) && (
                         <div className="mt-6">
-                          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">Popular add-ons</p>
+                          {c.summary.addonsHeading && <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">{c.summary.addonsHeading}</p>}
                           <div className="grid gap-3 sm:grid-cols-3">
                             {extraProducts
                               .filter((p) => !extras.includes(p.slug))
@@ -376,13 +371,13 @@ export function SetupBuilder({ products }: { products: Product[] }) {
                     </div>
 
                     <div className="h-fit rounded-2xl border border-line bg-ink-950/40 p-5 lg:sticky lg:top-24">
-                      <Totals subtotal={subtotal} discount={discount} percent={setupDiscountPercent} complete={complete} large />
-                      <Button className="mt-6 w-full" size="lg" onClick={addSetup} disabled={!buyable.length} icon={added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}>
-                        {added ? "Added to cart" : "Add everything to cart"}
+                      <Totals subtotal={subtotal} discount={discount} percent={setupDiscountPercent} complete={complete} hint={discountHint} large />
+                      <Button className="mt-6 w-full" size="lg" onClick={addSetup} disabled={!buyable.length || preview} icon={added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}>
+                        {added ? c.summary.addedButton : c.summary.addButton}
                       </Button>
-                      <p className="mt-3 text-center text-xs text-dim">Shipping and the setup discount are confirmed at checkout.</p>
+                      {c.summary.note && <p className="mt-3 text-center text-xs text-dim">{c.summary.note}</p>}
                       <button type="button" onClick={startOver} className="mx-auto mt-4 flex items-center gap-1.5 text-xs text-muted transition-colors hover:text-fg">
-                        <RotateCcw className="size-3.5" /> Start over
+                        <RotateCcw className="size-3.5" /> {c.summary.startOver}
                       </button>
                     </div>
                   </div>
@@ -393,18 +388,18 @@ export function SetupBuilder({ products }: { products: Product[] }) {
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-4">
-          <button type="button" onClick={() => go(step - 1)} disabled={step === 0} className="inline-flex h-12 items-center gap-2 rounded-full border border-line px-5 text-sm font-medium transition-colors hover:border-line-strong disabled:pointer-events-none disabled:opacity-0">
+          <button type="button" onClick={() => go(at - 1)} disabled={at === 0} className="inline-flex h-12 items-center gap-2 rounded-full border border-line px-5 text-sm font-medium transition-colors hover:border-line-strong disabled:pointer-events-none disabled:opacity-0">
             <ArrowLeft className="size-4" /> Back
           </button>
           {!last && (
             <div className="ml-auto flex items-center gap-5">
               {tier && (
                 <div className="hidden text-right sm:block">
-                  <Totals subtotal={subtotal} discount={discount} percent={setupDiscountPercent} complete={complete} />
+                  <Totals subtotal={subtotal} discount={discount} percent={setupDiscountPercent} complete={complete} hint={discountHint} />
                 </div>
               )}
-              <Button size="lg" onClick={() => go(step + 1)} disabled={!canContinue} icon={<ArrowRight className="size-4" />}>
-                {step === STEPS.length - 2 ? "See my setup" : "Continue"}
+              <Button size="lg" onClick={() => go(at + 1)} disabled={!canContinue} icon={<ArrowRight className="size-4" />}>
+                {at === steps.length - 2 ? c.summary.seeButton : "Continue"}
               </Button>
             </div>
           )}
@@ -416,18 +411,31 @@ export function SetupBuilder({ products }: { products: Product[] }) {
 
 /* ───────────── pieces ───────────── */
 
-function Progress({ step, onJump }: { step: number; onJump: (i: number) => void }) {
+/** The heading's plain part, then its highlighted ending (on a new line if asked). */
+function HeadingText({ heading: h, percent }: { heading: Heading; percent: number }) {
+  const text = fill(h.text, { percent });
+  const highlight = fill(h.highlight, { percent });
+  return (
+    <>
+      {text}
+      {text && highlight && (h.newLine ? <br /> : " ")}
+      {highlight && <span className="text-gradient">{highlight}</span>}
+    </>
+  );
+}
+
+function Progress({ labels, step, onJump }: { labels: string[]; step: number; onJump: (i: number) => void }) {
   return (
     <nav aria-label="Setup steps">
       <div className="relative h-1 overflow-hidden rounded-full bg-line">
-        <motion.div className="absolute inset-y-0 left-0 rounded-full bg-brand" initial={false} animate={{ width: `${((step + 1) / STEPS.length) * 100}%` }} transition={{ duration: 0.6, ease: EASE_EXPO }} />
+        <motion.div className="absolute inset-y-0 left-0 rounded-full bg-brand" initial={false} animate={{ width: `${((step + 1) / labels.length) * 100}%` }} transition={{ duration: 0.6, ease: EASE_EXPO }} />
       </div>
-      <ol className="mt-4 grid grid-cols-5 gap-2">
-        {STEPS.map((s, i) => {
+      <ol className="mt-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}>
+        {labels.map((label, i) => {
           const done = i < step;
           const current = i === step;
           return (
-            <li key={s.label}>
+            <li key={i}>
               <button
                 type="button"
                 disabled={!done}
@@ -438,7 +446,7 @@ function Progress({ step, onJump }: { step: number; onJump: (i: number) => void 
                 <span className={cn("grid size-6 shrink-0 place-items-center rounded-full border font-mono text-[10px] transition-colors", current ? "border-blaze bg-blaze text-white" : done ? "border-blaze/60 text-blaze" : "border-line")}>
                   {done ? <Check className="size-3" strokeWidth={3} /> : i + 1}
                 </span>
-                <span className="hidden truncate md:inline">{s.label}</span>
+                <span className="hidden truncate md:inline">{label}</span>
               </button>
             </li>
           );
@@ -448,7 +456,7 @@ function Progress({ step, onJump }: { step: number; onJump: (i: number) => void 
   );
 }
 
-function Totals({ subtotal, discount, percent, complete, large }: { subtotal: number; discount: number; percent: number; complete: boolean; large?: boolean }) {
+function Totals({ subtotal, discount, percent, complete, hint, large }: { subtotal: number; discount: number; percent: number; complete: boolean; hint: string; large?: boolean }) {
   return (
     <div className={cn(large && "space-y-2 text-sm")}>
       {large && (
@@ -463,7 +471,7 @@ function Totals({ subtotal, discount, percent, complete, large }: { subtotal: nu
           <span>{large ? `−${formatPrice(discount)}` : ` −${formatPrice(discount)}`}</span>
         </div>
       ) : (
-        percent > 0 && <p className="text-xs text-dim">Get the card, fuser and input device together for {percent}% off</p>
+        percent > 0 && hint && <p className="text-xs text-dim">{hint}</p>
       )}
       <div className={cn(large ? "flex items-baseline justify-between border-t border-line pt-3" : "font-display text-2xl")}>
         {large && <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Total</span>}
@@ -564,10 +572,10 @@ function Speed({ checked, disabled, onChange, label, detail }: { checked: boolea
   );
 }
 
-function ProductPreview({ product: p, caption }: { product: Product; caption: string }) {
+function ProductPreview({ product: p, heading, caption }: { product: Product; heading: string; caption: string }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-blaze/50 bg-ink-950/60">
-      <p className="px-4 pt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">Your fuser</p>
+      <p className="px-4 pt-4 font-mono text-[11px] uppercase tracking-[0.14em] text-dim">{heading}</p>
       <div className="relative mt-3 aspect-video">
         <ProductVisual visual={p.visual} variant="stage" sizes="(min-width: 1024px) 420px, 100vw" />
       </div>
