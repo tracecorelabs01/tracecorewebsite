@@ -439,6 +439,15 @@ function Confirmation({ order }: { order: PlacedOrder }) {
           Confirmation sent to <span className="text-fg">{order.email}</span>
         </p>
         {order.demo && <p className="relative mt-3 text-xs text-warn">Demo order — not saved (no database connected).</p>}
+        {!order.demo && (
+          <p className="relative mx-auto mt-5 max-w-md rounded-2xl border border-line bg-ink-950/50 px-5 py-4 text-sm text-muted">
+            Once your payment is confirmed,{" "}
+            <Link href={`/account/activate?${new URLSearchParams({ email: order.email, order: order.number })}`} className="text-fg underline-offset-4 hover:underline">
+              open your account
+            </Link>{" "}
+            with this order number to track your orders and earn loyalty points.
+          </p>
+        )}
         <ul className="relative mt-8 divide-y divide-line rounded-2xl border border-line text-left">
           {order.lines.map((l, i) => (
             <li key={i} className="flex justify-between gap-4 px-5 py-3 text-sm">

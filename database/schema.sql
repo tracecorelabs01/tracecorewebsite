@@ -281,8 +281,58 @@ ALTER TABLE `expenses` ADD CONSTRAINT `expenses_created_by_admin_users_id_fk` FO
 CREATE INDEX `expenses_spent_on_idx` ON `expenses` (`spent_on`);
 CREATE INDEX `expenses_category_idx` ON `expenses` (`category`);;
 
+-- 0002_customer_accounts_loyalty
+CREATE TABLE `customer_sessions` (
+	`id` char(64) NOT NULL,
+	`customer_id` int NOT NULL,
+	`expires_at` datetime NOT NULL,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `customer_sessions_id` PRIMARY KEY(`id`)
+);
+CREATE TABLE `loyalty_ledger` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`customer_id` int NOT NULL,
+	`points` int NOT NULL,
+	`kind` enum('order','redeem','adjust') NOT NULL,
+	`order_id` int,
+	`discount_code_id` int,
+	`admin_id` int,
+	`note` varchar(255) NOT NULL DEFAULT '',
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `loyalty_ledger_id` PRIMARY KEY(`id`)
+);
+CREATE TABLE `loyalty_offers` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`title` varchar(80) NOT NULL,
+	`description` varchar(255) NOT NULL DEFAULT '',
+	`points_cost` int NOT NULL,
+	`kind` enum('percent','fixed') NOT NULL,
+	`value` int NOT NULL,
+	`min_subtotal_cents` int NOT NULL DEFAULT 0,
+	`is_active` boolean NOT NULL DEFAULT true,
+	`sort_order` int NOT NULL DEFAULT 0,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `loyalty_offers_id` PRIMARY KEY(`id`)
+);
+ALTER TABLE `customers` ADD `password_hash` varchar(255);
+ALTER TABLE `customers` ADD `account_created_at` datetime;
+ALTER TABLE `customers` ADD `last_login_at` datetime;
+ALTER TABLE `discount_codes` ADD `customer_id` int;
+ALTER TABLE `reviews` ADD `customer_id` int;
+ALTER TABLE `customer_sessions` ADD CONSTRAINT `customer_sessions_customer_id_customers_id_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE cascade ON UPDATE no action;
+ALTER TABLE `loyalty_ledger` ADD CONSTRAINT `loyalty_ledger_customer_id_customers_id_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE cascade ON UPDATE no action;
+ALTER TABLE `loyalty_ledger` ADD CONSTRAINT `loyalty_ledger_order_id_orders_id_fk` FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON DELETE set null ON UPDATE no action;
+ALTER TABLE `loyalty_ledger` ADD CONSTRAINT `loyalty_ledger_discount_code_id_discount_codes_id_fk` FOREIGN KEY (`discount_code_id`) REFERENCES `discount_codes`(`id`) ON DELETE set null ON UPDATE no action;
+ALTER TABLE `loyalty_ledger` ADD CONSTRAINT `loyalty_ledger_admin_id_admin_users_id_fk` FOREIGN KEY (`admin_id`) REFERENCES `admin_users`(`id`) ON DELETE set null ON UPDATE no action;
+CREATE INDEX `customer_sessions_customer_idx` ON `customer_sessions` (`customer_id`);
+CREATE INDEX `loyalty_ledger_customer_idx` ON `loyalty_ledger` (`customer_id`);
+CREATE INDEX `loyalty_ledger_order_idx` ON `loyalty_ledger` (`order_id`);
+ALTER TABLE `discount_codes` ADD CONSTRAINT `discount_codes_customer_id_customers_id_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE cascade ON UPDATE no action;
+ALTER TABLE `reviews` ADD CONSTRAINT `reviews_customer_id_customers_id_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE set null ON UPDATE no action;;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Mark the migrations above as applied for `npm run db:migrate`.
 CREATE TABLE IF NOT EXISTS `__drizzle_migrations` (id serial primary key, hash text not null, created_at bigint);
-INSERT INTO `__drizzle_migrations` (`hash`, `created_at`) VALUES ('4ebaa753ea54c7f66421b7791b23720755593257e756d3af4818537ef63ccb49', 1793097030220), ('9e60b1deeda9d45c08b99f47b15f2943ea5ca17a5ed54fa4f4d687f6ee0f4fa8', 1793257643089);
+INSERT INTO `__drizzle_migrations` (`hash`, `created_at`) VALUES ('4ebaa753ea54c7f66421b7791b23720755593257e756d3af4818537ef63ccb49', 1793097030220), ('9e60b1deeda9d45c08b99f47b15f2943ea5ca17a5ed54fa4f4d687f6ee0f4fa8', 1793257643089), ('db019025f080bbd14de472cca78f7a48d0f90b1ad64423ea21349b12da69c81c', 1793279911158);

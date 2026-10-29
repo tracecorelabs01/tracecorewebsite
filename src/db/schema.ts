@@ -165,10 +165,28 @@ export const customers = mysqlTable(
     totalSpentCents: int("total_spent_cents").notNull().default(0),
     lastOrderAt: datetime("last_order_at"),
     notes: text("notes"),
+    // Account: opened by the customer after a paid order (email + order number), so null until then.
+    passwordHash: varchar("password_hash", { length: 255 }),
+    accountCreatedAt: datetime("account_created_at"),
+    lastLoginAt: datetime("last_login_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("customers_email_uq").on(t.email)],
+);
+
+export const customerSessions = mysqlTable(
+  "customer_sessions",
+  {
+    // SHA-256 of the session token; the raw token only ever lives in the cookie.
+    id: char("id", { length: 64 }).primaryKey(),
+    customerId: int("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    expiresAt: datetime("expires_at").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("customer_sessions_customer_idx").on(t.customerId)],
 );
 
 export const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"] as const;
@@ -268,6 +286,8 @@ export const discountCodes = mysqlTable(
     startsAt: datetime("starts_at"),
     endsAt: datetime("ends_at"),
     isActive: boolean("is_active").notNull().default(true),
+    /** Set on single-use codes a customer got for loyalty points; they're listed under Loyalty, not Discounts. */
+    customerId: int("customer_id").references(() => customers.id, { onDelete: "cascade" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -288,6 +308,8 @@ export const reviews = mysqlTable(
     body: text("body").notNull(),
     status: mysqlEnum("status", ["pending", "approved", "rejected"]).notNull().default("pending"),
     source: varchar("source", { length: 40 }).notNull().default("site"),
+    /** The account that wrote it (verified buyer), if any. */
+    customerId: int("customer_id").references(() => customers.id, { onDelete: "set null" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -342,6 +364,44 @@ export const expenses = mysqlTable(
     updatedAt: updatedAt(),
   },
   (t) => [index("expenses_spent_on_idx").on(t.spentOn), index("expenses_category_idx").on(t.category)],
+);
+
+/* ───────────── Loyalty ───────────── */
+
+/** Rewards customers can buy with points, set up in /admin/loyalty. Each redemption issues a single-use discount code. */
+export const loyaltyOffers = mysqlTable("loyalty_offers", {
+  id: id(),
+  title: varchar("title", { length: 80 }).notNull(),
+  description: varchar("description", { length: 255 }).notNull().default(""),
+  pointsCost: int("points_cost").notNull(),
+  kind: mysqlEnum("kind", ["percent", "fixed"]).notNull(),
+  // percent: 1–100, fixed: cents
+  value: int("value").notNull(),
+  minSubtotalCents: int("min_subtotal_cents").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: int("sort_order").notNull().default(0),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** Every change to a customer's points. The balance is the sum; nothing is ever edited in place. */
+export const loyaltyLedger = mysqlTable(
+  "loyalty_ledger",
+  {
+    id: id(),
+    customerId: int("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    points: int("points").notNull(),
+    // order: earned or taken back with a paid order · redeem: spent on an offer · adjust: changed by staff
+    kind: mysqlEnum("kind", ["order", "redeem", "adjust"]).notNull(),
+    orderId: int("order_id").references(() => orders.id, { onDelete: "set null" }),
+    discountCodeId: int("discount_code_id").references(() => discountCodes.id, { onDelete: "set null" }),
+    adminId: int("admin_id").references(() => adminUsers.id, { onDelete: "set null" }),
+    note: varchar("note", { length: 255 }).notNull().default(""),
+    createdAt: createdAt(),
+  },
+  (t) => [index("loyalty_ledger_customer_idx").on(t.customerId), index("loyalty_ledger_order_idx").on(t.orderId)],
 );
 
 /* ───────────── Settings & audit ───────────── */

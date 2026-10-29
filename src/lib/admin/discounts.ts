@@ -1,5 +1,5 @@
 import "server-only";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, isNull } from "drizzle-orm";
 import { discountCodes, getDb } from "@/db";
 import { money } from "@/lib/admin/format";
 
@@ -8,7 +8,8 @@ export type DiscountState = "active" | "scheduled" | "expired" | "used-up" | "di
 
 /** Every code, newest first. Stores keep a handful of codes, so there's no paging. */
 export async function listDiscounts() {
-  return getDb().select().from(discountCodes).orderBy(desc(discountCodes.createdAt), desc(discountCodes.id));
+  // Single-use loyalty reward codes belong to one customer and are shown on their page, not here.
+  return getDb().select().from(discountCodes).where(isNull(discountCodes.customerId)).orderBy(desc(discountCodes.createdAt), desc(discountCodes.id));
 }
 
 export async function getDiscount(id: number) {

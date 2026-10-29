@@ -7,6 +7,7 @@ import {
   Boxes,
   ExternalLink,
   FolderTree,
+  Gift,
   History,
   Inbox,
   LayoutDashboard,
@@ -42,6 +43,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: typeof P
       { href: "/admin/orders", label: "Orders", icon: Receipt, badge: "orders" },
       { href: "/admin/customers", label: "Customers", icon: Users },
       { href: "/admin/discounts", label: "Discounts", icon: TicketPercent, min: "admin" },
+      { href: "/admin/loyalty", label: "Loyalty", icon: Gift, min: "admin" },
     ],
   },
   { group: "Finance", items: [{ href: "/admin/expenses", label: "Expenses", icon: Wallet, min: "admin" }] },
@@ -83,13 +85,13 @@ export function AdminShell({ user, counts, children }: { user: { name: string; e
   }, [pathname]);
 
   const nav = (
-    <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-3 py-5" aria-label="Admin">
+    <nav className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-3 py-3.5" aria-label="Admin">
       {NAV.map((group) => {
         const items = group.items.filter((i) => RANK[user.role] >= RANK[i.min ?? "staff"]);
         if (!items.length) return null;
         return (
           <div key={group.group}>
-            <p className="px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-dim">{group.group}</p>
+            <p className="px-3 pb-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-dim">{group.group}</p>
             <ul className="space-y-0.5">
               {items.map(({ href, label, icon: Icon, badge }) => {
                 const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);

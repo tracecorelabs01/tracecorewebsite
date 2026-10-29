@@ -15,6 +15,13 @@
       "when": 1793257643089,
       "tag": "0001_expenses",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1793279911158,
+      "tag": "0002_customer_accounts_loyalty",
+      "breakpoints": true
     }
   ]
 }

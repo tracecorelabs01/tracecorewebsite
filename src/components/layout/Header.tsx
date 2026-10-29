@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState } from "react";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, UserRound } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { ScrambleText } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/Button";
@@ -83,6 +83,14 @@ export function Header() {
             >
               <DiscordIcon className="size-5" />
             </a>
+            <Link
+              href="/account"
+              aria-label="Your account"
+              onClick={() => setMenu(false)}
+              className="grid size-11 place-items-center rounded-full text-muted transition-colors hover:bg-white/5 hover:text-fg"
+            >
+              <UserRound className="size-5" strokeWidth={1.8} />
+            </Link>
             <CartButton />
             <ButtonLink href="/shop" size="sm" className="ml-2 hidden md:inline-flex">
               Shop now

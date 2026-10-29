@@ -11,6 +11,7 @@ import { addressLines, isOrderStatus, isPaymentStatus, type OrderStatus, type Pa
 import { requireAdmin, type AdminUser } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
 import { sendShippingEmail } from "@/lib/email";
+import { syncOrderPoints } from "@/lib/loyalty";
 
 type Order = typeof orders.$inferSelect;
 type OrderPatch = Partial<typeof orders.$inferInsert>;
@@ -62,6 +63,12 @@ function statusEvents(order: Order, to: OrderStatus): NewEvent[] {
   if (to === "refunded" && order.paymentStatus !== "refunded") events.push({ type: "payment", message: `Payment changed: ${order.paymentStatus} → refunded` });
   return events;
 }
+
+/** Timeline entry for loyalty points given or taken back with an order change. */
+const pointsEvent = (points: number): NewEvent => ({
+  type: "payment",
+  message: points > 0 ? `Customer earned ${points.toLocaleString("en-US")} loyalty points` : `${(-points).toLocaleString("en-US")} loyalty points taken back`,
+});
 
 /** Best-effort shipping confirmation. Records an event only when the email actually went out. */
 async function notifyShipped(orderId: number, user: AdminUser) {
@@ -129,6 +136,8 @@ async function changeStatus(user: AdminUser, orderId: number, to: OrderStatus, r
       notes.push("Its items were restocked when it was cancelled and haven't been deducted again — adjust Inventory if they're going out.");
     }
     await tx.update(orders).set(statusPatch(order, to, new Date())).where(eq(orders.id, orderId));
+    const points = await syncOrderPoints(tx, orderId);
+    if (points) events.push(pointsEvent(points));
     await addEvents(tx, orderId, user, events);
     return { halted: false as const, order, restocked, notes };
   });
@@ -188,6 +197,8 @@ async function changePayment(user: AdminUser, orderId: number, to: PaymentStatus
       events.push({ type: "status", message: "Status changed: pending → processing" });
     }
     await tx.update(orders).set(patch).where(eq(orders.id, orderId));
+    const points = await syncOrderPoints(tx, orderId);
+    if (points) events.push(pointsEvent(points));
     await addEvents(tx, orderId, user, events);
     return { halted: false as const, order, statusChanged, moved };
   });

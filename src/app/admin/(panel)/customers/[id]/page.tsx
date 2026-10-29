@@ -3,21 +3,23 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CircleDollarSign, Mail, Receipt, Wallet } from "lucide-react";
 import { saveCustomerNotes } from "@/actions/admin/customers";
-import { ActionForm, SubmitButton, Textarea } from "@/components/admin/forms";
+import { adjustPoints } from "@/actions/admin/loyalty";
+import { ActionForm, Field, Input, SubmitButton, Textarea } from "@/components/admin/forms";
 import { buttonClass, Card, DescriptionList, EmptyState, LinkButton, OrderStatusBadge, PageHeader, PaymentBadge, qs, StatCard, Table, Td, Th } from "@/components/admin/ui";
 import { getCustomer } from "@/lib/admin/customers";
-import { money, shortDate } from "@/lib/admin/format";
-import { requireAdmin } from "@/lib/auth/session";
+import { dateTime, money, shortDate } from "@/lib/admin/format";
+import { getCustomerLoyalty } from "@/lib/admin/loyalty";
+import { hasRole, requireAdmin } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Customer" };
 // Admin pages read the session and live data on every request.
 export const instant = false;
 
 export default async function CustomerPage({ params }: PageProps<"/admin/customers/[id]">) {
-  await requireAdmin("staff");
+  const user = await requireAdmin("staff");
   const customerId = Number((await params).id);
   if (!Number.isInteger(customerId)) notFound();
-  const data = await getCustomer(customerId);
+  const [data, loyalty] = await Promise.all([getCustomer(customerId), getCustomerLoyalty(customerId)]);
   if (!data) notFound();
   const { customer, stats, orders } = data;
   const name = `${customer.firstName} ${customer.lastName}`.trim();
@@ -111,8 +113,50 @@ export default async function CustomerPage({ params }: PageProps<"/admin/custome
                 { label: "Country", value: customer.country || "—" },
                 { label: "Customer since", value: shortDate(customer.createdAt) },
                 { label: "Last order", value: shortDate(orders[0]?.createdAt) },
+                { label: "Account", value: loyalty.accountCreatedAt ? `Opened ${shortDate(loyalty.accountCreatedAt)}` : "Not opened yet" },
+                ...(loyalty.lastLoginAt ? [{ label: "Last login", value: dateTime(loyalty.lastLoginAt) }] : []),
               ]}
             />
+          </Card>
+          <Card title="Loyalty points" description={`Balance: ${loyalty.balance.toLocaleString("en-US")} points`}>
+            {loyalty.history.length === 0 ? (
+              <p className="text-sm text-muted">No points yet. They&apos;re added when this customer&apos;s orders are marked paid.</p>
+            ) : (
+              <ul className="divide-y divide-line/70 text-sm">
+                {loyalty.history.map((h) => (
+                  <li key={h.id} className="flex items-start justify-between gap-3 py-2">
+                    <span className="min-w-0">
+                      <span className="block truncate">{h.note}</span>
+                      <span className="text-xs text-dim">{shortDate(h.createdAt)}</span>
+                    </span>
+                    <span className={h.points > 0 ? "shrink-0 font-mono tabular-nums text-ok" : "shrink-0 font-mono tabular-nums text-muted"}>
+                      {h.points > 0 ? "+" : "−"}
+                      {Math.abs(h.points).toLocaleString("en-US")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {loyalty.codes.length > 0 && (
+              <p className="mt-3 border-t border-line pt-3 text-xs text-dim">
+                Reward codes: {loyalty.codes.map((c) => `${c.code}${c.usedCount ? " (used)" : ""}`).join(", ")}
+              </p>
+            )}
+            {hasRole(user, "admin") && (
+              <ActionForm action={adjustPoints.bind(null, customer.id)} resetOnSuccess className="mt-4 space-y-3 border-t border-line pt-4">
+                <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-3">
+                  <Field label="Points" name="points">
+                    <Input name="points" inputMode="numeric" placeholder="500 or -500" className="tabular-nums" />
+                  </Field>
+                  <Field label="Reason" name="note">
+                    <Input name="note" maxLength={200} placeholder="Goodwill for a late delivery" />
+                  </Field>
+                </div>
+                <SubmitButton variant="secondary" size="sm" pendingText="Saving…">
+                  Adjust points
+                </SubmitButton>
+              </ActionForm>
+            )}
           </Card>
           <Card title="Notes" description="Only visible to staff.">
             <ActionForm action={saveCustomerNotes.bind(null, customer.id)} className="space-y-3">

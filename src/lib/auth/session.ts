@@ -25,9 +25,10 @@ export function hasRole(user: Pick<AdminUser, "role">, min: AdminRole) {
   return RANK[user.role] >= RANK[min];
 }
 
-const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
+/** Sessions are stored by token hash (shared with customer sessions in ./customer). */
+export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
-async function cookieIsSecure() {
+export async function cookieIsSecure() {
   if (process.env.NODE_ENV !== "production") return false;
   const host = (await headers()).get("host") ?? "";
   return !/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);

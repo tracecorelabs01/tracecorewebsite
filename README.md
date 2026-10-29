@@ -68,6 +68,7 @@ docker rm -f tcl-mysql     # delete it (and its data)
 | Products | Create/edit products, photos (auto-converted to WebP), pricing, options, specs, stock, SEO | admin |
 | Categories | Shop tabs and ordering | admin |
 | Discounts | Percentage/fixed codes with limits and date windows | admin |
+| Loyalty | Points per $1 on paid orders, offers customers redeem for single-use codes, recent activity (manual adjustments on each customer) | admin |
 | Expenses | Record business spending; spend, revenue, profit and margin by period and category, 12-month view, CSV export | admin |
 | Setup builder | The shop page configurator: bundle discount, every question and answer, product picks, fuser specs, add-ons | admin |
 | Settings | Announcement bar, shipping thresholds, social links, stats, payment badges, order note | admin |
@@ -81,6 +82,12 @@ Roles: **owner** (everything) › **admin** (everything except staff) › **staf
 Checkout validates every line against the database (prices, options, stock — never trusting the browser), applies discount codes, and creates the order inside a transaction with guarded stock decrements, so the last unit can't be sold twice. Orders arrive as **pending / unpaid**. Until a payment provider is connected, send payment instructions (the *order note* in Settings is shown after checkout and in the confirmation email) and mark orders paid in the admin.
 
 **Next step — payments**: connect a provider (Stripe, PayPal, a crypto processor…) in `src/actions/store.ts → placeOrder` (create a payment session after the order is saved) plus a webhook route that marks the order paid.
+
+### Customer accounts and loyalty
+
+Customers can open an account (`/account`) only after an order is paid: they enter the order's email and number and choose a password. The same form resets a forgotten password, so no email setup is needed. An account shows every order placed with that email, loyalty points with their history, rewards to redeem, and reviews.
+
+Points are added when an order is marked paid (by default 100 per $1 of products after discounts; shipping doesn't earn) and taken back if it's refunded, cancelled or marked unpaid. Offers are set up under **Loyalty**; redeeming one spends the points and issues a single-use `PTS-` discount code. Reviews from accounts are verified buyers only and wait for approval in **Reviews**.
 
 ### Email (optional)
 

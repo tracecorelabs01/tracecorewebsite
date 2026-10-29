@@ -39,7 +39,7 @@ export function ReviewCard({ review: r }: { review: Review }) {
               <span className={r.product ? "text-fg/90" : undefined}>{r.product ?? "General"}</span>
               <span className="text-dim">·</span>
               <time dateTime={r.createdAt.toISOString()}>{shortDate(r.createdAt)}</time>
-              <Badge>{r.source}</Badge>
+              {r.source === "account" ? <Badge tone="ok">Verified buyer</Badge> : <Badge>{r.source}</Badge>}
               {r.email && <span className="break-all text-dim">{r.email}</span>}
             </div>
           </div>
