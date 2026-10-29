@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { motion, useAnimationFrame, useInView, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, useVelocity } from "motion/react";
-import { cn, wrap } from "@/lib/utils";
+import { clamp, cn, wrap } from "@/lib/utils";
 
 /**
  * Infinite marquee whose speed (and direction) reacts to scroll velocity.
@@ -32,11 +32,16 @@ export function VelocityMarquee({
   // The loop writes a transform every frame, so only run it while the band can be seen.
   const root = useRef<HTMLDivElement>(null);
   const visible = useInView(root, { margin: "100px 0px" });
+  // A finger fling scrolls far faster than a wheel and whipped the band along at 10-25x, so touch screens cap the boost at 3x.
+  const maxBoost = useRef(Infinity);
+  useEffect(() => {
+    if (matchMedia("(pointer: coarse)").matches) maxBoost.current = 2;
+  }, []);
 
   useAnimationFrame((_, delta) => {
     if (reduce || !visible) return;
     let moveBy = direction.current * baseVelocity * (delta / 1000);
-    const f = factor.get();
+    const f = clamp(factor.get(), -maxBoost.current, maxBoost.current);
     if (f < 0) direction.current = -1;
     else if (f > 0) direction.current = 1;
     moveBy += direction.current * moveBy * f;

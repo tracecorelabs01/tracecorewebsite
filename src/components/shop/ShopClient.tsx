@@ -89,10 +89,12 @@ export function ShopClient({ products, categories }: { products: Product[]; cate
           </LayoutGroup>
 
           <div className="flex gap-2">
-            <label className="flex h-11 flex-1 items-center gap-2.5 rounded-full border border-line bg-ink-900 px-4 transition-colors focus-within:border-blaze lg:w-64 lg:flex-none">
+            {/* min-w-0: the input's built-in width otherwise pushed the sort pill off the side of a phone screen.
+                Phones get 16px text in both controls, below that iOS zooms the page in when they are tapped. */}
+            <label className="flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full border border-line bg-ink-900 px-4 transition-colors focus-within:border-blaze lg:w-64 lg:flex-none">
               <Search className="size-4 text-dim" />
               <span className="sr-only">Search products</span>
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search products" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-dim" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search products" className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-dim sm:text-sm" />
               {query && (
                 <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="text-dim hover:text-fg">
                   <X className="size-4" />
@@ -101,7 +103,20 @@ export function ShopClient({ products, categories }: { products: Product[]; cate
             </label>
             <label className="relative flex h-11 items-center rounded-full border border-line bg-ink-900 pl-4 pr-9 transition-colors focus-within:border-blaze">
               <span className="sr-only">Sort products</span>
-              <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="cursor-pointer appearance-none bg-transparent font-mono text-[11px] uppercase tracking-[0.12em] text-fg outline-none">
+              {/* The pill shows a copy of the choice and the real select lies over it, see-through, so its text can be 16px on phones.
+                  Phones fit the pill to the current choice; wider screens keep it as wide as the longest, as the select was. */}
+              <span aria-hidden className="grid font-mono text-[11px] uppercase tracking-[0.12em] text-fg">
+                {Object.entries(sorts).map(([k, v]) => (
+                  <span key={k} className={cn("col-start-1 row-start-1", k !== sort && "invisible hidden sm:block")}>
+                    {v}
+                  </span>
+                ))}
+              </span>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as Sort)}
+                className="absolute inset-0 size-full cursor-pointer appearance-none font-mono text-base uppercase tracking-[0.12em] text-fg opacity-0 sm:text-[11px]"
+              >
                 {Object.entries(sorts).map(([k, v]) => (
                   <option key={k} value={k} className="bg-ink-900">
                     {v}
