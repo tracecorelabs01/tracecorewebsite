@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageHero } from "@/components/ui/PageHero";
 import { CheckoutClient } from "@/components/checkout/CheckoutClient";
 import { isDbConfigured } from "@/db";
+import { isRazorpayConfigured } from "@/lib/razorpay";
 
 export const metadata: Metadata = {
   title: "Checkout",
@@ -20,7 +21,7 @@ export default function CheckoutPage() {
           </span>,
         ]}
       />
-      <CheckoutClient demo={!isDbConfigured()} />
+      <CheckoutClient demo={!isDbConfigured()} cardOnline={isDbConfigured() && isRazorpayConfigured()} />
     </>
   );
 }

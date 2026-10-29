@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Mail, Phone } from "lucide-react";
+import { ExternalLink, Mail, Phone } from "lucide-react";
 import { saveOrderNote, updateOrderStatus, updatePayment, updateShipping } from "@/actions/admin/orders";
 import { InternalNoteForm, PaymentForm, ShippingForm, StatusForm } from "@/components/admin/orders/OrderForms";
 import { OrderTimeline } from "@/components/admin/orders/OrderTimeline";
@@ -165,6 +165,16 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
               statuses={PAYMENT_STATUSES}
               canAdvance={order.status === "pending"}
             />
+            {order.paymentRef?.startsWith("pay_") && (
+              <a
+                href={`https://dashboard.razorpay.com/app/payments/${encodeURIComponent(order.paymentRef)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-amber"
+              >
+                View payment in Razorpay <ExternalLink className="size-3.5" />
+              </a>
+            )}
           </Card>
           <Card title="Shipping" description="Tracking details for this order.">
             <ShippingForm

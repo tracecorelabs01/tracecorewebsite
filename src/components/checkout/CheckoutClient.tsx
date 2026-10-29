@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertTriangle, Bitcoin, Check, CreditCard, Info, Loader2, Lock, ShoppingBag, Tag, Wallet, X } from "lucide-react";
+import { confirmPayment, startPayment } from "@/actions/payment";
 import { placeOrder, previewDiscount, previewSetupDiscount, type PlaceOrderResult } from "@/actions/store";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { ProductVisual } from "@/components/product/ProductVisual";
@@ -22,8 +23,32 @@ const methods = [
 
 type PlacedOrder = Extract<PlaceOrderResult, { ok: true }>["order"];
 type CartIssue = { slug: string; message: string; maxQty?: number };
+/** Card payment through Razorpay after the order is placed: the window is opening, open, being confirmed, done, or closed unpaid. */
+type PayState = "opening" | "open" | "confirming" | "paid" | "unpaid";
 
-export function CheckoutClient({ demo }: { demo: boolean }) {
+type RazorpayResponse = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
+declare global {
+  interface Window {
+    Razorpay?: new (options: object) => { open(): void; on(event: "payment.failed", cb: (r: { error?: { description?: string } }) => void): void };
+  }
+}
+
+/** Razorpay's Standard Checkout script, loaded the first time someone pays. */
+function loadRazorpay() {
+  if (window.Razorpay) return Promise.resolve(true);
+  return new Promise<boolean>((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => {
+      script.remove();
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+}
+
+export function CheckoutClient({ demo, cardOnline }: { demo: boolean; cardOnline: boolean }) {
   const hydrated = useUi((s) => s.hydrated);
   const lines = useCart((s) => s.lines);
   const subtotal = useCart(selectSubtotal);
@@ -41,6 +66,7 @@ export function CheckoutClient({ demo }: { demo: boolean }) {
   const [discount, setDiscount] = useState<{ code: string; cents: number } | null>(null);
   const [discountMsg, setDiscountMsg] = useState<string | null>(null);
   const [checkingCode, startCodeCheck] = useTransition();
+  const [pay, setPay] = useState<{ state: PayState; error?: string }>({ state: "opening" });
   const resetOnHide = useRef(false);
 
   // Don't show a stale confirmation if the user navigates away and back.
@@ -88,6 +114,35 @@ export function CheckoutClient({ demo }: { demo: boolean }) {
     });
   }
 
+  async function payNow(order: PlacedOrder) {
+    setPay({ state: "opening" });
+    const [loaded, start] = await Promise.all([loadRazorpay(), startPayment(order.number, order.email)]);
+    if (!start.ok) return setPay(start.paid ? { state: "paid" } : { state: "unpaid", error: start.error });
+    if (!loaded || !window.Razorpay) return setPay({ state: "unpaid", error: "The secure payment window didn't load. Check your connection and try again." });
+
+    let failure: string | undefined;
+    const checkout = new window.Razorpay({
+      key: start.keyId,
+      order_id: start.razorpayOrderId,
+      amount: start.amount,
+      currency: start.currency,
+      name: start.name,
+      description: start.description,
+      prefill: start.prefill,
+      theme: { color: "#ff3d00" },
+      handler: async (r: RazorpayResponse) => {
+        setPay({ state: "confirming" });
+        const res = await confirmPayment({ number: order.number, razorpayOrderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature });
+        setPay(res.ok ? { state: "paid" } : { state: "unpaid", error: res.error });
+      },
+      modal: { ondismiss: () => setPay((p) => (p.state === "open" ? { state: "unpaid", error: failure } : p)) },
+    });
+    // Razorpay lets them retry inside its window; keep the last reason in case they close it.
+    checkout.on("payment.failed", (r) => (failure = r.error?.description || "The payment didn't go through."));
+    checkout.open();
+    setPay({ state: "open" });
+  }
+
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -118,6 +173,7 @@ export function CheckoutClient({ demo }: { demo: boolean }) {
         resetOnHide.current = true;
         clear();
         window.scrollTo({ top: 0 });
+        if (res.order.payOnline) void payNow(res.order);
       } else {
         setError(res.error);
         setFieldErrors(res.fieldErrors ?? {});
@@ -127,6 +183,7 @@ export function CheckoutClient({ demo }: { demo: boolean }) {
   }
 
   if (!hydrated) return <div className="container-x min-h-[60vh] pb-32" />;
+  if (placed?.payOnline && pay.state !== "paid") return <PaymentStep order={placed} state={pay.state} error={pay.error} onPay={() => payNow(placed)} />;
   if (placed) return <Confirmation order={placed} />;
 
   if (lines.length === 0) {
@@ -210,7 +267,7 @@ export function CheckoutClient({ demo }: { demo: boolean }) {
                   </span>
                   <span className="flex-1">
                     <span className="block font-medium">{label}</span>
-                    <span className="text-sm text-dim">{sub}</span>
+                    <span className="text-sm text-dim">{id === "card" && cardOnline ? "Visa · Mastercard and more, paid securely through Razorpay" : sub}</span>
                   </span>
                   <span className={cn("grid size-5 place-items-center rounded-full border", method === id ? "border-blaze bg-blaze" : "border-line-strong")}>
                     {method === id && <Check className="size-3 text-white" strokeWidth={3} />}
@@ -218,7 +275,10 @@ export function CheckoutClient({ demo }: { demo: boolean }) {
                 </label>
               ))}
               <p className="flex items-center gap-2 text-sm text-dim">
-                <Lock className="size-3.5" /> You&apos;ll receive secure payment instructions after placing your order — we never see your card details.
+                <Lock className="size-3.5 shrink-0" />
+                {method === "card" && cardOnline
+                  ? "You'll pay by card in a secure Razorpay window as soon as you place your order. We never see your card details."
+                  : "You'll receive secure payment instructions after placing your order. We never see your card details."}
               </p>
             </div>
           </Fieldset>
@@ -358,7 +418,7 @@ export function CheckoutClient({ demo }: { demo: boolean }) {
                 </>
               ) : (
                 <>
-                  <Lock className="size-4" /> Place order · {formatPrice(total)}
+                  <Lock className="size-4" /> {method === "card" && cardOnline ? "Place order & pay" : "Place order"} · {formatPrice(total)}
                 </>
               )}
             </button>
@@ -441,7 +501,7 @@ function Confirmation({ order }: { order: PlacedOrder }) {
         {order.demo && <p className="relative mt-3 text-xs text-warn">Demo order — not saved (no database connected).</p>}
         {!order.demo && (
           <p className="relative mx-auto mt-5 max-w-md rounded-2xl border border-line bg-ink-950/50 px-5 py-4 text-sm text-muted">
-            Once your payment is confirmed,{" "}
+            {order.payOnline ? "Your payment is confirmed, so you can" : "Once your payment is confirmed,"}{" "}
             <Link href={`/account/activate?${new URLSearchParams({ email: order.email, order: order.number })}`} className="text-fg underline-offset-4 hover:underline">
               open your account
             </Link>{" "}
@@ -480,6 +540,55 @@ function Confirmation({ order }: { order: PlacedOrder }) {
           </ButtonLink>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+/** Between placing a card order and Razorpay confirming it: progress, or why it isn't paid yet with a way to pay. */
+function PaymentStep({ order, state, error, onPay }: { order: PlacedOrder; state: PayState; error?: string; onPay: () => void }) {
+  const busy = state !== "unpaid";
+  const title = state === "confirming" ? "Confirming payment" : busy ? "Complete your payment" : "Payment not completed";
+  const text =
+    state === "confirming"
+      ? "Hold on while we confirm your payment."
+      : busy
+        ? "Finish paying in the secure Razorpay window."
+        : "Your order is saved and its items are held for you. Pay now to confirm it.";
+  return (
+    <div className="container-x pb-32">
+      <div className="relative mx-auto max-w-2xl overflow-hidden rounded-[32px] border border-line bg-ink-900 p-8 text-center md:p-12">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgb(255_61_0/0.14),transparent_60%)]" />
+        <div className="relative mx-auto grid size-20 place-items-center rounded-full border border-line-strong bg-ink-950">
+          {busy ? <Loader2 className="size-8 animate-spin text-blaze" /> : <CreditCard className="size-8 text-blaze" />}
+        </div>
+        <p className="relative mt-8 type-kicker text-blaze">Order {order.number}</p>
+        <h2 className="relative mt-3 type-h2">{title}</h2>
+        <p className="relative mx-auto mt-4 max-w-md text-muted">{text}</p>
+        {!busy && error && (
+          <p role="alert" className="relative mx-auto mt-5 flex max-w-md items-start gap-2 rounded-xl border border-ember/40 bg-ember/10 px-4 py-3 text-left text-sm text-fg">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-ember" /> {error}
+          </p>
+        )}
+        {!busy && (
+          <button
+            type="button"
+            onClick={onPay}
+            className="relative mx-auto mt-8 flex h-14 items-center justify-center gap-3 bg-brand px-10 text-[13px] font-semibold uppercase tracking-[0.16em] text-white transition-[filter] clip-slant [--slant:16px] hover:brightness-110"
+          >
+            <Lock className="size-4" /> Pay {formatPrice(order.totalCents / 100)}
+          </button>
+        )}
+        <p className="relative mt-8 flex items-center justify-center gap-2 text-xs text-dim">
+          <Lock className="size-3.5 shrink-0" /> Card payments are processed by Razorpay. We never see your card details.
+        </p>
+        <p className="relative mt-2 text-xs text-dim">
+          Need help?{" "}
+          <Link href="/support" className="underline underline-offset-2 hover:text-fg">
+            Contact us
+          </Link>{" "}
+          with your order number.
+        </p>
+      </div>
     </div>
   );
 }

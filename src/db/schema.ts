@@ -202,6 +202,8 @@ export const orders = mysqlTable(
     paymentStatus: mysqlEnum("payment_status", PAYMENT_STATUSES).notNull().default("unpaid"),
     paymentMethod: varchar("payment_method", { length: 30 }).notNull(),
     paymentRef: varchar("payment_ref", { length: 191 }),
+    // Razorpay order this order is paid through (card checkout); payments and webhooks are matched on it.
+    razorpayOrderId: varchar("razorpay_order_id", { length: 40 }),
     email: varchar("email", { length: 191 }).notNull(),
     phone: varchar("phone", { length: 40 }),
     firstName: varchar("first_name", { length: 80 }).notNull(),
@@ -236,6 +238,7 @@ export const orders = mysqlTable(
     index("orders_created_idx").on(t.createdAt),
     index("orders_email_idx").on(t.email),
     index("orders_customer_idx").on(t.customerId),
+    uniqueIndex("orders_razorpay_order_uq").on(t.razorpayOrderId),
   ],
 );
 

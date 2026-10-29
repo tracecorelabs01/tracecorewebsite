@@ -79,9 +79,13 @@ Roles: **owner** (everything) › **admin** (everything except staff) › **staf
 
 ### How orders work
 
-Checkout validates every line against the database (prices, options, stock — never trusting the browser), applies discount codes, and creates the order inside a transaction with guarded stock decrements, so the last unit can't be sold twice. Orders arrive as **pending / unpaid**. Until a payment provider is connected, send payment instructions (the *order note* in Settings is shown after checkout and in the confirmation email) and mark orders paid in the admin.
+Checkout validates every line against the database (prices, options, stock — never trusting the browser), applies discount codes, and creates the order inside a transaction with guarded stock decrements, so the last unit can't be sold twice. Orders arrive as **pending / unpaid**. For PayPal and crypto, send payment instructions (the *order note* in Settings is shown after checkout and in the confirmation email) and mark orders paid in the admin.
 
-**Next step — payments**: connect a provider (Stripe, PayPal, a crypto processor…) in `src/actions/store.ts → placeOrder` (create a payment session after the order is saved) plus a webhook route that marks the order paid.
+### Card payments (Razorpay)
+
+With `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` set, a card order opens Razorpay's checkout right after it's placed, in the order's currency (USD; International Payments must be enabled in Razorpay). The payment is confirmed two ways, whichever comes first: the checkout's signed response (`src/actions/payment.ts`) and the webhook at `/api/razorpay/webhook` (`RAZORPAY_WEBHOOK_SECRET`). Either one marks the order paid, moves it to processing, adds loyalty points and sends the confirmation emails. Customers who close the window can pay from the same screen; unpaid orders are released after the reservation time like any other. Refunds are made in the Razorpay dashboard: a full refund marks the order's payment refunded. Logic lives in `src/lib/razorpay.ts`.
+
+Test keys (`rzp_test_…`) take test cards only; swap in the live keys and a live-mode webhook to go live.
 
 ### Customer accounts and loyalty
 
@@ -132,7 +136,7 @@ Set `RESEND_API_KEY`, `EMAIL_FROM` and `ORDER_ALERT_EMAIL` to send order confirm
 - Replace starter products, prices and specs (Products), and review Settings.
 - Replace the sample reviews: in database mode only reviews you approve are shown — only publish genuine ones.
 - Write real policies for `/legal/*` and review the FAQ (`src/data/faq.ts`).
-- Connect payments and email.
+- Switch Razorpay to live keys, and connect email.
 
 ## Next.js 16 notes
 

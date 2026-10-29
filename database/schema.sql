@@ -331,8 +331,12 @@ CREATE INDEX `loyalty_ledger_order_idx` ON `loyalty_ledger` (`order_id`);
 ALTER TABLE `discount_codes` ADD CONSTRAINT `discount_codes_customer_id_customers_id_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE cascade ON UPDATE no action;
 ALTER TABLE `reviews` ADD CONSTRAINT `reviews_customer_id_customers_id_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE set null ON UPDATE no action;;
 
+-- 0003_razorpay
+ALTER TABLE `orders` ADD `razorpay_order_id` varchar(40);
+ALTER TABLE `orders` ADD CONSTRAINT `orders_razorpay_order_uq` UNIQUE(`razorpay_order_id`);;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Mark the migrations above as applied for `npm run db:migrate`.
 CREATE TABLE IF NOT EXISTS `__drizzle_migrations` (id serial primary key, hash text not null, created_at bigint);
-INSERT INTO `__drizzle_migrations` (`hash`, `created_at`) VALUES ('4ebaa753ea54c7f66421b7791b23720755593257e756d3af4818537ef63ccb49', 1793097030220), ('9e60b1deeda9d45c08b99f47b15f2943ea5ca17a5ed54fa4f4d687f6ee0f4fa8', 1793257643089), ('db019025f080bbd14de472cca78f7a48d0f90b1ad64423ea21349b12da69c81c', 1793279911158);
+INSERT INTO `__drizzle_migrations` (`hash`, `created_at`) VALUES ('22e3352ca9f2f2a48992f186b23da5f04e7806f4f5236bc3545050ca8e00a8f1', 1793097030220), ('9e60b1deeda9d45c08b99f47b15f2943ea5ca17a5ed54fa4f4d687f6ee0f4fa8', 1793257643089), ('db019025f080bbd14de472cca78f7a48d0f90b1ad64423ea21349b12da69c81c', 1793279911158), ('ec8852198a5a94889bbb6491fdd4c35a53532e5772a924ffc1cf78dac2a5ea93', 1793294186131);

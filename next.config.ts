@@ -4,12 +4,15 @@ import type { NextConfig } from "next";
 const s3 = process.env.S3_PUBLIC_URL ? new URL(process.env.S3_PUBLIC_URL) : null;
 
 // CSP without nonces: nonces would force every page to render dynamically. Everything the
-// site loads is same-origin; 'unsafe-inline' covers Next's own inline bootstrap scripts.
+// site loads is same-origin apart from Razorpay's checkout (card payments); 'unsafe-inline'
+// covers Next's own inline bootstrap scripts.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob:${s3 ? ` ${s3.origin}` : ""}`,
+  `img-src 'self' data: blob: https://cdn.razorpay.com${s3 ? ` ${s3.origin}` : ""}`,
+  "frame-src https://api.razorpay.com https://checkout.razorpay.com",
+  "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
   "font-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
@@ -24,7 +27,8 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  // Card checks (3-D Secure) open in a Razorpay popup that reports back to this window.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
 ];
 
 const nextConfig: NextConfig = {

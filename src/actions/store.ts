@@ -8,6 +8,7 @@ import { getCatalog, getSetupBuilder, getStoreSettings, TAGS } from "@/lib/catal
 import { MAX_QTY } from "@/lib/catalog/types";
 import { isCompleteSetup, setupDiscountCode } from "@/lib/setup-builder";
 import { sendOrderEmails } from "@/lib/email";
+import { isRazorpayConfigured, PAID_NOTE } from "@/lib/razorpay";
 import { getClientIp } from "@/lib/request";
 
 /* ───────────── shared ───────────── */
@@ -201,6 +202,8 @@ export type PlaceOrderResult =
         totalCents: number;
         note: string;
         demo: boolean;
+        /** Card through Razorpay: checkout opens payment next, and `note` is what shows once it's paid. */
+        payOnline: boolean;
       };
     }
   | { ok: false; error: string; fieldErrors?: Record<string, string>; cartIssues?: CartIssue[] };
@@ -237,7 +240,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   };
 
   if (!isDbConfigured()) {
-    return { ok: true, order: { number: orderNumber().replace("TCL", "DEMO"), email: data.email, ...summary, note: settings.orderNote, demo: true } };
+    return { ok: true, order: { number: orderNumber().replace("TCL", "DEMO"), email: data.email, ...summary, note: settings.orderNote, demo: true, payOnline: false } };
   }
 
   const db = getDb();
@@ -352,9 +355,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
 
   // Stock changed: refresh the storefront catalogue in the background.
   revalidateTag(TAGS.catalog, "max");
-  await sendOrderEmails({ number, email, firstName: data.firstName, paymentMethod: data.paymentMethod, note: settings.orderNote, ...summary });
+  // Card orders paid online are confirmed by email once the payment is in (src/lib/razorpay.ts).
+  const payOnline = data.paymentMethod === "card" && isRazorpayConfigured();
+  if (!payOnline) await sendOrderEmails({ number, email, firstName: data.firstName, paymentMethod: data.paymentMethod, note: settings.orderNote, ...summary });
 
-  return { ok: true, order: { number, email, ...summary, note: settings.orderNote, demo: false } };
+  return { ok: true, order: { number, email, ...summary, note: payOnline ? PAID_NOTE : settings.orderNote, demo: false, payOnline } };
 }
 
 /* ───────────── newsletter ───────────── */
