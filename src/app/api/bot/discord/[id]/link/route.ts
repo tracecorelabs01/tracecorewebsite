@@ -32,11 +32,11 @@ export async function POST(req: Request, { params }: RouteContext<"/api/bot/disc
     if (await isLoginBlocked(key, who)) return reply(false, BLOCKED);
     await recordLoginAttempt(key, who, false);
     const c = await customerWithOrders(email);
-    if (c && !(await sendLoginCode(email, c.firstName || null, await createLoginCode(c.id), "discord"))) {
+    if (!c) return reply(false, `We couldn't find any orders for ${email}. Check it's the email you ordered with.`);
+    if (!(await sendLoginCode(email, c.firstName || null, await createLoginCode(c.id), "discord"))) {
       return reply(false, "We couldn't send the email just now. Please try again in a minute.");
     }
-    // The same reply whether or not the email has orders, so this can't be used to find out who shops here.
-    return reply(true, `If ${email} has placed orders, we've emailed it a 6-digit code. It works once, for 10 minutes.`);
+    return reply(true, `We've emailed a 6-digit code to ${email}. It works once, for 10 minutes.`);
   }
 
   const key = `discord-link-code:${email}`;

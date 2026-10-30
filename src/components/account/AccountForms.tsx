@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { Check, Copy, Loader2, Star } from "lucide-react";
 import { login, redeem, requestCode, requestTrackCode, submitReview, verifyTrackCode, type AccountFormState } from "@/actions/account";
@@ -13,7 +14,8 @@ function useAccountForm(action: Action) {
   const [, start] = useTransition();
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    // With the button that was pressed, so a second submit button (name/value) can change what the form asks for.
+    const fd = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
     start(() => formAction(fd));
   };
   return { state, pending, onSubmit };
@@ -77,17 +79,36 @@ export function TrackForm({ email }: { email?: string }) {
 
 function EmailStep({ email, next, flow, onRestart }: { email?: string; next?: string; flow: Flow; onRestart: () => void }) {
   const { state, pending, onSubmit } = useAccountForm(FLOWS[flow].request);
-  if (state?.ok && state.email) return <CodeStep email={state.email} next={next} flow={flow} sent={state.message} onRestart={onRestart} />;
+  if (state?.ok && state.email) return <CodeStep email={state.email} next={next} flow={flow} create={state.create} sent={state.message} onRestart={onRestart} />;
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
-      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={email} error={state?.fieldErrors?.email} hint="The one you ordered with." required />
+      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state?.email ?? email} error={state?.fieldErrors?.email} hint="The one you ordered with." required />
       <Status state={state} />
-      <Submit pending={pending}>Email me a code</Submit>
+      {state?.guest ? (
+        // Orders but no account: create it with a code, or just track the orders.
+        <div className="grid gap-3">
+          <button
+            type="submit"
+            name="create"
+            value="1"
+            disabled={pending}
+            className="flex h-12 items-center justify-center gap-2.5 bg-brand px-7 text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition-[filter] clip-slant [--slant:13px] hover:brightness-110 disabled:opacity-70"
+          >
+            {pending && <Loader2 className="size-4 animate-spin" />}
+            Create my account
+          </button>
+          <Link href={`/track?${new URLSearchParams({ email: state.email ?? "" })}`} className="text-center text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
+            Or track your orders without an account
+          </Link>
+        </div>
+      ) : (
+        <Submit pending={pending}>Email me a code</Submit>
+      )}
     </form>
   );
 }
 
-function CodeStep({ email, next, flow, sent, onRestart }: { email: string; next?: string; flow: Flow; sent?: string; onRestart: () => void }) {
+function CodeStep({ email, next, flow, create, sent, onRestart }: { email: string; next?: string; flow: Flow; create?: boolean; sent?: string; onRestart: () => void }) {
   const { state, pending, onSubmit } = useAccountForm(FLOWS[flow].verify);
   const [resent, setResent] = useState<AccountFormState>(null);
   const [resending, startResend] = useTransition();
@@ -95,6 +116,7 @@ function CodeStep({ email, next, flow, sent, onRestart }: { email: string; next?
     startResend(async () => {
       const fd = new FormData();
       fd.set("email", email);
+      if (create) fd.set("create", "1");
       setResent(await FLOWS[flow].request(null, fd));
     });
   return (
@@ -104,6 +126,7 @@ function CodeStep({ email, next, flow, sent, onRestart }: { email: string; next?
       </p>
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="next" value={next ?? ""} />
+      {create && <input type="hidden" name="create" value="1" />}
       <Field
         label="6-digit code"
         name="code"
@@ -116,7 +139,7 @@ function CodeStep({ email, next, flow, sent, onRestart }: { email: string; next?
         required
       />
       <Status state={state} />
-      <Submit pending={pending}>{FLOWS[flow].submit}</Submit>
+      <Submit pending={pending}>{create ? "Create my account" : FLOWS[flow].submit}</Submit>
       <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
         <button type="button" onClick={resend} disabled={resending} className="underline-offset-4 hover:text-fg hover:underline disabled:opacity-60">
           {resending ? "Sending…" : "Send a new code"}

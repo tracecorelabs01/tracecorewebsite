@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { customers, discountCodes, getDb, isDbConfigured, products, reviews } from "@/db";
 import { customerWithOrders, hasBought } from "@/lib/account";
 import { accountPath, consumeLoginCode, createCustomerSession, createLoginCode, destroyCustomerSession, requireCustomer } from "@/lib/auth/customer";
@@ -12,7 +12,8 @@ import { sendLoginCode, sendRewardCode } from "@/lib/emails/account";
 import { redeemOffer, rewardLabel, withProductNames } from "@/lib/loyalty";
 import { getClientIp } from "@/lib/request";
 
-export type AccountFormState = { ok: boolean; message?: string; fieldErrors?: Record<string, string>; email?: string } | null;
+// guest: the email has orders but no account, so the form offers to create one. create: a code for creating it.
+export type AccountFormState = { ok: boolean; message?: string; fieldErrors?: Record<string, string>; email?: string; guest?: boolean; create?: boolean } | null;
 
 const str = (v: FormDataEntryValue | null) => String(v ?? "").trim();
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -29,9 +30,11 @@ async function accountFor(email: string) {
   return c;
 }
 
+const SEND_FAILED: AccountFormState = { ok: false, message: "We couldn't send the email just now. Please try again in a minute." };
+
 /**
- * Emails a 6-digit sign-in code. The reply is the same whether or not the email has an account,
- * so the form can't be used to find out who shops here.
+ * Emails a 6-digit sign-in code, or says plainly that the email has no account. A guest (orders, no account) can
+ * ask for a code that creates their account (`create`), which `login` opens once the code checks out.
  */
 export async function requestCode(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
   if (!isDbConfigured()) return NO_DB;
@@ -46,10 +49,17 @@ export async function requestCode(_prev: AccountFormState, fd: FormData): Promis
   await recordLoginAttempt(key, ip, false);
 
   const c = await accountFor(email);
-  if (c && !(await sendLoginCode(email, c.firstName || null, await createLoginCode(c.id)))) {
-    return { ok: false, message: "We couldn't send the email just now. Please try again in a minute." };
+  if (c) {
+    if (!(await sendLoginCode(email, c.firstName || null, await createLoginCode(c.id)))) return SEND_FAILED;
+    return { ok: true, email, message: `We've emailed a 6-digit code to ${email}. It works once, for 10 minutes.` };
   }
-  return { ok: true, email, message: `If ${email} has an account, we've emailed it a 6-digit code. It works once, for 10 minutes.` };
+  const guest = await customerWithOrders(email);
+  if (!guest) {
+    return { ok: false, email, message: "You don't have an account with us. You get one when you check out and choose Create an account.", fieldErrors: { email: "No account with this email." } };
+  }
+  if (fd.get("create") !== "1") return { ok: false, guest: true, email, message: `You don't have an account with us yet: your orders with ${email} were placed as a guest.` };
+  if (!(await sendLoginCode(email, guest.firstName || null, await createLoginCode(guest.id)))) return SEND_FAILED;
+  return { ok: true, create: true, email, message: `We've emailed a 6-digit code to ${email}. Enter it to create your account. It works once, for 10 minutes.` };
 }
 
 export async function login(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
@@ -63,12 +73,17 @@ export async function login(_prev: AccountFormState, fd: FormData): Promise<Acco
   const key = `account:${email}`;
   const ip = await getClientIp();
   if (await isLoginBlocked(key, ip)) return BLOCKED;
-  const c = await accountFor(email);
+  // A guest creating their account: proving the email with the code is what opens it.
+  const create = fd.get("create") === "1";
+  const c = (await accountFor(email)) ?? (create ? await customerWithOrders(email) : undefined);
   const valid = Boolean(c) && (await consumeLoginCode(c!.id, code));
   await recordLoginAttempt(key, ip, valid);
   if (!valid) return { ok: false, message: "That code is wrong or has expired. Check the newest email, or send a new code.", fieldErrors: { code: "Wrong or expired code." } };
 
-  await getDb().update(customers).set({ lastLoginAt: new Date() }).where(eq(customers.id, c!.id));
+  await getDb()
+    .update(customers)
+    .set({ lastLoginAt: new Date(), accountCreatedAt: sql`coalesce(${customers.accountCreatedAt}, ${new Date()})` })
+    .where(eq(customers.id, c!.id));
   await createCustomerSession(c!.id);
   redirect(accountPath(fd.get("next")));
 }
@@ -80,7 +95,7 @@ export async function logout() {
 
 /* ───────────── Order tracking for guests (/track): an email code shows that email's orders, no account ───────────── */
 
-/** Emails a code that opens /track for this email's orders. The reply is the same whether or not it has any. */
+/** Emails a code that opens /track for this email's orders, or says plainly that it has none. */
 export async function requestTrackCode(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
   if (!isDbConfigured()) return NO_DB;
   const email = str(fd.get("email")).toLowerCase();
@@ -93,10 +108,9 @@ export async function requestTrackCode(_prev: AccountFormState, fd: FormData): P
   await recordLoginAttempt(key, ip, false);
 
   const c = await customerWithOrders(email);
-  if (c && !(await sendLoginCode(email, c.firstName || null, await createLoginCode(c.id), "tracking"))) {
-    return { ok: false, message: "We couldn't send the email just now. Please try again in a minute." };
-  }
-  return { ok: true, email, message: `If ${email} has placed orders, we've emailed it a 6-digit code. It works once, for 10 minutes.` };
+  if (!c) return { ok: false, email, message: `We couldn't find any orders for ${email}. Check it's the email you ordered with.`, fieldErrors: { email: "No orders with this email." } };
+  if (!(await sendLoginCode(email, c.firstName || null, await createLoginCode(c.id), "tracking"))) return SEND_FAILED;
+  return { ok: true, email, message: `We've emailed a 6-digit code to ${email}. It works once, for 10 minutes.` };
 }
 
 export async function verifyTrackCode(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
