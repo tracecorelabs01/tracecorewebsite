@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, desc, eq, inArray, isNotNull, sum } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, isNotNull, sum } from "drizzle-orm";
 import { customers, discountCodes, getDb, loyaltyLedger, loyaltyOffers, orderItems, orders, products, reviews } from "@/db";
 
 // Read-only queries for the customer account pages. Every one is scoped to the signed-in customer's id.
@@ -41,6 +41,16 @@ export async function getCheckoutDetails(customerId: number) {
     postalCode: last?.postalCode ?? "",
     country: last?.country || c.country || "",
   };
+}
+
+/** The customer behind an email that has placed orders, account or not (for codes that show those orders). */
+export async function customerWithOrders(email: string) {
+  const [c] = await getDb()
+    .select({ id: customers.id, firstName: customers.firstName })
+    .from(customers)
+    .where(and(eq(customers.email, email), gt(customers.ordersCount, 0)))
+    .limit(1);
+  return c;
 }
 
 /** The Discord and Google accounts linked to a customer (signed in with them, or connected on the account page). */

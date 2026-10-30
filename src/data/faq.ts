@@ -44,7 +44,7 @@ export const faqGroups: FaqGroup[] = [
       },
       {
         q: "How do I track my order?",
-        a: "As soon as your order ships you'll receive a tracking link by email. With an account, every order and its tracking is in your account. Checked out as a guest? Open the Track your order page, enter the email you ordered with, and we'll email you a code. If you've connected Discord to your account, /myorders in our Discord server shows your orders too.",
+        a: "As soon as your order ships you'll receive a tracking link by email. With an account, every order and its tracking is in your account. Checked out as a guest? Open the Track your order page, enter the email you ordered with, and we'll email you a code. In our Discord server, /track lists your orders too: the first time, link your Discord with a code we email you.",
       },
     ],
   },

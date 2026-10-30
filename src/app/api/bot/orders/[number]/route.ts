@@ -3,9 +3,8 @@
 
 import { and, asc, eq, sum } from "drizzle-orm";
 import { getDb, isDbConfigured, loyaltyLedger, orderItems, orders } from "@/db";
-import { authorizedBot } from "@/lib/bot-api";
+import { authorizedBot, botOrder } from "@/lib/bot-api";
 import { site } from "@/lib/site";
-import { warrantyEnds, warrantyMonths } from "@/lib/warranty";
 
 const NOT_FOUND = () => Response.json({ error: "not_found" }, { status: 404 });
 
@@ -33,27 +32,10 @@ export async function GET(req: Request, { params }: RouteContext<"/api/bot/order
       .from(loyaltyLedger)
       .where(and(eq(loyaltyLedger.orderId, o.id), eq(loyaltyLedger.kind, "order"))),
   ]);
-  const warrantyStart = o.paymentStatus === "paid" ? (o.deliveredAt ?? o.paidAt) : null;
-
   return Response.json({
-    number: o.number,
-    status: o.status,
-    paymentStatus: o.paymentStatus,
-    placedAt: o.createdAt,
-    paidAt: o.paidAt,
-    shippedAt: o.shippedAt,
-    deliveredAt: o.deliveredAt,
-    totalCents: o.totalCents,
-    currency: o.currency,
+    ...botOrder(o, items, Number(points?.n ?? 0)),
+    // For staff (/order): who it's for and where it is in the admin.
     customer: { name: `${o.firstName} ${o.lastName}`.trim(), email: o.email, country: o.country },
-    tracking: o.trackingNumber || o.trackingCarrier ? { carrier: o.trackingCarrier, number: o.trackingNumber } : null,
-    points: Number(points?.n ?? 0),
-    items: items.map((i) => ({
-      name: i.name,
-      option: i.option,
-      qty: i.qty,
-      warrantyUntil: warrantyStart ? warrantyEnds(warrantyStart, warrantyMonths(i.slug)) : null,
-    })),
     adminUrl: `${site.url}/admin/orders/${o.id}`,
   });
 }

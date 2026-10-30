@@ -16,7 +16,7 @@ export const instant = false;
 
 // How connecting Discord went (/api/auth/discord/callback sends people back here).
 const NOTICES: Record<string, { ok: boolean; text: string }> = {
-  discord: { ok: true, text: "Discord connected. Use /myorders in our Discord server to see your orders." },
+  discord: { ok: true, text: "Discord connected. Use /track in our Discord server to see your orders." },
   taken: { ok: false, text: "That Discord account is already linked to another TraceCore Lab account." },
   oauth: { ok: false, text: "Connecting Discord didn't work. Please try again." },
   cancelled: { ok: false, text: "Connecting Discord was cancelled." },
@@ -72,12 +72,12 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
         <Panel title="Discord" className="mb-8">
           {linked.discord ? (
             <p className="text-sm text-muted">
-              Connected as <span className="text-fg">{linked.discord}</span>. In our Discord server, <span className="font-mono text-fg">/myorders</span> shows you your orders, privately, with no order number or email needed.
+              Connected as <span className="text-fg">{linked.discord}</span>. In our Discord server, <span className="font-mono text-fg">/track</span> shows you your orders, privately, with no order number or email needed.
             </p>
           ) : (
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted">
-                Connect Discord to see your orders in our Discord server with <span className="font-mono text-fg">/myorders</span>. Only you can see them.
+                Connect Discord to see your orders in our Discord server with <span className="font-mono text-fg">/track</span>. Only you can see them.
               </p>
               {/* A plain link: a prefetching Link would start the sign-in on its own. */}
               <a

@@ -2,9 +2,9 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, gt, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { customers, discountCodes, getDb, isDbConfigured, products, reviews } from "@/db";
-import { hasBought } from "@/lib/account";
+import { customerWithOrders, hasBought } from "@/lib/account";
 import { accountPath, consumeLoginCode, createCustomerSession, createLoginCode, destroyCustomerSession, requireCustomer } from "@/lib/auth/customer";
 import { isLoginBlocked, recordLoginAttempt } from "@/lib/auth/session";
 import { emailEnabled } from "@/lib/email";
@@ -79,16 +79,6 @@ export async function logout() {
 }
 
 /* ───────────── Order tracking for guests (/track): an email code shows that email's orders, no account ───────────── */
-
-/** The customer behind an email that has placed orders, account or not. */
-async function customerWithOrders(email: string) {
-  const [c] = await getDb()
-    .select({ id: customers.id, firstName: customers.firstName })
-    .from(customers)
-    .where(and(eq(customers.email, email), gt(customers.ordersCount, 0)))
-    .limit(1);
-  return c;
-}
 
 /** Emails a code that opens /track for this email's orders. The reply is the same whether or not it has any. */
 export async function requestTrackCode(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {

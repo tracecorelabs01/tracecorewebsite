@@ -6,24 +6,29 @@ import { button, C, code, customerReplyTo, escapeHtml, label, layout, p, panel, 
 
 const hello = (name: string | null | undefined) => (name ? `, ${name}` : "");
 
-/** The 6-digit code that signs a customer in, or (for "tracking") shows a guest their orders on /track. */
-export async function sendLoginCode(to: string, name: string | null, loginCode: string, purpose: "sign-in" | "tracking" = "sign-in") {
-  const tracking = purpose === "tracking";
+// The same 6-digit code proves someone owns an email for three things.
+const CODE_EMAILS = {
+  "sign-in": { what: "sign-in", kicker: "Your account", where: "Enter this code on the sign-in page:", guards: "account", asked: "sign in with" },
+  tracking: { what: "order tracking", kicker: "Track your order", where: "Enter this code on the order tracking page to see your orders:", guards: "orders", asked: "track the orders for" },
+  discord: { what: "Discord link", kicker: "Link Discord", where: "Enter this code in Discord, where /track will then show your orders:", guards: "orders", asked: "link a Discord account to" },
+};
+
+/** The 6-digit code that signs a customer in, shows a guest their orders on /track, or links Discord to their orders. */
+export async function sendLoginCode(to: string, name: string | null, loginCode: string, purpose: keyof typeof CODE_EMAILS = "sign-in") {
+  const e = CODE_EMAILS[purpose];
   return sendEmail({
     to,
     replyTo: customerReplyTo(),
-    subject: `${loginCode} is your TraceCore Lab ${tracking ? "order tracking" : "sign-in"} code`,
+    subject: `${loginCode} is your TraceCore Lab ${e.what} code`,
     html: await layout({
       preheader: "It works once, for 10 minutes.",
-      kicker: tracking ? "Track your order" : "Your account",
-      heading: `Your ${tracking ? "tracking" : "sign-in"} code${hello(name)}.`,
+      kicker: e.kicker,
+      heading: `Your ${e.what} code${hello(name)}.`,
       body:
-        p(tracking ? "Enter this code on the order tracking page to see your orders:" : "Enter this code on the sign-in page:") +
-        panel(`${label(tracking ? "Tracking code" : "Sign-in code")}${code(loginCode, 32)}`, C.brand) +
-        small(
-          `It works once, for 10 minutes. If you didn't ask for it, ignore this email: no one can see your ${tracking ? "orders" : "account"} without this code.`,
-        ),
-      reason: `Sent because someone asked to ${tracking ? "track the orders for" : "sign in with"} this email at tracecorelab.com.`,
+        p(e.where) +
+        panel(`${label(`${e.what[0].toUpperCase()}${e.what.slice(1)} code`)}${code(loginCode, 32)}`, C.brand) +
+        small(`It works once, for 10 minutes. If you didn't ask for it, ignore this email: no one can see your ${e.guards} without this code.`),
+      reason: `Sent because someone asked to ${e.asked} this email at tracecorelab.com.`,
     }),
   });
 }
