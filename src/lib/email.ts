@@ -23,6 +23,7 @@ function htmlToText(html: string) {
   return html
     .replace(/<(style|title|head)[\s\S]*?<\/\1>/gi, "")
     .replace(/<div[^>]*display:none[\s\S]*?<\/div>/i, "")
+    .replace(/<img [^>]*alt="([^"]*)"[^>]*>/gi, "$1")
     .replace(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href: string, label: string) => `${label.replace(/<[^>]+>/g, "").trim()} (${href})`)
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|h1|h2|tr|div|table)>/gi, "\n")
@@ -77,6 +78,10 @@ const MONO = "Menlo,Consolas,'Courier New',monospace";
 export const C = { page: "#060304", card: "#140d0e", panel: "#0e090a", line: "#2a1f20", fg: "#f7f2ef", text: "#d8cfcc", muted: "#9b908d", dim: "#6f6563", brand: "#ff3d00", ember: "#ff1408", blaze: "#ff6a00", ok: "#3ee08f", warn: "#ffb020" };
 
 export const url = (path: string) => `${site.url}${path}`;
+
+// The site header's logo (mark and wordmark) as a PNG at 4x, since email clients don't show SVG or web fonts.
+// If images are blocked, the alt text shows in the brand colour instead.
+const LOGO = { src: "/brand/email-logo.png", width: 186, height: 28 };
 
 /** The store's Discord invite from Settings, when one is set. */
 export async function discordLink() {
@@ -140,7 +145,7 @@ export async function layout({ preheader, kicker, heading, body, audience = "cus
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${C.page}">${escapeHtml(preheader)}${"&#8202;&zwnj;".repeat(40)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${C.page}" style="background:${C.page}"><tr><td align="center" style="padding:28px 12px 40px">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px">
-<tr><td style="padding:0 6px 18px;font-family:${FONT}"><a href="${url("/")}" style="text-decoration:none;font-size:22px;font-weight:900;letter-spacing:.04em"><span style="color:${C.brand}">TRACECORE</span><span style="color:#dcdddf">LAB</span></a></td></tr>
+<tr><td style="padding:0 6px 18px"><a href="${url("/")}" style="text-decoration:none"><img src="${url(LOGO.src)}" width="${LOGO.width}" height="${LOGO.height}" alt="TraceCoreLab" style="display:block;border:0;outline:none;width:${LOGO.width}px;height:${LOGO.height}px;font-family:${FONT};font-size:22px;font-weight:900;color:${C.brand}"></a></td></tr>
 <tr><td bgcolor="${C.card}" style="background:${C.card};border:1px solid ${C.line};border-radius:20px;overflow:hidden">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><td height="4" style="height:4px;line-height:4px;font-size:0;background:${C.brand};background-image:linear-gradient(90deg,${C.ember},${C.blaze})">&nbsp;</td></tr>
