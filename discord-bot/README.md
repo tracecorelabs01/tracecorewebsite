@@ -10,7 +10,9 @@ The full guide for the team (what everything does and how it works) is the "Trac
 | **Ticket panel** (`/ticketpanel`) | Buttons for **Orders**, **Tech support**, **Warranty** and **Reseller** tickets, plus **Track order** and a link to the shop. Each ticket is a private channel for the customer and the support team. |
 | **Order details in tickets** | Orders and warranty tickets ask for the order number and email. Tracer checks them against the website and posts the order (status, items, tracking, warranty dates) in the ticket. |
 | **`/track`** | Customers follow their order privately: status, tracking number and warranty end date. Needs the order number and the email it was placed with. |
+| **`/myorders`** | A customer's own orders, privately, with nothing to type, once their Discord is linked on the website (signed in with Discord, or **Connect Discord** on the account page). The bot only ever asks for the orders of whoever ran it. |
 | **`/order`** | Staff look up any order, with the customer's details and a link to it in the admin. |
+| **`/intro`** | Admins post an introduction to the bot (what it does, the commands) in a channel. |
 | **`/payment`** | How to pay: on the website, by card through Razorpay. |
 | **Transcripts** | Closing a ticket DMs the customer an HTML transcript; deleting saves one to the log channel. Records are kept, so `/ticketstats` keeps its history. |
 | **AI assistant** | Answers in new tickets straight away and keeps helping until the team writes, presses Claim or the customer presses **Talk to a human**. `/ask` answers anyone privately; `/summary` sums up a ticket for staff. Runs on DeepSeek, answers only from the website's live products, prices, stock, shipping, payment and FAQ (`ai.py`, `cogs/assistant.py`). |

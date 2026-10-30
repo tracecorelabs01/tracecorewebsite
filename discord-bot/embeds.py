@@ -96,6 +96,33 @@ def order(o: dict, staff: bool = False) -> discord.Embed:
     return embed
 
 
+def my_orders(orders: list[dict]) -> discord.Embed:
+    """/myorders: the orders of the customer who linked this Discord account. Only they see it."""
+    if not orders:
+        return note("Your orders", "Your Discord is linked, but there are no orders on that account yet.", COLOR_SILVER)
+    embed = base("Only you can see this.", COLOR_OK, "Your orders")
+    for o in orders[:10]:
+        things = ", ".join(f"{i['qty']} × {i['name']}" + (f" ({i['option']})" if i.get("option") else "") for i in o["items"])
+        t = o.get("tracking") or {}
+        tracking = " · ".join(filter(None, [t.get("carrier"), t.get("number") and f"`{t['number']}`"]))
+        lines = [
+            f"{PAYMENT_STATUS.get(o['paymentStatus'], o['paymentStatus'].title())} · {_money(o['totalCents'], o['currency'])} · placed {_when(o['placedAt'])}",
+            things,
+            tracking and f"Tracking: {tracking}",
+        ]
+        embed.add_field(name=f"{o['number']} · {ORDER_STATUS.get(o['status'], o['status'].title())}", value="\n".join(filter(None, lines))[:1024], inline=False)
+    return embed
+
+
+def not_linked() -> discord.Embed:
+    return note(
+        "Link your Discord first",
+        "To see your orders here, link this Discord account to your TraceCore Lab account: **sign in with Discord** on the website, "
+        "or sign in and press **Connect Discord** on your account page.\n\nNo account? `/track` finds an order with its number and email.",
+        COLOR_AMBER,
+    )
+
+
 def order_not_found(number: str, with_email: bool) -> discord.Embed:
     hint = "Check the order number and the email you ordered with, both are on your order confirmation." if with_email else "Check the order number."
     return base(f"We couldn't find order **{number}**. {hint}", COLOR_EMBER, "Order not found")
@@ -120,6 +147,7 @@ def help_menu(staff: bool) -> discord.Embed:
         name="For everyone",
         value="\n".join([
             "`/ask` `<question>` · ask the AI assistant about products, stock, shipping or your order",
+            "`/myorders` · all your orders, once your Discord is linked to your account",
             "`/track` `<order>` `<email>` · follow your order, tracking and warranty",
             "`/payment` · how to pay",
             "Open a ticket with the buttons in the support channel. The AI assistant answers straight away, and the team joins you.",
@@ -143,12 +171,31 @@ def help_menu(staff: bool) -> discord.Embed:
             name="Admin",
             value="\n".join([
                 "`/ticketpanel` · post the ticket buttons",
+                "`/intro` · post the bot's introduction in this channel",
                 "`/ticketautosetup` · create whatever's missing: support role, log channel, categories, Customer role",
                 "`/ticketsetup` · pick them by hand",
                 "`/removesupportrole` `<role>`, `/deletealltickets`",
             ]),
             inline=False,
         )
+    return embed
+
+
+def intro() -> discord.Embed:
+    """/intro: what the bot does, posted for everyone in a channel."""
+    embed = base(
+        f"I'm {BOT_NAME}, {BRAND}'s assistant. Here's how I can help:\n\n"
+        "\U0001f3ab **Support tickets** · open one with the buttons in the support channel. I answer straight away, and the team joins you.\n"
+        "\U0001f916 **/ask** · products, prices, stock, shipping, payment or setup. Only you see my answer.\n"
+        "\U0001f517 **/myorders** · all your orders, nothing to type. Link your Discord first: sign in with Discord on the website, or press Connect Discord on your account page.\n"
+        "\U0001f4e6 **/track** · follow an order with its number and email.\n"
+        "\U0001f4b3 **/payment** · how to pay (by card, on the website).\n"
+        "❓ **/help** · every command.\n\n"
+        "I'm an AI for quick answers. Refunds, order changes and anything I can't do go to the team.",
+        COLOR_BRAND,
+        f"Meet {BOT_NAME}",
+    )
+    embed.set_thumbnail(url=LOGO_URL)
     return embed
 
 

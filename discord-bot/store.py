@@ -1,5 +1,6 @@
-"""The website's bot API, authenticated with STORE_API_KEY: order lookups (STORE_URL/api/bot/orders/<number>) and the
-live store data the AI assistant answers from (STORE_URL/api/bot/knowledge)."""
+"""The website's bot API, authenticated with STORE_API_KEY: order lookups (STORE_URL/api/bot/orders/<number>), the
+orders of a Discord-linked customer (STORE_URL/api/bot/discord/<id>/orders), and the live store data the AI
+assistant answers from (STORE_URL/api/bot/knowledge)."""
 import re
 
 import aiohttp
@@ -38,6 +39,15 @@ async def get_order(number: str, email: str | None = None) -> dict | None:
     if status != 200:
         raise StoreError("The store couldn't answer right now. Please try again in a minute.")
     return order
+
+
+async def get_discord_orders(discord_id: int) -> dict:
+    """{"linked": False}, or {"linked": True, "orders": [...]} for the customer who linked this Discord account on
+    the website. Pass only the ID of the person asking, so people only ever see their own orders."""
+    status, data = await _get(f"/api/bot/discord/{int(discord_id)}/orders")
+    if status != 200:
+        raise StoreError("The store couldn't answer right now. Please try again in a minute.")
+    return data
 
 
 async def get_knowledge() -> dict:

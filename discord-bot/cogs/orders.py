@@ -70,6 +70,31 @@ class OrdersCog(commands.Cog):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
         await reply_with_order(interaction, order, None, staff=True)
 
+    @app_commands.command(name="myorders", description="Your orders, once your Discord is linked to your TraceCore Lab account")
+    async def myorders_cmd(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        try:
+            # Always the ID of whoever ran the command, so nobody can see someone else's orders.
+            data = await store.get_discord_orders(interaction.user.id)
+        except store.StoreError as err:
+            return await interaction.followup.send(embed=embeds.error(str(err)), ephemeral=True)
+        if not data.get("linked"):
+            view = ui.View()
+            view.add_item(ui.Button(label="Open your account", url=f"{STORE_URL}/account"))
+            return await interaction.followup.send(embed=embeds.not_linked(), view=view, ephemeral=True)
+        if paid := next((o for o in data["orders"] if o["paymentStatus"] == "paid"), None):
+            await grant_customer_role(interaction.user, paid)
+        await interaction.followup.send(embed=embeds.my_orders(data["orders"]), ephemeral=True)
+
+    @app_commands.command(name="intro", description="Post an introduction to the bot in this channel (admins)")
+    async def intro_cmd(self, interaction: discord.Interaction):
+        if not is_admin(interaction):
+            return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
+        view = ui.View()
+        view.add_item(ui.Button(label="Shop", url=f"{STORE_URL}/shop"))
+        view.add_item(ui.Button(label="Link your Discord", url=f"{STORE_URL}/account"))
+        await interaction.response.send_message(embed=embeds.intro(), view=view)
+
     @app_commands.command(name="payment", description="How to pay for an order")
     async def payment_cmd(self, interaction: discord.Interaction):
         view = ui.View()
