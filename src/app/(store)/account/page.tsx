@@ -3,8 +3,10 @@ import type { Metadata } from "next";
 import { ArrowRight, Package } from "lucide-react";
 import { AccountShell, Panel, StatusPills, shortDay } from "@/components/account/AccountShell";
 import { ButtonLink } from "@/components/ui/Button";
-import { listMyOrders } from "@/lib/account";
+import { param } from "@/lib/admin/format";
+import { getLinkedAccounts, listMyOrders } from "@/lib/account";
 import { requireCustomer } from "@/lib/auth/customer";
+import { oauthEnabled } from "@/lib/auth/oauth";
 import { getLoyaltyConfig, pointsBalance } from "@/lib/loyalty";
 import { formatPrice } from "@/lib/utils";
 
@@ -12,9 +14,19 @@ export const metadata: Metadata = { title: "Your account", robots: { index: fals
 // Reads the session on every request.
 export const instant = false;
 
-export default async function AccountPage() {
+// How connecting Discord went (/api/auth/discord/callback sends people back here).
+const NOTICES: Record<string, { ok: boolean; text: string }> = {
+  discord: { ok: true, text: "Discord connected. Use /myorders in our Discord server to see your orders." },
+  taken: { ok: false, text: "That Discord account is already linked to another TraceCore Lab account." },
+  oauth: { ok: false, text: "Connecting Discord didn't work. Please try again." },
+  cancelled: { ok: false, text: "Connecting Discord was cancelled." },
+  unverified: { ok: false, text: "That Discord account's email isn't verified yet. Verify it in Discord, then try again." },
+};
+
+export default async function AccountPage({ searchParams }: PageProps<"/account">) {
   const me = await requireCustomer();
-  const [orders, balance, loyalty] = await Promise.all([listMyOrders(me.id), pointsBalance(me.id), getLoyaltyConfig()]);
+  const [orders, balance, loyalty, linked, sp] = await Promise.all([listMyOrders(me.id), pointsBalance(me.id), getLoyaltyConfig(), getLinkedAccounts(me.id), searchParams]);
+  const notice = NOTICES[param(sp.linked) ?? param(sp.error) ?? ""];
 
   return (
     <AccountShell
@@ -43,9 +55,41 @@ export default async function AccountPage() {
         <div className="rounded-3xl border border-line bg-ink-900/60 p-6">
           <p className="type-kicker text-dim">Signed in as</p>
           <p className="mt-3 break-all text-lg">{me.email}</p>
-          <p className="mt-2 text-sm text-muted">You sign in with a code we email here.</p>
+          <p className="mt-2 text-sm text-muted">
+            You sign in with a code we email here{linked.google && ", or with Google"}
+            {linked.discord && ", or with Discord"}.
+          </p>
         </div>
       </div>
+
+      {notice && (
+        <p role={notice.ok ? "status" : "alert"} className={notice.ok ? "mb-6 text-sm text-ok" : "mb-6 text-sm text-[#ff6b5e]"}>
+          {notice.text}
+        </p>
+      )}
+
+      {(linked.discord || oauthEnabled("discord")) && (
+        <Panel title="Discord" className="mb-8">
+          {linked.discord ? (
+            <p className="text-sm text-muted">
+              Connected as <span className="text-fg">{linked.discord}</span>. In our Discord server, <span className="font-mono text-fg">/myorders</span> shows you your orders, privately, with no order number or email needed.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted">
+                Connect Discord to see your orders in our Discord server with <span className="font-mono text-fg">/myorders</span>. Only you can see them.
+              </p>
+              {/* A plain link: a prefetching Link would start the sign-in on its own. */}
+              <a
+                href="/api/auth/discord/start?link=1&next=/account"
+                className="flex h-11 shrink-0 items-center justify-center rounded-xl border border-line-strong bg-ink-900 px-5 text-sm font-medium transition-colors hover:border-blaze"
+              >
+                Connect Discord
+              </a>
+            </div>
+          )}
+        </Panel>
+      )}
 
       <Panel title="Your orders">
         {orders.length === 0 ? (

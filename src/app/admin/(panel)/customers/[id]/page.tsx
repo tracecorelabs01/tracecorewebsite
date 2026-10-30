@@ -129,7 +129,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
               description={
                 loyalty.accountCreatedAt
                   ? "They sign in with a code we email them, so there's no password to reset. Lost a device? Sign them out everywhere."
-                  : "Accounts open with the first paid order. Open one now and we'll email them how to sign in."
+                  : "Customers get an account when they choose one at checkout or sign in with Discord or Google. Open one now and we'll email them how to sign in."
               }
             >
               {loyalty.accountCreatedAt ? (

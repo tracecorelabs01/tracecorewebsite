@@ -50,6 +50,13 @@
       "when": 1793367200111,
       "tag": "0006_login_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1793381024422,
+      "tag": "0007_social_sign_in",
+      "breakpoints": true
     }
   ]
 }

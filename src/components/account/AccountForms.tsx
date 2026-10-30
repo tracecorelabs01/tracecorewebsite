@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { Check, Copy, Loader2, Star } from "lucide-react";
-import { login, redeem, requestCode, submitReview, type AccountFormState } from "@/actions/account";
+import { login, redeem, requestCode, requestTrackCode, submitReview, verifyTrackCode, type AccountFormState } from "@/actions/account";
 import { cn } from "@/lib/utils";
 
 type Action = (prev: AccountFormState, fd: FormData) => Promise<AccountFormState>;
@@ -56,16 +56,28 @@ function Status({ state }: { state: AccountFormState }) {
   );
 }
 
+// The same two steps sign an account in, or show a guest their orders on /track.
+const FLOWS = {
+  account: { request: requestCode, verify: login, submit: "Log in", tip: "this is your account's email." },
+  track: { request: requestTrackCode, verify: verifyTrackCode, submit: "Show my orders", tip: "this is the email you ordered with." },
+};
+type Flow = keyof typeof FLOWS;
+
 /** Sign in with a code: enter the email, then the 6-digit code we email to it. */
-export function LoginForm({ email, next }: { email?: string; next?: string }) {
+export function LoginForm({ email, next, flow = "account" }: { email?: string; next?: string; flow?: Flow }) {
   // Changing the key starts over with a fresh email step.
   const [round, setRound] = useState(0);
-  return <EmailStep key={round} email={email} next={next} onRestart={() => setRound((n) => n + 1)} />;
+  return <EmailStep key={round} email={email} next={next} flow={flow} onRestart={() => setRound((n) => n + 1)} />;
 }
 
-function EmailStep({ email, next, onRestart }: { email?: string; next?: string; onRestart: () => void }) {
-  const { state, pending, onSubmit } = useAccountForm(requestCode);
-  if (state?.ok && state.email) return <CodeStep email={state.email} next={next} sent={state.message} onRestart={onRestart} />;
+/** Guests: see the orders placed with an email, after a code sent to it. */
+export function TrackForm({ email }: { email?: string }) {
+  return <LoginForm email={email} flow="track" />;
+}
+
+function EmailStep({ email, next, flow, onRestart }: { email?: string; next?: string; flow: Flow; onRestart: () => void }) {
+  const { state, pending, onSubmit } = useAccountForm(FLOWS[flow].request);
+  if (state?.ok && state.email) return <CodeStep email={state.email} next={next} flow={flow} sent={state.message} onRestart={onRestart} />;
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
       <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={email} error={state?.fieldErrors?.email} hint="The one you ordered with." required />
@@ -75,15 +87,15 @@ function EmailStep({ email, next, onRestart }: { email?: string; next?: string; 
   );
 }
 
-function CodeStep({ email, next, sent, onRestart }: { email: string; next?: string; sent?: string; onRestart: () => void }) {
-  const { state, pending, onSubmit } = useAccountForm(login);
+function CodeStep({ email, next, flow, sent, onRestart }: { email: string; next?: string; flow: Flow; sent?: string; onRestart: () => void }) {
+  const { state, pending, onSubmit } = useAccountForm(FLOWS[flow].verify);
   const [resent, setResent] = useState<AccountFormState>(null);
   const [resending, startResend] = useTransition();
   const resend = () =>
     startResend(async () => {
       const fd = new FormData();
       fd.set("email", email);
-      setResent(await requestCode(null, fd));
+      setResent(await FLOWS[flow].request(null, fd));
     });
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
@@ -104,7 +116,7 @@ function CodeStep({ email, next, sent, onRestart }: { email: string; next?: stri
         required
       />
       <Status state={state} />
-      <Submit pending={pending}>Log in</Submit>
+      <Submit pending={pending}>{FLOWS[flow].submit}</Submit>
       <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
         <button type="button" onClick={resend} disabled={resending} className="underline-offset-4 hover:text-fg hover:underline disabled:opacity-60">
           {resending ? "Sending…" : "Send a new code"}
@@ -114,7 +126,7 @@ function CodeStep({ email, next, sent, onRestart }: { email: string; next?: stri
         </button>
       </div>
       {resent && <Status state={resent} />}
-      <p className="text-xs text-dim">No email after a minute? Check your spam folder, and that this is the email you ordered with. Accounts open with your first paid order.</p>
+      <p className="text-xs text-dim">No email after a minute? Check your spam folder, and that {FLOWS[flow].tip}</p>
     </form>
   );
 }

@@ -165,14 +165,18 @@ export const customers = mysqlTable(
     totalSpentCents: int("total_spent_cents").notNull().default(0),
     lastOrderAt: datetime("last_order_at"),
     notes: text("notes"),
-    // Account: opens with the first paid order (or when staff open one), so null until then. No password:
-    // customers sign in with a code emailed to them (login_codes).
+    // Account: opens when the customer asks for one (at checkout, or by signing in with Discord or Google) or
+    // staff open one; null for guests. No password: customers sign in with a code emailed to them (login_codes).
     accountCreatedAt: datetime("account_created_at"),
     lastLoginAt: datetime("last_login_at"),
+    // Signed in with Discord or Google. A linked Discord account also lets the bot show the customer their own orders.
+    discordId: varchar("discord_id", { length: 32 }),
+    discordUsername: varchar("discord_username", { length: 64 }),
+    googleId: varchar("google_id", { length: 64 }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("customers_email_uq").on(t.email)],
+  (t) => [uniqueIndex("customers_email_uq").on(t.email), uniqueIndex("customers_discord_uq").on(t.discordId), uniqueIndex("customers_google_uq").on(t.googleId)],
 );
 
 /** The sign-in code last emailed to a customer: one per customer, works once, for 10 minutes. Stored only as a hash. */
@@ -208,6 +212,8 @@ export const customerSessions = mysqlTable(
     customerId: int("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
+    // "orders": a guest who proved their email with a code on /track. It shows their orders, nothing else.
+    scope: mysqlEnum("scope", ["account", "orders"]).notNull().default("account"),
     expiresAt: datetime("expires_at").notNull(),
     createdAt: createdAt(),
   },

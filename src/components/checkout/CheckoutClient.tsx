@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, Bitcoin, Check, CreditCard, Info, Loader2, Lock, ShoppingBag, Tag, UserRound, Wallet, X } from "lucide-react";
+import { AlertTriangle, Bitcoin, Check, CreditCard, Info, Loader2, Lock, PackageSearch, ShoppingBag, Tag, UserPlus, UserRound, Wallet, X } from "lucide-react";
 import { confirmPayment, startPayment } from "@/actions/payment";
 import { placeOrder, previewDiscount, previewSetupDiscount, type PlaceOrderResult } from "@/actions/store";
+import { SocialSignIn } from "@/components/account/SocialSignIn";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import type { CheckoutDetails } from "@/lib/account";
+import type { Provider } from "@/lib/auth/oauth";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { PaymentLogos, TrustBadges } from "@/components/ui/Badges";
 import { ButtonLink } from "@/components/ui/Button";
@@ -21,6 +23,11 @@ const methods = [
   { id: "card", label: "Card", sub: "Debit or credit card", Icon: CreditCard },
   { id: "paypal", label: "PayPal", sub: "Pay with your PayPal balance or card", Icon: Wallet },
   { id: "crypto", label: "Crypto", sub: "BTC · ETH · USDT · LTC", Icon: Bitcoin },
+] as const;
+// Shown to anyone not signed in. A guest gets no account and tracks orders with a code emailed to them (/track).
+const accountChoices = [
+  { id: "create", label: "Create an account and continue", sub: "Every order and its tracking in one place, loyalty points, and faster checkout next time.", Icon: UserPlus },
+  { id: "guest", label: "Continue as guest", sub: "No account. Track your order with a code we email you.", Icon: PackageSearch },
 ] as const;
 
 type PlacedOrder = Extract<PlaceOrderResult, { ok: true }>["order"];
@@ -50,7 +57,8 @@ function loadRazorpay() {
   });
 }
 
-export function CheckoutClient({ demo, cardOnline, details }: { demo: boolean; cardOnline: boolean; details: CheckoutDetails | null }) {
+export function CheckoutClient({ demo, cardOnline, details, providers }: { demo: boolean; cardOnline: boolean; details: CheckoutDetails | null; providers: Provider[] }) {
+  const [accountChoice, setAccountChoice] = useState<(typeof accountChoices)[number]["id"]>("create");
   const hydrated = useUi((s) => s.hydrated);
   const lines = useCart((s) => s.lines);
   const subtotal = useCart(selectSubtotal);
@@ -168,6 +176,7 @@ export function CheckoutClient({ demo, cardOnline, details }: { demo: boolean; c
         discountCode: discount?.code,
         note: get("note") || undefined,
         company: get("company"),
+        createAccount: !details && accountChoice === "create",
         lines: cartInput,
       });
       if (res.ok) {
@@ -222,6 +231,40 @@ export function CheckoutClient({ demo, cardOnline, details }: { demo: boolean; c
                 <UserRound className="size-4 shrink-0 text-blaze" />
                 Signed in as {details.email}. Your saved details are filled in below.
               </p>
+            )}
+            {!details && !demo && (
+              <div className="grid gap-3 sm:col-span-2" role="radiogroup" aria-label="Account">
+                {accountChoices.map(({ id, label, sub, Icon }) => (
+                  <label
+                    key={id}
+                    className={cn(
+                      "relative flex cursor-pointer items-center gap-4 rounded-2xl border p-4 transition-colors",
+                      accountChoice === id ? "border-blaze bg-[#ff3d00]/[0.07]" : "border-line-strong hover:border-white/25",
+                    )}
+                  >
+                    <input type="radio" name="account" value={id} checked={accountChoice === id} onChange={() => setAccountChoice(id)} className="sr-only" />
+                    <span className={cn("grid size-11 place-items-center rounded-xl", accountChoice === id ? "bg-brand text-white" : "bg-ink-800 text-muted")}>
+                      <Icon className="size-5" />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block font-medium">{label}</span>
+                      <span className="text-sm text-dim">{sub}</span>
+                    </span>
+                    <span className={cn("grid size-5 place-items-center rounded-full border", accountChoice === id ? "border-blaze bg-blaze" : "border-line-strong")}>
+                      {accountChoice === id && <Check className="size-3 text-white" strokeWidth={3} />}
+                    </span>
+                  </label>
+                ))}
+                {accountChoice === "create" && (
+                  <>
+                    <SocialSignIn providers={providers} next="/checkout" />
+                    <p className="text-sm text-dim">
+                      {providers.length > 0 ? "Or fill in your email below and we'll create the account with it." : "We'll create the account with the email below."} No password: you sign in with a code we
+                      email you.
+                    </p>
+                  </>
+                )}
+              </div>
             )}
             <Field label="Email" name="email" type="email" autoComplete="email" required className="sm:col-span-2" defaultValue={details?.email} error={fieldErrors.email} />
             <Field label="Phone (optional)" name="phone" type="tel" autoComplete="tel" className="sm:col-span-2" defaultValue={details?.phone} error={fieldErrors.phone} />
@@ -513,11 +556,22 @@ function Confirmation({ order }: { order: PlacedOrder }) {
         {order.demo && <p className="relative mt-3 text-xs text-warn">Demo order — not saved (no database connected).</p>}
         {!order.demo && (
           <p className="relative mx-auto mt-5 max-w-md rounded-2xl border border-line bg-ink-950/50 px-5 py-4 text-sm text-muted">
-            {order.payOnline ? "Your payment is confirmed, so your account is open:" : "Your account opens once your payment is confirmed:"}{" "}
-            <Link href={`/account/login?${new URLSearchParams({ email: order.email })}`} className="text-fg underline-offset-4 hover:underline">
-              sign in
-            </Link>{" "}
-            with this email to track your orders and earn loyalty points. No password: we email you a code.
+            {order.account ? (
+              <>
+                Your account is ready:{" "}
+                <Link href={`/account/login?${new URLSearchParams({ email: order.email })}`} className="text-fg underline-offset-4 hover:underline">
+                  sign in
+                </Link>{" "}
+                with this email to follow this order and earn loyalty points. No password: we email you a code.
+              </>
+            ) : (
+              <>
+                <Link href={`/track?${new URLSearchParams({ email: order.email })}`} className="text-fg underline-offset-4 hover:underline">
+                  Track this order
+                </Link>{" "}
+                any time with a code we email to this address. No account needed.
+              </>
+            )}
           </p>
         )}
         <ul className="relative mt-8 divide-y divide-line rounded-2xl border border-line text-left">

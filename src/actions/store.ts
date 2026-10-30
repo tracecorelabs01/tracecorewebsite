@@ -193,6 +193,8 @@ const orderSchema = z.object({
   discountCode: z.string().trim().max(40).optional(),
   note: z.string().trim().max(1000).optional(),
   company: z.string().max(0).optional(), // honeypot — must stay empty
+  // "Create an account and continue" at checkout. Guests (false) never get an account; they track orders with an email code.
+  createAccount: z.boolean().optional(),
   lines: z.array(lineSchema).min(1, "Your cart is empty").max(50),
 });
 
@@ -213,6 +215,8 @@ export type PlaceOrderResult =
         demo: boolean;
         /** Card through Razorpay: checkout opens payment next, and `note` is what shows once it's paid. */
         payOnline: boolean;
+        /** The email has an account (just created, or already open); otherwise it's a guest order. */
+        account: boolean;
       };
     }
   | { ok: false; error: string; fieldErrors?: Record<string, string>; cartIssues?: CartIssue[] };
@@ -252,7 +256,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   };
 
   if (!isDbConfigured()) {
-    return { ok: true, order: { number: orderNumber().replace("TCL", "DEMO"), email: data.email, ...summary, note: settings.orderNote, demo: true, payOnline: false } };
+    return { ok: true, order: { number: orderNumber().replace("TCL", "DEMO"), email: data.email, ...summary, note: settings.orderNote, demo: true, payOnline: false, account: false } };
   }
 
   const db = getDb();
@@ -266,6 +270,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   const email = data.email.toLowerCase();
   let number = "";
   let placedId = 0;
+  let account = false;
   try {
     await db.transaction(async (tx) => {
       for (const l of priced.lines) {
@@ -289,12 +294,22 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       }
 
       const [existing] = await tx
-        .select({ id: customers.id, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone, country: customers.country })
+        .select({
+          id: customers.id,
+          firstName: customers.firstName,
+          lastName: customers.lastName,
+          phone: customers.phone,
+          country: customers.country,
+          accountCreatedAt: customers.accountCreatedAt,
+        })
         .from(customers)
         .where(eq(customers.email, email))
         .limit(1);
       let customerId: number;
       const profile = { firstName: data.firstName, lastName: data.lastName, phone: data.phone || null, country: data.country, lastOrderAt: now() };
+      // Signing in still needs a code sent to this email, so an account opened here is only usable by its owner.
+      const opened = data.createAccount ? { accountCreatedAt: existing?.accountCreatedAt ?? now() } : {};
+      account = Boolean(data.createAccount || existing?.accountCreatedAt);
       if (existing) {
         customerId = existing.id;
         // Anyone can check out with any email, so only fill in blanks: never overwrite a customer's details.
@@ -307,10 +322,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
             country: existing.country || profile.country,
             lastOrderAt: profile.lastOrderAt,
             ordersCount: sql`${customers.ordersCount} + 1`,
+            ...opened,
           })
           .where(eq(customers.id, customerId));
       } else {
-        [{ id: customerId }] = await tx.insert(customers).values({ email, ...profile, ordersCount: 1 }).$returningId();
+        [{ id: customerId }] = await tx.insert(customers).values({ email, ...profile, ordersCount: 1, ...opened }).$returningId();
       }
 
       let orderId = 0;
@@ -373,7 +389,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   const payOnline = data.paymentMethod === "card" && isRazorpayConfigured();
   if (!payOnline) await emailOrder(placedId, "received", { note: settings.orderNote });
 
-  return { ok: true, order: { number, email, ...summary, note: payOnline ? PAID_NOTE : settings.orderNote, demo: false, payOnline } };
+  return { ok: true, order: { number, email, ...summary, note: payOnline ? PAID_NOTE : settings.orderNote, demo: false, payOnline, account } };
 }
 
 /* ───────────── newsletter ───────────── */

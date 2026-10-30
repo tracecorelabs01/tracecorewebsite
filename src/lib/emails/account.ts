@@ -6,26 +6,29 @@ import { button, C, code, customerReplyTo, escapeHtml, label, layout, p, panel, 
 
 const hello = (name: string | null | undefined) => (name ? `, ${name}` : "");
 
-/** The 6-digit code that signs a customer in. */
-export async function sendLoginCode(to: string, name: string | null, loginCode: string) {
+/** The 6-digit code that signs a customer in, or (for "tracking") shows a guest their orders on /track. */
+export async function sendLoginCode(to: string, name: string | null, loginCode: string, purpose: "sign-in" | "tracking" = "sign-in") {
+  const tracking = purpose === "tracking";
   return sendEmail({
     to,
     replyTo: customerReplyTo(),
-    subject: `${loginCode} is your TraceCore Lab sign-in code`,
+    subject: `${loginCode} is your TraceCore Lab ${tracking ? "order tracking" : "sign-in"} code`,
     html: await layout({
       preheader: "It works once, for 10 minutes.",
-      kicker: "Your account",
-      heading: `Your sign-in code${hello(name)}.`,
+      kicker: tracking ? "Track your order" : "Your account",
+      heading: `Your ${tracking ? "tracking" : "sign-in"} code${hello(name)}.`,
       body:
-        p("Enter this code on the sign-in page:") +
-        panel(`${label("Sign-in code")}${code(loginCode, 32)}`, C.brand) +
-        small("It works once, for 10 minutes. If you didn't try to sign in, ignore this email: no one can get into your account without this code."),
-      reason: "Sent because someone asked to sign in with this email at tracecorelab.com.",
+        p(tracking ? "Enter this code on the order tracking page to see your orders:" : "Enter this code on the sign-in page:") +
+        panel(`${label(tracking ? "Tracking code" : "Sign-in code")}${code(loginCode, 32)}`, C.brand) +
+        small(
+          `It works once, for 10 minutes. If you didn't ask for it, ignore this email: no one can see your ${tracking ? "orders" : "account"} without this code.`,
+        ),
+      reason: `Sent because someone asked to ${tracking ? "track the orders for" : "sign in with"} this email at tracecorelab.com.`,
     }),
   });
 }
 
-/** Account ready: for accounts staff open. Customers' own accounts open with their first paid order, which has its own email. */
+/** Account ready: for accounts staff open. Customers who open their own (at checkout, or with Discord or Google) don't get this email. */
 export async function sendWelcome(to: string, name: string | null) {
   return sendEmail({
     to,

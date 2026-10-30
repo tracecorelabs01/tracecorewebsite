@@ -115,12 +115,21 @@ function tracking(o: Order) {
   return panel(`${label(o.trackingCarrier ? `${o.trackingCarrier} tracking number` : "Tracking number")}${code(o.trackingNumber)}${button("Track your package", track)}`, C.brand);
 }
 
-/** A button into their account (it opens with the first paid order). Signed out, it goes through the sign-in page. */
+/** A button into their account. Signed out, it goes through the sign-in page. */
 function accountCta(d: Data, buttonLabel: string, path: string) {
   if (!d.hasAccount) return "";
   return (
     button(buttonLabel, url(`/account/login?${new URLSearchParams({ email: d.o.email, next: path })}`)) +
     small(`Your account shows every order and its tracking, your loyalty points and your reviews. There's no password: sign in with ${escapeHtml(d.o.email)} and we'll email you a code.`)
+  );
+}
+
+/** The order in the customer's account, or for a guest the tracking page (an email code, no account). */
+function orderCta(d: Data) {
+  if (d.hasAccount) return accountCta(d, "View your order", `/account/orders/${d.o.number}`);
+  return (
+    button("Track your order", url(`/track?${new URLSearchParams({ email: d.o.email })}`)) +
+    small(`No account needed: enter ${escapeHtml(d.o.email)} on the tracking page and we'll email you a code.`)
   );
 }
 
@@ -141,7 +150,8 @@ function render(kind: OrderEmail, d: Data, note?: string): Rendered {
           progress(0) +
           p(`Your order ${strong(o.number)} is reserved for you. ${note ? escapeHtml(note) : "We'll email you payment details shortly."}`) +
           invoice(d) +
-          small("Your items are held while we wait for payment. Your invoice is updated and sent again once it's paid."),
+          small("Your items are held while we wait for payment. Your invoice is updated and sent again once it's paid.") +
+          orderCta(d),
       };
     case "paid":
       return {
@@ -153,14 +163,20 @@ function render(kind: OrderEmail, d: Data, note?: string): Rendered {
           p(`We've received your payment of ${strong(total)} and your order is confirmed. Every unit is tested in our lab before it ships, and we'll email you the moment it's on its way.`) +
           (d.points > 0 ? panel(`${label("Loyalty points")}<div style="font-family:${FONT};font-size:15px;color:${C.fg}"><strong style="color:${C.blaze}">+${d.points.toLocaleString("en-US")} points</strong> added for this order</div>`) : "") +
           invoice(d) +
-          accountCta(d, "View your order", `/account/orders/${o.number}`),
+          orderCta(d),
       };
     case "shipped":
       return {
         subject: `Your order ${o.number} has shipped`,
         preheader: o.trackingNumber ? `Tracking number ${o.trackingNumber}. Here's where it is.` : "It's on its way to you.",
         heading: `It's on the way, ${first(o)}.`,
-        body: progress(2) + p(`Your order ${strong(o.number)} has left the lab.`) + tracking(o) + items(d) + panel(`${label("Shipping to")}<div style="font-size:13px;line-height:1.6;color:${C.text}">${address(o)}</div>`),
+        body:
+          progress(2) +
+          p(`Your order ${strong(o.number)} has left the lab.`) +
+          tracking(o) +
+          items(d) +
+          panel(`${label("Shipping to")}<div style="font-size:13px;line-height:1.6;color:${C.text}">${address(o)}</div>`) +
+          orderCta(d),
       };
     case "tracking":
       return {

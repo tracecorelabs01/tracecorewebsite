@@ -43,6 +43,16 @@ export async function getCheckoutDetails(customerId: number) {
   };
 }
 
+/** The Discord and Google accounts linked to a customer (signed in with them, or connected on the account page). */
+export async function getLinkedAccounts(customerId: number) {
+  const [row] = await getDb()
+    .select({ discordId: customers.discordId, discordUsername: customers.discordUsername, googleId: customers.googleId })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(1);
+  return { discord: row?.discordId ? (row.discordUsername ?? "your Discord account") : null, google: Boolean(row?.googleId) };
+}
+
 export async function listMyOrders(customerId: number) {
   const db = getDb();
   const rows = await db

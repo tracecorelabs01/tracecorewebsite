@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull } from "drizzle-orm";
 import { customers, discountCodes, getDb, isDbConfigured, products, reviews } from "@/db";
 import { hasBought } from "@/lib/account";
 import { accountPath, consumeLoginCode, createCustomerSession, createLoginCode, destroyCustomerSession, requireCustomer } from "@/lib/auth/customer";
@@ -76,6 +76,60 @@ export async function login(_prev: AccountFormState, fd: FormData): Promise<Acco
 export async function logout() {
   await destroyCustomerSession();
   redirect("/account/login?out=1");
+}
+
+/* ───────────── Order tracking for guests (/track): an email code shows that email's orders, no account ───────────── */
+
+/** The customer behind an email that has placed orders, account or not. */
+async function customerWithOrders(email: string) {
+  const [c] = await getDb()
+    .select({ id: customers.id, firstName: customers.firstName })
+    .from(customers)
+    .where(and(eq(customers.email, email), gt(customers.ordersCount, 0)))
+    .limit(1);
+  return c;
+}
+
+/** Emails a code that opens /track for this email's orders. The reply is the same whether or not it has any. */
+export async function requestTrackCode(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
+  if (!isDbConfigured()) return NO_DB;
+  const email = str(fd.get("email")).toLowerCase();
+  if (!isEmail(email)) return { ok: false, message: "Enter the email you ordered with.", fieldErrors: { email: "Enter a valid email address." } };
+  if (!emailEnabled()) return { ok: false, message: "Order tracking isn't available right now. Please contact us and we'll help." };
+
+  const key = `track-request:${email}`;
+  const ip = await getClientIp();
+  if (await isLoginBlocked(key, ip)) return BLOCKED;
+  await recordLoginAttempt(key, ip, false);
+
+  const c = await customerWithOrders(email);
+  if (c && !(await sendLoginCode(email, c.firstName || null, await createLoginCode(c.id), "tracking"))) {
+    return { ok: false, message: "We couldn't send the email just now. Please try again in a minute." };
+  }
+  return { ok: true, email, message: `If ${email} has placed orders, we've emailed it a 6-digit code. It works once, for 10 minutes.` };
+}
+
+export async function verifyTrackCode(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
+  if (!isDbConfigured()) return NO_DB;
+  const email = str(fd.get("email")).toLowerCase();
+  const code = str(fd.get("code")).replace(/\D/g, "");
+  if (code.length !== 6) return { ok: false, message: "Enter the 6-digit code from the email.", fieldErrors: { code: "Enter all 6 digits." } };
+
+  const key = `track:${email}`;
+  const ip = await getClientIp();
+  if (await isLoginBlocked(key, ip)) return BLOCKED;
+  const c = await customerWithOrders(email);
+  const valid = Boolean(c) && (await consumeLoginCode(c!.id, code));
+  await recordLoginAttempt(key, ip, valid);
+  if (!valid) return { ok: false, message: "That code is wrong or has expired. Check the newest email, or send a new code.", fieldErrors: { code: "Wrong or expired code." } };
+
+  await createCustomerSession(c!.id, "orders");
+  redirect("/track");
+}
+
+export async function endTracking() {
+  await destroyCustomerSession("orders");
+  redirect("/track");
 }
 
 export async function redeem(offerId: number): Promise<{ ok: boolean; message: string }> {
