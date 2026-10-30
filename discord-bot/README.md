@@ -21,7 +21,7 @@ Warranty dates follow the FAQ: 12 months on all hardware, 24 on the 100T Pro, co
 
 ## 1. Discord Developer Portal
 
-1. **Reset the token.** The old bot's token was shared in a zip, so treat it as public: Bot → **Reset Token**. Put the new one in `.env` only.
+1. **Reset the token.** The old bot's token was shared in a zip, so treat it as public: Bot → **Reset Token**. Put the new one only in Dokploy (section 3).
 2. **Rename and rebrand:** General Information → name **Tracer**; App Icon `brand/pfp.png`. Bot → username **Tracer**, avatar `brand/pfp.png`, banner `brand/pfpbanner.png`.
 3. Bot → turn on **Server Members Intent** and **Message Content Intent** (needed for staff lookups and transcripts).
 4. Invite link (OAuth2 → URL Generator): scopes `bot` and `applications.commands`; permissions Manage Roles, Manage Channels, View Channels, Send Messages, Manage Messages, Embed Links, Attach Files, Read Message History.
@@ -34,29 +34,27 @@ On the website's hosting (Hostinger → environment variables), then redeploy:
 
 | Variable | Value |
 | --- | --- |
-| `BOT_API_KEY` | A long random secret. The bot's `.env` gets the same value as `STORE_API_KEY`. Generate one with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`. |
+| `BOT_API_KEY` | A long random secret. The bot gets the same value as `STORE_API_KEY`. Generate one with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`. |
 | `DISCORD_ORDER_WEBHOOK_URL` | Discord → your staff channel → Edit Channel → Integrations → Webhooks → New Webhook → Copy URL. Paid orders are posted there. |
 
-## 3. Run it on the VPS
+## 3. Run it on the VPS with Dokploy
 
-```bash
-# as root on the Hostinger VPS (Ubuntu/Debian)
-apt update && apt install -y python3 python3-venv git
-useradd --system --create-home --shell /usr/sbin/nologin tracer
-git clone https://github.com/tracecorelabs01/tracecorewebsite.git /opt/tracecore
-cd /opt/tracecore/discord-bot
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env && nano .env          # BOT_TOKEN, ADMIN_IDS, STORE_API_KEY
-chown -R tracer:tracer /opt/tracecore
-cp tracer.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now tracer
-journalctl -u tracer -f                    # watch it start ("Tracer is online")
-```
+All in Dokploy's dashboard. Dokploy builds the bot from GitHub with `Dockerfile`, restarts it if it crashes, and redeploys it when its code changes.
 
-If the GitHub repository is private, clone it with a personal access token or a deploy key.
+1. **Connect GitHub (once):** **Git** → GitHub → **Create Github App**, then **Install** it on the `tracecorewebsite` repository.
+2. **Create the app:** open a project → **Create Service** → **Application**, named `tracer`.
+3. **General → Provider → GitHub:** Repository `tracecorewebsite`, Branch `main`, Build Path `/discord-bot`, Watch Paths `discord-bot/**` (so website changes don't restart the bot). **Save**.
+4. **General → Build Type → Dockerfile:** Dockerfile Path `Dockerfile`, Docker Context Path left empty. **Save**.
+5. **Environment:** the variables from `.env.example` with your values: `BOT_TOKEN`, `ADMIN_IDS`, `STORE_URL`, `STORE_API_KEY`. **Save**.
+6. **Advanced → Volumes → Add Volume → Volume Mount:** Volume Name `tracer-data`, Mount Path `/app/data`. This keeps tickets, ticket stats and the staff wallet between deploys.
+7. **Advanced → Swarm Settings → Update Config:** Parallelism `1`, Order **Stop First**, then **Save Update Config**. The bot must only run once, and Dokploy's default starts the new copy before stopping the old one.
+8. **General → Deploy.** The **Logs** tab shows "Tracer is online" when it's connected.
 
-**Updating:** `cd /opt/tracecore && sudo -u tracer git pull && systemctl restart tracer`.
+It needs no domain or port: the bot only connects out to Discord and the website.
 
-The database is `discord-bot/data/bot.db`. Back it up now and then; it's never committed.
+**Updating:** pushing changes in `discord-bot/` to `main` redeploys it, or press **Deploy**.
+
+The database is `bot.db` in the `tracer-data` volume. Back it up now and then (the app's **Volume Backups** tab can do it on a schedule).
 
 ## 4. In the Discord server
 
@@ -70,7 +68,7 @@ The database is `discord-bot/data/bot.db`. Back it up now and then; it's never c
 | File | |
 | --- | --- |
 | `bot.py` | Start-up, status messages, error handling |
-| `config.py` | Name, colours, status lines; secrets come from `.env` |
+| `config.py` | Name, colours, status lines; secrets come from the environment (Dokploy, or a local `.env`) |
 | `cogs/tickets.py` | Ticket panel, ticket channels, close/reopen/delete, transcripts, setup commands |
 | `cogs/orders.py` | `/track`, `/order`, `/payment`, `/help` |
 | `cogs/wallet.py` | Staff wallet |
@@ -78,3 +76,4 @@ The database is `discord-bot/data/bot.db`. Back it up now and then; it's never c
 | `embeds.py` | Every message's look |
 | `transcript.py` | HTML transcripts |
 | `database.py` | SQLite storage |
+| `Dockerfile` | How Dokploy builds and runs it |
