@@ -2,14 +2,13 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CheckCircle2, CircleDollarSign, Mail, Receipt, Wallet } from "lucide-react";
-import { saveCustomerNotes, setCustomerPassword } from "@/actions/admin/customers";
+import { openCustomerAccount, saveCustomerNotes, signOutCustomer } from "@/actions/admin/customers";
 import { adjustPoints } from "@/actions/admin/loyalty";
-import { ActionForm, Field, Input, SubmitButton, Textarea } from "@/components/admin/forms";
+import { ActionForm, ConfirmButton, Field, Input, SubmitButton, Textarea } from "@/components/admin/forms";
 import { buttonClass, Card, DescriptionList, EmptyState, LinkButton, OrderStatusBadge, PageHeader, PaymentBadge, qs, StatCard, Table, Td, Th } from "@/components/admin/ui";
 import { getCustomer } from "@/lib/admin/customers";
 import { dateTime, money, param, shortDate } from "@/lib/admin/format";
 import { getCustomerLoyalty } from "@/lib/admin/loyalty";
-import { PASSWORD_MIN } from "@/lib/auth/password";
 import { hasRole, requireAdmin } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Customer" };
@@ -39,7 +38,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
       />
       {param(sp.created) && (
         <p className="mb-4 flex items-center gap-2 rounded-xl border border-ok/30 bg-ok/10 px-4 py-3 text-sm">
-          <CheckCircle2 className="size-4 text-ok" /> Customer created. They can log in at /account/login with the temporary password.
+          <CheckCircle2 className="size-4 text-ok" /> Customer created. We emailed them that their account is ready; they sign in at /account/login with a code.
         </p>
       )}
 
@@ -127,16 +126,21 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
           {hasRole(user, "admin") && (
             <Card
               title="Account"
-              description={loyalty.accountCreatedAt ? "Set a new password if they're locked out. It signs them out everywhere." : "Open an account so they can log in and see their orders and points."}
+              description={
+                loyalty.accountCreatedAt
+                  ? "They sign in with a code we email them, so there's no password to reset. Lost a device? Sign them out everywhere."
+                  : "Accounts open with the first paid order. Open one now and we'll email them how to sign in."
+              }
             >
-              <ActionForm action={setCustomerPassword.bind(null, customer.id)} resetOnSuccess className="space-y-3">
-                <Field label={loyalty.accountCreatedAt ? "New password" : "Temporary password"} name="password" hint={`At least ${PASSWORD_MIN} characters. Share it privately.`}>
-                  <Input name="password" type="password" minLength={PASSWORD_MIN} autoComplete="new-password" />
-                </Field>
-                <SubmitButton variant="secondary" size="sm" pendingText="Saving…">
-                  {loyalty.accountCreatedAt ? "Set new password" : "Open account"}
-                </SubmitButton>
-              </ActionForm>
+              {loyalty.accountCreatedAt ? (
+                <ConfirmButton action={signOutCustomer.bind(null, customer.id)} confirm={`Sign ${customer.email} out on every device?`}>
+                  Sign out everywhere
+                </ConfirmButton>
+              ) : (
+                <ConfirmButton action={openCustomerAccount.bind(null, customer.id)} confirm={`Open an account for ${customer.email} and email them?`}>
+                  Open account
+                </ConfirmButton>
+              )}
             </Card>
           )}
           <Card title="Loyalty points" description={`Balance: ${loyalty.balance.toLocaleString("en-US")} points`}>

@@ -60,7 +60,7 @@ export async function requestAdminReset(_prev: ResetState, formData: FormData): 
   const [user] = await getDb().select().from(adminUsers).where(eq(adminUsers.email, email)).limit(1);
   if (user?.isActive) {
     const token = await createResetToken("admin", user.id);
-    await sendPasswordReset({ to: email, name: user.name, resetUrl: url(`/admin/reset?token=${token}`), audience: "staff", key: hashToken(token).slice(0, 24) });
+    await sendPasswordReset({ to: email, name: user.name, resetUrl: url(`/admin/reset?token=${token}`), key: hashToken(token).slice(0, 24) });
     await logActivity({ id: user.id, name: user.name, email: user.email, role: user.role }, "password", "staff", user.id, `${user.name} asked for a password reset link`);
   }
   return { ok: true, message: "If that email belongs to an active team member, a reset link is on its way. It works for one hour." };
@@ -81,7 +81,7 @@ export async function resetAdminPassword(token: string, _prev: ResetState, formD
   await db.update(adminUsers).set({ passwordHash: await hashPassword(password) }).where(eq(adminUsers.id, userId));
   await revokeSessions(userId);
   await logActivity({ id: user.id, name: user.name, email: user.email, role: user.role }, "password", "staff", user.id, `${user.name} reset their password by email`);
-  await sendPasswordChanged(user.email, user.name, "staff");
+  await sendPasswordChanged(user.email, user.name);
   redirect("/admin/login?reset=1");
 }
 

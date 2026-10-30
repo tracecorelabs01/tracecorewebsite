@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, inArray, sum } from "drizzle-orm";
+import { and, eq, inArray, sql, sum } from "drizzle-orm";
 import { customers, discountCodes, getDb, loyaltyLedger, loyaltyOffers, orders, products, settings } from "@/db";
 import type { Tx } from "@/lib/admin/order-stock";
 
@@ -46,6 +46,7 @@ export async function pointsBalance(customerId: number, db: Db = getDb()) {
 /**
  * Make an order's points match its state, inside the transaction that changed it: earned once it's paid,
  * taken back if it's then refunded, cancelled or marked unpaid. Returns the change (0 if none).
+ * Every payment change runs through here, so it also opens the customer's account with their first paid order.
  */
 export async function syncOrderPoints(tx: Tx, orderId: number) {
   const [o] = await tx
@@ -60,6 +61,9 @@ export async function syncOrderPoints(tx: Tx, orderId: number) {
     .where(and(eq(loyaltyLedger.orderId, orderId), eq(loyaltyLedger.kind, "order")));
   const current = Number(held?.n ?? 0);
   const earning = o.paymentStatus === "paid" && o.status !== "cancelled" && o.status !== "refunded";
+  if (o.paymentStatus === "paid") {
+    await tx.update(customers).set({ accountCreatedAt: sql`coalesce(${customers.accountCreatedAt}, ${new Date()})` }).where(eq(customers.id, o.customerId));
+  }
 
   let change = 0;
   if (earning && current === 0) {

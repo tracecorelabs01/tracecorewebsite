@@ -165,8 +165,8 @@ export const customers = mysqlTable(
     totalSpentCents: int("total_spent_cents").notNull().default(0),
     lastOrderAt: datetime("last_order_at"),
     notes: text("notes"),
-    // Account: opened by the customer after a paid order (email + order number), so null until then.
-    passwordHash: varchar("password_hash", { length: 255 }),
+    // Account: opens with the first paid order (or when staff open one), so null until then. No password:
+    // customers sign in with a code emailed to them (login_codes).
     accountCreatedAt: datetime("account_created_at"),
     lastLoginAt: datetime("last_login_at"),
     createdAt: createdAt(),
@@ -175,7 +175,17 @@ export const customers = mysqlTable(
   (t) => [uniqueIndex("customers_email_uq").on(t.email)],
 );
 
-/** "Set your password" links, emailed to customers and staff. Single use, and stored only as a hash. */
+/** The sign-in code last emailed to a customer: one per customer, works once, for 10 minutes. Stored only as a hash. */
+export const loginCodes = mysqlTable("login_codes", {
+  customerId: int("customer_id")
+    .primaryKey()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  codeHash: char("code_hash", { length: 64 }).notNull(),
+  expiresAt: datetime("expires_at").notNull(),
+  createdAt: createdAt(),
+});
+
+/** "Set your password" links, emailed to staff. Single use, and stored only as a hash. */
 export const passwordResets = mysqlTable(
   "password_resets",
   {

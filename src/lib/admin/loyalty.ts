@@ -7,7 +7,7 @@ import { pointsBalance, withProductNames } from "@/lib/loyalty";
 export async function getLoyaltyStats() {
   const db = getDb();
   const [[accounts], [outstanding], [earned30], [redeemed], [codesUsed]] = await Promise.all([
-    db.select({ n: count() }).from(customers).where(isNotNull(customers.passwordHash)),
+    db.select({ n: count() }).from(customers).where(isNotNull(customers.accountCreatedAt)),
     db.select({ n: sum(loyaltyLedger.points) }).from(loyaltyLedger),
     db
       .select({ n: sum(loyaltyLedger.points) })

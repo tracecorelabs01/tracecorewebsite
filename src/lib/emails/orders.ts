@@ -31,8 +31,8 @@ async function load(orderId: number): Promise<Data | null> {
     db.select({ n: sum(loyaltyLedger.points) }).from(loyaltyLedger).where(and(eq(loyaltyLedger.orderId, orderId), eq(loyaltyLedger.kind, "order"))),
   ]);
   if (!o) return null;
-  const [c] = o.customerId ? await db.select({ hash: customers.passwordHash }).from(customers).where(eq(customers.id, o.customerId)).limit(1) : [];
-  return { o, items, points: Number(pts?.n ?? 0), hasAccount: Boolean(c?.hash) };
+  const [c] = o.customerId ? await db.select({ opened: customers.accountCreatedAt }).from(customers).where(eq(customers.id, o.customerId)).limit(1) : [];
+  return { o, items, points: Number(pts?.n ?? 0), hasAccount: Boolean(c?.opened) };
 }
 
 /* ───────────── building blocks ───────────── */
@@ -115,10 +115,13 @@ function tracking(o: Order) {
   return panel(`${label(o.trackingCarrier ? `${o.trackingCarrier} tracking number` : "Tracking number")}${code(o.trackingNumber)}${button("Track your package", track)}`, C.brand);
 }
 
-function accountCta(d: Data, signedInLabel: string, path: string) {
-  return d.hasAccount
-    ? button(signedInLabel, url(path))
-    : `${button("Open your account", url(`/account/activate?${new URLSearchParams({ email: d.o.email, order: d.o.number })}`))}${small("Your account shows every order and its tracking, collects your loyalty points and lets you review what you bought.")}`;
+/** A button into their account (it opens with the first paid order). Signed out, it goes through the sign-in page. */
+function accountCta(d: Data, buttonLabel: string, path: string) {
+  if (!d.hasAccount) return "";
+  return (
+    button(buttonLabel, url(`/account/login?${new URLSearchParams({ email: d.o.email, next: path })}`)) +
+    small(`Your account shows every order and its tracking, your loyalty points and your reviews. There's no password: sign in with ${escapeHtml(d.o.email)} and we'll email you a code.`)
+  );
 }
 
 /* ───────────── templates ───────────── */

@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { Check, Copy, Loader2, Star } from "lucide-react";
-import { changePassword, login, openAccount, redeem, requestPasswordReset, resetPassword, submitReview, type AccountFormState } from "@/actions/account";
+import { login, redeem, requestCode, submitReview, type AccountFormState } from "@/actions/account";
 import { cn } from "@/lib/utils";
 
 type Action = (prev: AccountFormState, fd: FormData) => Promise<AccountFormState>;
@@ -56,81 +56,65 @@ function Status({ state }: { state: AccountFormState }) {
   );
 }
 
-export function LoginForm({ next }: { next?: string }) {
-  const { state, pending, onSubmit } = useAccountForm(login);
+/** Sign in with a code: enter the email, then the 6-digit code we email to it. */
+export function LoginForm({ email, next }: { email?: string; next?: string }) {
+  // Changing the key starts over with a fresh email step.
+  const [round, setRound] = useState(0);
+  return <EmailStep key={round} email={email} next={next} onRestart={() => setRound((n) => n + 1)} />;
+}
+
+function EmailStep({ email, next, onRestart }: { email?: string; next?: string; onRestart: () => void }) {
+  const { state, pending, onSubmit } = useAccountForm(requestCode);
+  if (state?.ok && state.email) return <CodeStep email={state.email} next={next} sent={state.message} onRestart={onRestart} />;
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
+      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={email} error={state?.fieldErrors?.email} hint="The one you ordered with." required />
+      <Status state={state} />
+      <Submit pending={pending}>Email me a code</Submit>
+    </form>
+  );
+}
+
+function CodeStep({ email, next, sent, onRestart }: { email: string; next?: string; sent?: string; onRestart: () => void }) {
+  const { state, pending, onSubmit } = useAccountForm(login);
+  const [resent, setResent] = useState<AccountFormState>(null);
+  const [resending, startResend] = useTransition();
+  const resend = () =>
+    startResend(async () => {
+      const fd = new FormData();
+      fd.set("email", email);
+      setResent(await requestCode(null, fd));
+    });
+  return (
+    <form onSubmit={onSubmit} noValidate className="grid gap-5">
+      <p role="status" className="text-sm text-muted">
+        {sent}
+      </p>
+      <input type="hidden" name="email" value={email} />
       <input type="hidden" name="next" value={next ?? ""} />
-      <Field label="Email" name="email" type="email" autoComplete="email" required />
-      <Field label="Password" name="password" type="password" autoComplete="current-password" required />
+      <Field
+        label="6-digit code"
+        name="code"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={6}
+        autoFocus
+        error={state?.fieldErrors?.code}
+        className="[&_input]:font-mono [&_input]:text-lg [&_input]:tracking-[0.4em]"
+        required
+      />
       <Status state={state} />
       <Submit pending={pending}>Log in</Submit>
-    </form>
-  );
-}
-
-export function OpenAccountForm({ email, order }: { email?: string; order?: string }) {
-  const { state, pending, onSubmit } = useAccountForm(openAccount);
-  const e = state?.fieldErrors ?? {};
-  return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-5 sm:grid-cols-2">
-      <Field label="Email you ordered with" name="email" type="email" autoComplete="email" defaultValue={email} error={e.email} required />
-      <Field label="Order number" name="order" defaultValue={order} placeholder="TCL-XXXXXX" autoComplete="off" spellCheck={false} error={e.order} hint="From your order confirmation." className="[&_input]:uppercase" required />
-      <Field label="New password" name="password" type="password" autoComplete="new-password" error={e.password} hint="At least 10 characters." required />
-      <Field label="Repeat password" name="confirm" type="password" autoComplete="new-password" error={e.confirm} required />
-      <div className="flex flex-col gap-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-        <Status state={state} />
-        <Submit pending={pending} className="sm:ml-auto">
-          Open my account
-        </Submit>
+      <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
+        <button type="button" onClick={resend} disabled={resending} className="underline-offset-4 hover:text-fg hover:underline disabled:opacity-60">
+          {resending ? "Sending…" : "Send a new code"}
+        </button>
+        <button type="button" onClick={onRestart} className="underline-offset-4 hover:text-fg hover:underline">
+          Use a different email
+        </button>
       </div>
-    </form>
-  );
-}
-
-export function ForgotPasswordForm({ email }: { email?: string }) {
-  const { state, pending, onSubmit } = useAccountForm(requestPasswordReset);
-  if (state?.ok) return <Status state={state} />;
-  return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-5">
-      <Field label="Email you ordered with" name="email" type="email" autoComplete="email" defaultValue={email} error={state?.fieldErrors?.email} required />
-      <Status state={state} />
-      <Submit pending={pending}>Email me a link</Submit>
-    </form>
-  );
-}
-
-export function ResetPasswordForm({ token }: { token: string }) {
-  const { state, pending, onSubmit } = useAccountForm(resetPassword.bind(null, token));
-  const e = state?.fieldErrors ?? {};
-  return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-5 sm:grid-cols-2">
-      <Field label="New password" name="password" type="password" autoComplete="new-password" error={e.password} hint="At least 10 characters." required />
-      <Field label="Repeat password" name="confirm" type="password" autoComplete="new-password" error={e.confirm} required />
-      <div className="flex flex-col gap-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-        <Status state={state} />
-        <Submit pending={pending} className="sm:ml-auto">
-          Save password
-        </Submit>
-      </div>
-    </form>
-  );
-}
-
-export function ChangePasswordForm() {
-  const { state, pending, onSubmit } = useAccountForm(changePassword);
-  const e = state?.fieldErrors ?? {};
-  return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-5 sm:grid-cols-2">
-      <Field label="Current password" name="current" type="password" autoComplete="current-password" error={e.current} className="sm:col-span-2" required />
-      <Field label="New password" name="password" type="password" autoComplete="new-password" error={e.password} hint="At least 10 characters." required />
-      <Field label="Repeat new password" name="confirm" type="password" autoComplete="new-password" error={e.confirm} required />
-      <div className="flex flex-col gap-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-        <Status state={state} />
-        <Submit pending={pending} className="sm:ml-auto">
-          Change password
-        </Submit>
-      </div>
+      {resent && <Status state={resent} />}
+      <p className="text-xs text-dim">No email after a minute? Check your spam folder, and that this is the email you ordered with. Accounts open with your first paid order.</p>
     </form>
   );
 }

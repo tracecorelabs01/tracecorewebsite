@@ -2,193 +2,75 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, sql } from "drizzle-orm";
-import { customers, discountCodes, getDb, isDbConfigured, orders, products, reviews } from "@/db";
+import { and, eq, isNotNull } from "drizzle-orm";
+import { customers, discountCodes, getDb, isDbConfigured, products, reviews } from "@/db";
 import { hasBought } from "@/lib/account";
-import { createCustomerSession, destroyCustomerSession, requireCustomer, revokeCustomerSessions } from "@/lib/auth/customer";
-import { hashPassword, PASSWORD_MIN, verifyPassword } from "@/lib/auth/password";
-import { consumeResetToken, createResetToken } from "@/lib/auth/reset";
-import { hashToken, isLoginBlocked, recordLoginAttempt } from "@/lib/auth/session";
-import { url } from "@/lib/email";
-import { sendPasswordChanged, sendPasswordReset, sendRewardCode, sendWelcome } from "@/lib/emails/account";
+import { accountPath, consumeLoginCode, createCustomerSession, createLoginCode, destroyCustomerSession, requireCustomer } from "@/lib/auth/customer";
+import { isLoginBlocked, recordLoginAttempt } from "@/lib/auth/session";
+import { emailEnabled } from "@/lib/email";
+import { sendLoginCode, sendRewardCode } from "@/lib/emails/account";
 import { redeemOffer, rewardLabel, withProductNames } from "@/lib/loyalty";
 import { getClientIp } from "@/lib/request";
 
-export type AccountFormState = { ok: boolean; message?: string; fieldErrors?: Record<string, string> } | null;
+export type AccountFormState = { ok: boolean; message?: string; fieldErrors?: Record<string, string>; email?: string } | null;
 
 const str = (v: FormDataEntryValue | null) => String(v ?? "").trim();
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const NO_DB: AccountFormState = { ok: false, message: "Accounts aren't available on this store yet." };
 const BLOCKED: AccountFormState = { ok: false, message: "Too many attempts. Please wait 15 minutes and try again." };
 
-/** The new-password fields shared by every form that sets one. */
-function passwordErrors(password: string, confirm: string): Record<string, string> {
-  if (password.length < PASSWORD_MIN) return { password: `Use at least ${PASSWORD_MIN} characters.` };
-  if (password.length > 200) return { password: "Use 200 characters or fewer." };
-  if (confirm !== password) return { confirm: "The passwords don't match." };
-  return {};
+/** The customer with an open account for this email, if any. */
+async function accountFor(email: string) {
+  const [c] = await getDb()
+    .select({ id: customers.id, firstName: customers.firstName })
+    .from(customers)
+    .where(and(eq(customers.email, email), isNotNull(customers.accountCreatedAt)))
+    .limit(1);
+  return c;
 }
 
-/** Only send people back to account pages after signing in. */
-function nextPath(value: FormDataEntryValue | null) {
-  const next = str(value);
-  return /^\/account(\/[\w-]*)*$/.test(next) ? next : "/account";
+/**
+ * Emails a 6-digit sign-in code. The reply is the same whether or not the email has an account,
+ * so the form can't be used to find out who shops here.
+ */
+export async function requestCode(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
+  if (!isDbConfigured()) return NO_DB;
+  const email = str(fd.get("email")).toLowerCase();
+  if (!isEmail(email)) return { ok: false, message: "Enter the email you ordered with.", fieldErrors: { email: "Enter a valid email address." } };
+  if (!emailEnabled()) return { ok: false, message: "Signing in isn't available right now. Please contact us and we'll help." };
+
+  // Every request counts towards the limit, so the form can't be used to flood someone's inbox.
+  const key = `code-request:${email}`;
+  const ip = await getClientIp();
+  if (await isLoginBlocked(key, ip)) return BLOCKED;
+  await recordLoginAttempt(key, ip, false);
+
+  const c = await accountFor(email);
+  if (c && !(await sendLoginCode(email, c.firstName || null, await createLoginCode(c.id)))) {
+    return { ok: false, message: "We couldn't send the email just now. Please try again in a minute." };
+  }
+  return { ok: true, email, message: `If ${email} has an account, we've emailed it a 6-digit code. It works once, for 10 minutes.` };
 }
 
 export async function login(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
   if (!isDbConfigured()) return NO_DB;
   const email = str(fd.get("email")).toLowerCase();
-  const password = String(fd.get("password") ?? "");
-  if (!isEmail(email) || !password) return { ok: false, message: "Enter your email and password." };
+  const code = str(fd.get("code")).replace(/\D/g, "");
+  if (code.length !== 6) return { ok: false, message: "Enter the 6-digit code from the email.", fieldErrors: { code: "Enter all 6 digits." } };
 
   // Login attempts share the admin table; the prefix keeps customer and staff counts apart.
+  // Six wrong codes lock the email for 15 minutes, longer than a code lives.
   const key = `account:${email}`;
   const ip = await getClientIp();
   if (await isLoginBlocked(key, ip)) return BLOCKED;
-  const db = getDb();
-  const [c] = await db.select({ id: customers.id, passwordHash: customers.passwordHash }).from(customers).where(eq(customers.email, email)).limit(1);
-  const valid = Boolean(c?.passwordHash) && (await verifyPassword(password, c!.passwordHash!));
+  const c = await accountFor(email);
+  const valid = Boolean(c) && (await consumeLoginCode(c!.id, code));
   await recordLoginAttempt(key, ip, valid);
-  if (!valid) return { ok: false, message: "That email and password don't match. First time here? Open your account with your order number below." };
+  if (!valid) return { ok: false, message: "That code is wrong or has expired. Check the newest email, or send a new code.", fieldErrors: { code: "Wrong or expired code." } };
 
-  await db.update(customers).set({ lastLoginAt: new Date() }).where(eq(customers.id, c!.id));
+  await getDb().update(customers).set({ lastLoginAt: new Date() }).where(eq(customers.id, c!.id));
   await createCustomerSession(c!.id);
-  redirect(nextPath(fd.get("next")));
-}
-
-/**
- * Open an account, or set a new password: proof is the email and number of a paid order. Accounts only
- * exist for customers who have paid for something, and this works without store emails being set up.
- */
-export async function openAccount(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
-  if (!isDbConfigured()) return NO_DB;
-  const email = str(fd.get("email")).toLowerCase();
-  const number = str(fd.get("order")).toUpperCase();
-  const password = String(fd.get("password") ?? "");
-  const confirm = String(fd.get("confirm") ?? "");
-
-  const fieldErrors: Record<string, string> = {};
-  if (!isEmail(email)) fieldErrors.email = "Enter the email you ordered with.";
-  if (!/^TCL-[A-Z0-9]{6}$/.test(number)) fieldErrors.order = "Enter your order number, e.g. TCL-AB12CD.";
-  if (password.length < PASSWORD_MIN) fieldErrors.password = `Use at least ${PASSWORD_MIN} characters.`;
-  else if (password.length > 200) fieldErrors.password = "Use 200 characters or fewer.";
-  else if (confirm !== password) fieldErrors.confirm = "The passwords don't match.";
-  if (Object.keys(fieldErrors).length) return { ok: false, message: "Please check the highlighted fields.", fieldErrors };
-
-  const key = `open:${email}`;
-  const ip = await getClientIp();
-  if (await isLoginBlocked(key, ip)) return BLOCKED;
-  const db = getDb();
-  const [order] = await db
-    .select({ customerId: orders.customerId, paymentStatus: orders.paymentStatus, hadAccount: customers.passwordHash, firstName: customers.firstName })
-    .from(orders)
-    .leftJoin(customers, eq(customers.id, orders.customerId))
-    .where(and(eq(orders.number, number), eq(orders.email, email)))
-    .limit(1);
-  if (!order?.customerId) {
-    await recordLoginAttempt(key, ip, false);
-    return { ok: false, message: "We couldn't find that order for this email. Check both match your order confirmation." };
-  }
-  if (order.paymentStatus !== "paid") {
-    return { ok: false, message: "This order isn't paid yet. You can open your account as soon as its payment is confirmed." };
-  }
-  await recordLoginAttempt(key, ip, true);
-
-  const now = new Date();
-  await db
-    .update(customers)
-    .set({ passwordHash: await hashPassword(password), accountCreatedAt: sql`coalesce(${customers.accountCreatedAt}, ${now})`, lastLoginAt: now })
-    .where(eq(customers.id, order.customerId));
-  // A new password signs out every other browser.
-  await revokeCustomerSessions(order.customerId);
-  await createCustomerSession(order.customerId);
-  if (order.hadAccount) await sendPasswordChanged(email, order.firstName, "customer");
-  else await sendWelcome(email, order.firstName);
-  redirect("/account?welcome=1");
-}
-
-const RESET_SENT: AccountFormState = {
-  ok: true,
-  message: "If that email has an account or a paid order, a link to set your password is on its way. It works for one hour.",
-};
-
-/** Emails a "set your password" link. Works for accounts, and opens one for customers with a paid order. */
-export async function requestPasswordReset(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
-  if (!isDbConfigured()) return NO_DB;
-  const email = str(fd.get("email")).toLowerCase();
-  if (!isEmail(email)) return { ok: false, message: "Enter the email you ordered with.", fieldErrors: { email: "Enter a valid email address." } };
-
-  // Every request counts towards the limit, so the form can't be used to flood someone's inbox.
-  const key = `reset:${email}`;
-  const ip = await getClientIp();
-  if (await isLoginBlocked(key, ip)) return BLOCKED;
-  await recordLoginAttempt(key, ip, false);
-
-  const db = getDb();
-  const [c] = await db.select({ id: customers.id, firstName: customers.firstName, passwordHash: customers.passwordHash }).from(customers).where(eq(customers.email, email)).limit(1);
-  if (!c) return RESET_SENT;
-  const [paid] = c.passwordHash ? [true] : await db.select({ id: orders.id }).from(orders).where(and(eq(orders.customerId, c.id), eq(orders.paymentStatus, "paid"))).limit(1);
-  if (!paid) return RESET_SENT;
-
-  const token = await createResetToken("customer", c.id);
-  await sendPasswordReset({ to: email, name: c.firstName, resetUrl: url(`/account/reset?token=${token}`), audience: "customer", newAccount: !c.passwordHash, key: hashToken(token).slice(0, 24) });
-  return RESET_SENT;
-}
-
-/** Sets a password from an emailed link, then signs them in. */
-export async function resetPassword(token: string, _prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
-  if (!isDbConfigured()) return NO_DB;
-  const password = String(fd.get("password") ?? "");
-  const fieldErrors = passwordErrors(password, String(fd.get("confirm") ?? ""));
-  // Checked before using the link, so a typo doesn't use it up.
-  if (Object.keys(fieldErrors).length) return { ok: false, message: "Please check the highlighted fields.", fieldErrors };
-
-  const customerId = await consumeResetToken("customer", String(token));
-  if (!customerId) return { ok: false, message: "This link has expired or was already used. Ask for a new one below." };
-  const db = getDb();
-  const [c] = await db.select({ email: customers.email, firstName: customers.firstName, hadAccount: customers.passwordHash }).from(customers).where(eq(customers.id, customerId)).limit(1);
-  if (!c) return { ok: false, message: "This account no longer exists." };
-
-  const now = new Date();
-  await db
-    .update(customers)
-    .set({ passwordHash: await hashPassword(password), accountCreatedAt: sql`coalesce(${customers.accountCreatedAt}, ${now})`, lastLoginAt: now })
-    .where(eq(customers.id, customerId));
-  await revokeCustomerSessions(customerId);
-  await createCustomerSession(customerId);
-  if (c.hadAccount) await sendPasswordChanged(c.email, c.firstName, "customer");
-  else await sendWelcome(c.email, c.firstName);
-  redirect(c.hadAccount ? "/account?reset=1" : "/account?welcome=1");
-}
-
-/** Change the password while signed in. Signs out every other browser. */
-export async function changePassword(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
-  const me = await requireCustomer();
-  const current = String(fd.get("current") ?? "");
-  const password = String(fd.get("password") ?? "");
-  const confirm = String(fd.get("confirm") ?? "");
-
-  const fieldErrors: Record<string, string> = {};
-  if (!current) fieldErrors.current = "Enter your current password.";
-  if (password.length < PASSWORD_MIN) fieldErrors.password = `Use at least ${PASSWORD_MIN} characters.`;
-  else if (password.length > 200) fieldErrors.password = "Use 200 characters or fewer.";
-  else if (confirm !== password) fieldErrors.confirm = "The passwords don't match.";
-  if (Object.keys(fieldErrors).length) return { ok: false, message: "Please check the highlighted fields.", fieldErrors };
-
-  const key = `account:${me.email}`;
-  const ip = await getClientIp();
-  if (await isLoginBlocked(key, ip)) return BLOCKED;
-  const db = getDb();
-  const [c] = await db.select({ passwordHash: customers.passwordHash }).from(customers).where(eq(customers.id, me.id)).limit(1);
-  const valid = Boolean(c?.passwordHash) && (await verifyPassword(current, c!.passwordHash!));
-  await recordLoginAttempt(key, ip, valid);
-  if (!valid) return { ok: false, message: "Please check the highlighted fields.", fieldErrors: { current: "That isn't your current password." } };
-
-  await db.update(customers).set({ passwordHash: await hashPassword(password) }).where(eq(customers.id, me.id));
-  await revokeCustomerSessions(me.id);
-  await createCustomerSession(me.id);
-  await sendPasswordChanged(me.email, me.firstName, "customer");
-  return { ok: true, message: "Password changed. Other devices have been signed out." };
+  redirect(accountPath(fd.get("next")));
 }
 
 export async function logout() {

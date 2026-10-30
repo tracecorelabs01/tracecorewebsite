@@ -1,13 +1,32 @@
-// Account and community emails: welcome, password reset (customers and staff), password changed,
-// reward codes, newsletter welcome, and the contact-form alert for staff.
+// Account and community emails: sign-in code, welcome, staff password reset and changed, reward codes,
+// newsletter welcome, and the contact-form alert for staff.
 
 import "server-only";
 import { button, C, code, customerReplyTo, escapeHtml, label, layout, p, panel, sendEmail, small, staffInbox, strong, url } from "@/lib/email";
 
 const hello = (name: string | null | undefined) => (name ? `, ${name}` : "");
 
-/** Account ready. With `setPasswordUrl`, it asks them to choose a password (accounts created by the team). */
-export async function sendWelcome(to: string, name: string | null, setPasswordUrl?: string) {
+/** The 6-digit code that signs a customer in. */
+export async function sendLoginCode(to: string, name: string | null, loginCode: string) {
+  return sendEmail({
+    to,
+    replyTo: customerReplyTo(),
+    subject: `${loginCode} is your TraceCore Lab sign-in code`,
+    html: await layout({
+      preheader: "It works once, for 10 minutes.",
+      kicker: "Your account",
+      heading: `Your sign-in code${hello(name)}.`,
+      body:
+        p("Enter this code on the sign-in page:") +
+        panel(`${label("Sign-in code")}${code(loginCode, 32)}`, C.brand) +
+        small("It works once, for 10 minutes. If you didn't try to sign in, ignore this email: no one can get into your account without this code."),
+      reason: "Sent because someone asked to sign in with this email at tracecorelab.com.",
+    }),
+  });
+}
+
+/** Account ready: for accounts staff open. Customers' own accounts open with their first paid order, which has its own email. */
+export async function sendWelcome(to: string, name: string | null) {
   return sendEmail({
     to,
     replyTo: customerReplyTo(),
@@ -18,54 +37,48 @@ export async function sendWelcome(to: string, name: string | null, setPasswordUr
       heading: `Your account is ready${hello(name)}.`,
       body:
         p("From your account you can follow every order and its tracking, see your warranty dates, collect loyalty points on every purchase and spend them on rewards.") +
-        (setPasswordUrl
-          ? p("Our team created it for you. Choose your own password to get started.") + button("Set your password", setPasswordUrl) + small("The link works for 3 days. After that, use “Forgot password” on the login page.")
-          : button("Go to your account", url("/account"))),
+        p(`There's no password: sign in with ${strong(to)} and we'll email you a code.`) +
+        button("Sign in", url(`/account/login?${new URLSearchParams({ email: to })}`)),
       reason: "You're getting this because an account was opened with this email at tracecorelab.com.",
     }),
     idempotencyKey: `welcome/${to.toLowerCase()}`,
   });
 }
 
-/** A link to set a new password. `newAccount`: they've ordered but never set one, so this opens their account. */
-export async function sendPasswordReset({ to, name, resetUrl, audience, newAccount = false, key }: { to: string; name: string | null; resetUrl: string; audience: "customer" | "staff"; newAccount?: boolean; key: string }) {
-  const staff = audience === "staff";
+/** A link for staff to set a new Lab console password. */
+export async function sendPasswordReset({ to, name, resetUrl, key }: { to: string; name: string | null; resetUrl: string; key: string }) {
   return sendEmail({
     to,
-    replyTo: staff ? undefined : customerReplyTo(),
-    subject: staff ? "Reset your Lab console password" : newAccount ? "Set your TraceCore Lab password" : "Reset your TraceCore Lab password",
+    subject: "Reset your Lab console password",
     html: await layout({
-      audience,
+      audience: "staff",
       preheader: "This link works for one hour.",
-      kicker: staff ? "Lab console" : "Your account",
-      heading: newAccount ? "Choose your password." : "Reset your password.",
+      kicker: "Lab console",
+      heading: "Reset your password.",
       body:
-        p(`Hi${hello(name)}. ${newAccount ? "Set a password to open your account and see your orders." : `Someone asked to reset the password for ${strong(to)}.`}`) +
-        button(newAccount ? "Set your password" : "Choose a new password", resetUrl) +
+        p(`Hi${hello(name)}. Someone asked to reset the password for ${strong(to)}.`) +
+        button("Choose a new password", resetUrl) +
         small("The link works once, for one hour. If you didn't ask for this, you can ignore this email: your password stays the same."),
-      reason: staff ? "Sent because a password reset was requested on the Lab console." : "Sent because a password reset was requested at tracecorelab.com.",
+      reason: "Sent because a password reset was requested on the Lab console.",
     }),
     idempotencyKey: `reset/${key}`,
   });
 }
 
-/** Security notice after any password change. */
-export async function sendPasswordChanged(to: string, name: string | null, audience: "customer" | "staff") {
-  const staff = audience === "staff";
+/** Security notice after a staff password change. */
+export async function sendPasswordChanged(to: string, name: string | null) {
   const when = new Date().toLocaleString("en-US", { dateStyle: "long", timeStyle: "short", timeZone: "UTC" });
   return sendEmail({
     to,
-    replyTo: staff ? undefined : customerReplyTo(),
-    subject: staff ? "Your Lab console password was changed" : "Your TraceCore Lab password was changed",
+    subject: "Your Lab console password was changed",
     html: await layout({
-      audience,
+      audience: "staff",
       preheader: `Changed on ${when} UTC.`,
       kicker: "Security",
       heading: "Your password was changed.",
       body:
         p(`Hi${hello(name)}. The password for ${strong(to)} was changed on ${escapeHtml(when)} UTC, and other devices were signed out.`) +
-        p(staff ? "If this wasn't you, tell the store owner right away." : "If this wasn't you, reset your password now and reply to this email so we can help.") +
-        (staff ? "" : button("Reset password", url("/account/forgot"))),
+        p("If this wasn't you, tell the store owner right away."),
     }),
     idempotencyKey: `password-changed/${to.toLowerCase()}/${when}`,
   });

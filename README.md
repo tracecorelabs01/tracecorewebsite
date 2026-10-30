@@ -60,7 +60,7 @@ docker rm -f tcl-mysql     # delete it (and its data)
 | --- | --- | --- |
 | Dashboard | 30-day revenue, orders, AOV, revenue chart, items needing attention, top products, low stock | staff |
 | Orders | Filter/search, update status, mark paid, tracking numbers, internal notes, timeline, restock on cancel, CSV export | staff |
-| Customers | Order history, lifetime spend, notes, CSV export; add customers and open or reset their accounts (admin) | staff |
+| Customers | Order history, lifetime spend, notes, CSV export; add customers, open their accounts or sign them out everywhere (admin) | staff |
 | Inventory | Quick stock counts and low-stock thresholds | staff |
 | Reviews | Moderate submitted reviews, import genuine reviews from Trustpilot/Discord | staff (import: admin) |
 | Messages | Support inbox from the contact form | staff |
@@ -89,13 +89,13 @@ Test keys (`rzp_test_…`) take test cards only; swap in the live keys and a liv
 
 ### Customer accounts and loyalty
 
-Customers can open an account (`/account`) only after an order is paid: they enter the order's email and number and choose a password. The same form resets a forgotten password, so no email setup is needed. Admins can also add a customer with an account, or open or reset one, from **Customers** with a temporary password the customer changes under their account. An account shows every order placed with that email, loyalty points with their history, rewards to redeem, and reviews.
+A customer's account (`/account`) opens on its own with their first paid order (customers who had already paid got one when this went live). There are no customer passwords: they sign in at `/account/login` with their email and a 6-digit code we email them, which works once, for 10 minutes. Requesting a new code cancels the old one; six wrong codes, or six code emails, within 15 minutes lock that email for 15 minutes. This needs email (below) set up. Admins can also add a customer, open an account for one who hasn't paid yet, or sign one out everywhere from **Customers**. An account shows every order placed with that email, loyalty points with their history, rewards to redeem, and reviews.
 
 Points are added when an order is marked paid (by default 100 per $1 of products after discounts; shipping doesn't earn) and taken back if it's refunded, cancelled or marked unpaid. Offers are set up under **Loyalty**; redeeming one spends the points and issues a single-use `PTS-` discount code. Reviews from accounts are verified buyers only and wait for approval in **Reviews**.
 
 ### Email (Resend)
 
-Set `RESEND_API_KEY` (a sending-only key for your domain), `EMAIL_FROM` and `ORDER_ALERT_EMAIL`. Without them the store works and simply doesn't email. Every email shares one themed layout (`src/lib/email.ts`), has a plain-text version, replies to `EMAIL_REPLY_TO` (or `ORDER_ALERT_EMAIL`), links to the Discord from Settings, and carries an idempotency key so a retry never sends it twice.
+Set `RESEND_API_KEY` (a sending-only key for your domain), `EMAIL_FROM` and `ORDER_ALERT_EMAIL`. Without them the store still takes orders, but sends no email and customers can't sign in to their accounts. Every email shares one themed layout (`src/lib/email.ts`), has a plain-text version, replies to `EMAIL_REPLY_TO` (or `ORDER_ALERT_EMAIL`), links to the Discord from Settings, and carries an idempotency key so a retry never sends it twice.
 
 | Email | Sent when |
 | --- | --- |
@@ -106,9 +106,10 @@ Set `RESEND_API_KEY` (a sending-only key for your domain), `EMAIL_FROM` and `ORD
 | Delivered (warranty dates, review link) | Staff mark an order delivered |
 | Cancelled | Staff cancel an order, or an unpaid order's reservation runs out |
 | Refunded | Staff mark it refunded, or a full refund is made in Razorpay |
-| Welcome | An account is opened (by the customer, or by staff with a "set your password" link) |
-| Set / reset password link | "Forgot password" on `/account/forgot` (customers) or `/admin/forgot` (staff); links work once, for an hour |
-| Password changed | Any password change or reset |
+| Sign-in code | A customer asks for one on `/account/login` |
+| Welcome | Staff add a customer or open their account (customers' own accounts are announced in the payment email) |
+| Staff: reset password link | "Forgot password" on `/admin/forgot`; links work once, for an hour |
+| Staff: password changed | A staff password is reset |
 | Reward code | A customer redeems points |
 | Newsletter welcome | Someone signs up in the footer |
 | Staff: new order, contact form message | To `ORDER_ALERT_EMAIL`; replying goes to the customer |
@@ -119,7 +120,7 @@ Newsletter campaigns: sign-ups are stored under **Subscribers**. Send campaigns 
 
 ### Security
 
-- Passwords hashed with scrypt; sessions are random tokens stored hashed in `admin_sessions` (httpOnly, SameSite=Lax cookie, 14-day expiry).
+- Staff passwords hashed with scrypt; sessions are random tokens stored hashed in `admin_sessions` (httpOnly, SameSite=Lax cookie, 14-day expiry). Customers have no passwords; their sign-in codes and sessions are stored hashed too.
 - Login rate limiting per IP and per email; every Server Action re-checks the session and role.
 - `src/proxy.ts` keeps signed-out visitors out of `/admin` and adds `noindex` / anti-framing headers.
 - Every change is written to the activity log. CSV exports neutralise spreadsheet formulas.

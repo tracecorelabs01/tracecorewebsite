@@ -351,8 +351,21 @@ CREATE TABLE `password_resets` (
 );
 CREATE INDEX `password_resets_subject_idx` ON `password_resets` (`kind`,`subject_id`);;
 
+-- 0006_login_codes
+CREATE TABLE `login_codes` (
+	`customer_id` int NOT NULL,
+	`code_hash` char(64) NOT NULL,
+	`expires_at` datetime NOT NULL,
+	`created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `login_codes_customer_id` PRIMARY KEY(`customer_id`)
+);
+ALTER TABLE `login_codes` ADD CONSTRAINT `login_codes_customer_id_customers_id_fk` FOREIGN KEY (`customer_id`) REFERENCES `customers`(`id`) ON DELETE cascade ON UPDATE no action;
+-- Accounts now open with the first paid order, so open them for customers who have already paid.
+UPDATE `customers` SET `account_created_at` = (SELECT COALESCE(MIN(`paid_at`), MIN(`created_at`)) FROM `orders` WHERE `orders`.`customer_id` = `customers`.`id` AND `orders`.`payment_status` = 'paid') WHERE `account_created_at` IS NULL;
+ALTER TABLE `customers` DROP COLUMN `password_hash`;;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Mark the migrations above as applied for `npm run db:migrate`.
 CREATE TABLE IF NOT EXISTS `__drizzle_migrations` (id serial primary key, hash text not null, created_at bigint);
-INSERT INTO `__drizzle_migrations` (`hash`, `created_at`) VALUES ('22e3352ca9f2f2a48992f186b23da5f04e7806f4f5236bc3545050ca8e00a8f1', 1793097030220), ('9e60b1deeda9d45c08b99f47b15f2943ea5ca17a5ed54fa4f4d687f6ee0f4fa8', 1793257643089), ('db019025f080bbd14de472cca78f7a48d0f90b1ad64423ea21349b12da69c81c', 1793279911158), ('ec8852198a5a94889bbb6491fdd4c35a53532e5772a924ffc1cf78dac2a5ea93', 1793294186131), ('2cbcd4b8815e987044159824db2662ce6b4f5756d10fbb4a307388cf86b08085', 1793298100131), ('0c2f75d65b2a09eda83c87baa1634035f0f9f9ead919ba8f63e83bab930f36cb', 1793305906181);
+INSERT INTO `__drizzle_migrations` (`hash`, `created_at`) VALUES ('4ebaa753ea54c7f66421b7791b23720755593257e756d3af4818537ef63ccb49', 1793097030220), ('d049ac2df2804b304b28ba2ab688df58497ae792f4b783ff33481922e78e0f63', 1793257643089), ('f0c5f82a0c45e7fc7025dc17376795a89a9eed3e05ffc8fd29ae39fa3e440c04', 1793279911158), ('a69175fe5376618edc225e2560dceca965af5b4aa976b2f53449a7c0c6ad6043', 1793294186131), ('a0e404360f4ec03c4c9ca1b99cb40f9086b4d11cf22acdb8c1618f95c09a58f2', 1793298100131), ('bac0d51697134dab43ab633420e2886c8d9e18a6dfdb6690f7798968f11fc4f6', 1793305906181), ('21a6cda9d78e82b52b3caa3f669c5ff9ead24e58aee7cf2ac1d6eb3e44380663', 1793367200111);

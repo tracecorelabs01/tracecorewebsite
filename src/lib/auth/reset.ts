@@ -1,4 +1,4 @@
-// "Set your password" links for customers and staff: random token in the link, SHA-256 of it in password_resets.
+// "Set your password" links for staff: random token in the link, SHA-256 of it in password_resets.
 
 import "server-only";
 import { randomBytes } from "node:crypto";

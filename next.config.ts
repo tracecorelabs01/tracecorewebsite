@@ -36,9 +36,14 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
-  // The setup builder now lives on the shop page.
   async redirects() {
-    return [{ source: "/build", destination: "/shop#build", permanent: true }];
+    return [
+      // The setup builder now lives on the shop page.
+      { source: "/build", destination: "/shop#build", permanent: true },
+      // Customers sign in with an emailed code now, so the old password pages go to the login (with ?email= kept).
+      { source: "/account/:page(activate|forgot|reset)", destination: "/account/login", permanent: true },
+      { source: "/account/password", destination: "/account", permanent: true },
+    ];
   },
   cacheComponents: true,
   partialPrefetching: true,

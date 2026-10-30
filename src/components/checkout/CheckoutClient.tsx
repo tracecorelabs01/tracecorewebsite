@@ -513,11 +513,11 @@ function Confirmation({ order }: { order: PlacedOrder }) {
         {order.demo && <p className="relative mt-3 text-xs text-warn">Demo order — not saved (no database connected).</p>}
         {!order.demo && (
           <p className="relative mx-auto mt-5 max-w-md rounded-2xl border border-line bg-ink-950/50 px-5 py-4 text-sm text-muted">
-            {order.payOnline ? "Your payment is confirmed, so you can" : "Once your payment is confirmed,"}{" "}
-            <Link href={`/account/activate?${new URLSearchParams({ email: order.email, order: order.number })}`} className="text-fg underline-offset-4 hover:underline">
-              open your account
+            {order.payOnline ? "Your payment is confirmed, so your account is open:" : "Your account opens once your payment is confirmed:"}{" "}
+            <Link href={`/account/login?${new URLSearchParams({ email: order.email })}`} className="text-fg underline-offset-4 hover:underline">
+              sign in
             </Link>{" "}
-            with this order number to track your orders and earn loyalty points.
+            with this email to track your orders and earn loyalty points. No password: we email you a code.
           </p>
         )}
         <ul className="relative mt-8 divide-y divide-line rounded-2xl border border-line text-left">

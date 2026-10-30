@@ -4,7 +4,6 @@ import { ArrowRight, Package } from "lucide-react";
 import { AccountShell, Panel, StatusPills, shortDay } from "@/components/account/AccountShell";
 import { ButtonLink } from "@/components/ui/Button";
 import { listMyOrders } from "@/lib/account";
-import { param } from "@/lib/admin/format";
 import { requireCustomer } from "@/lib/auth/customer";
 import { getLoyaltyConfig, pointsBalance } from "@/lib/loyalty";
 import { formatPrice } from "@/lib/utils";
@@ -13,9 +12,9 @@ export const metadata: Metadata = { title: "Your account", robots: { index: fals
 // Reads the session on every request.
 export const instant = false;
 
-export default async function AccountPage({ searchParams }: PageProps<"/account">) {
+export default async function AccountPage() {
   const me = await requireCustomer();
-  const [orders, balance, loyalty, sp] = await Promise.all([listMyOrders(me.id), pointsBalance(me.id), getLoyaltyConfig(), searchParams]);
+  const [orders, balance, loyalty] = await Promise.all([listMyOrders(me.id), pointsBalance(me.id), getLoyaltyConfig()]);
 
   return (
     <AccountShell
@@ -27,11 +26,6 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
       }
       description="Your orders, loyalty points and reviews in one place."
     >
-      {param(sp.welcome) && (
-        <p className="mb-6 rounded-2xl border border-ok/30 bg-ok/10 px-5 py-4 text-sm text-ok">Your account is ready. Every paid order now earns points you can spend on rewards.</p>
-      )}
-      {param(sp.reset) && <p className="mb-6 rounded-2xl border border-ok/30 bg-ok/10 px-5 py-4 text-sm text-ok">Your password has been changed. Other devices have been signed out.</p>}
-
       <div className="mb-8 grid gap-4 md:grid-cols-3">
         <Link href="/account/rewards" className="group rounded-3xl border border-line bg-ink-900/60 p-6 transition-colors hover:border-blaze/50">
           <p className="type-kicker text-dim">Loyalty points</p>
@@ -49,9 +43,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
         <div className="rounded-3xl border border-line bg-ink-900/60 p-6">
           <p className="type-kicker text-dim">Signed in as</p>
           <p className="mt-3 break-all text-lg">{me.email}</p>
-          <Link href="/account/password" className="mt-2 inline-block text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
-            Change password
-          </Link>
+          <p className="mt-2 text-sm text-muted">You sign in with a code we email here.</p>
         </div>
       </div>
 

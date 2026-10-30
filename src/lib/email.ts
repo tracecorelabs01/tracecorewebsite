@@ -48,17 +48,18 @@ export interface Email {
   idempotencyKey?: string;
 }
 
+/** Whether the store can send email at all (customers can't sign in without it). */
+export const emailEnabled = () => Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+
 /** Resolves true only when Resend accepted the email. */
 export async function sendEmail({ to, subject, html, replyTo, idempotencyKey }: Email) {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM;
-  if (!key || !from) return false;
+  if (!emailEnabled()) return false;
   try {
     // RESEND_API_URL only exists so tests can point this at a local stand-in.
     const res = await fetch(`${process.env.RESEND_API_URL || "https://api.resend.com"}/emails`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey.slice(0, 256) } : {}) },
-      body: JSON.stringify({ from, to: [to], subject, html, text: htmlToText(html), reply_to: replyTo }),
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json", ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey.slice(0, 256) } : {}) },
+      body: JSON.stringify({ from: process.env.EMAIL_FROM, to: [to], subject, html, text: htmlToText(html), reply_to: replyTo }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) console.error("[email] send failed", res.status, await res.text());
