@@ -1,0 +1,34 @@
+# systemd service for the droplet: runs Tracer, and restarts it after crashes and reboots. Setup: README.md, section 3.
+[Unit]
+Description=Tracer, the TraceCore Lab Discord bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=tracer
+Group=tracer
+WorkingDirectory=/opt/tracecore/discord-bot
+# BOT_TOKEN, ADMIN_IDS, STORE_URL, STORE_API_KEY. Only root can read the file; the bot gets the values.
+EnvironmentFile=/etc/tracer.env
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/tracecore/discord-bot/.venv/bin/python bot.py
+# Python only closes the Discord connection cleanly on SIGINT (Ctrl+C); SIGTERM would just kill it.
+KillSignal=SIGINT
+Restart=always
+RestartSec=5
+
+# Lock it down: the bot can write only its data folder (the SQLite database).
+ReadWritePaths=/opt/tracecore/discord-bot/data
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target
