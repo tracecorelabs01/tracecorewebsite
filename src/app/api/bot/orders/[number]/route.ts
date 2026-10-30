@@ -1,25 +1,16 @@
 // Order lookup for the Discord bot (discord-bot/). Authenticated with BOT_API_KEY as a bearer token.
 // With ?email= it only answers when the email matches the order, which is how customers look up their own.
 
-import { timingSafeEqual } from "node:crypto";
 import { and, asc, eq, sum } from "drizzle-orm";
 import { getDb, isDbConfigured, loyaltyLedger, orderItems, orders } from "@/db";
+import { authorizedBot } from "@/lib/bot-api";
 import { site } from "@/lib/site";
 import { warrantyEnds, warrantyMonths } from "@/lib/warranty";
-
-function authorized(req: Request) {
-  const key = process.env.BOT_API_KEY;
-  const given = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (!key || !given) return false;
-  const a = Buffer.from(given);
-  const b = Buffer.from(key);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 const NOT_FOUND = () => Response.json({ error: "not_found" }, { status: 404 });
 
 export async function GET(req: Request, { params }: RouteContext<"/api/bot/orders/[number]">) {
-  if (!authorized(req)) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!authorizedBot(req)) return Response.json({ error: "unauthorized" }, { status: 401 });
   if (!isDbConfigured()) return Response.json({ error: "unavailable" }, { status: 503 });
 
   const number = (await params).number.trim().toUpperCase();

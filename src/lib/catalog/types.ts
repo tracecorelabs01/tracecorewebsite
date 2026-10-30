@@ -7,6 +7,9 @@ export type ProductVisual = { kind: "art"; art: ArtKey } | { kind: "image"; src:
 
 export type StockStatus = "in-stock" | "low-stock" | "preorder" | "sold-out";
 
+/** How each stock status reads in the shop, and to the Discord bot's AI assistant. */
+export const STOCK_LABEL: Record<StockStatus, string> = { "in-stock": "In stock", "low-stock": "Low stock", preorder: "Pre-order", "sold-out": "Sold out" };
+
 /** Most units of one product (all options combined) a single order may hold. Enforced at checkout. */
 export const MAX_QTY = 10;
 

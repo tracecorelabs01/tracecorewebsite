@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, animate, motion, useInView } from "motion/react";
 import { Minus, Plus } from "lucide-react";
+import { STOCK_LABEL, type StockStatus } from "@/lib/catalog/types";
 import { cn, formatPrice } from "@/lib/utils";
 import { EASE_EXPO } from "./motion";
 
@@ -137,19 +138,18 @@ export function Price({ price, compareAt, className, large }: { price: number; c
 }
 
 /* ── Stock status pill ── */
-const STATUS = {
-  "in-stock": { label: "In stock", dot: "bg-ok text-ok" },
-  "low-stock": { label: "Low stock", dot: "bg-warn text-warn" },
-  preorder: { label: "Pre-order", dot: "bg-silver text-silver" },
-  "sold-out": { label: "Sold out", dot: "bg-dim text-dim" },
-} as const;
+const STATUS_DOT: Record<StockStatus, string> = {
+  "in-stock": "bg-ok text-ok",
+  "low-stock": "bg-warn text-warn",
+  preorder: "bg-silver text-silver",
+  "sold-out": "bg-dim text-dim",
+};
 
-export function StatusDot({ status, className }: { status: keyof typeof STATUS; className?: string }) {
-  const s = STATUS[status];
+export function StatusDot({ status, className }: { status: StockStatus; className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2 type-kicker !tracking-[0.16em] text-muted", className)}>
-      <span className={cn("pulse-dot size-1.5 rounded-full", s.dot)} />
-      {s.label}
+      <span className={cn("pulse-dot size-1.5 rounded-full", STATUS_DOT[status])} />
+      {STOCK_LABEL[status]}
     </span>
   );
 }
