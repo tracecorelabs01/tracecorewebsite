@@ -37,12 +37,14 @@ class Tracer(commands.Bot):
 
         # Buttons on messages posted before a restart keep working.
         from cogs.assistant import HumanView
+        from cogs.orders import TrackView
         from cogs.tickets import ClosedTicketView, TicketActionView, TicketPanelView
 
         self.add_view(TicketPanelView())
         self.add_view(TicketActionView())
         self.add_view(ClosedTicketView())
         self.add_view(HumanView())
+        self.add_view(TrackView())
 
         synced = await self.tree.sync()
         log.info("Synced %d slash commands", len(synced))

@@ -4,12 +4,11 @@ that they finished Discord's rules screening or joined a server without it. Each
 import logging
 
 import discord
-from discord import ui
 from discord.ext import commands
 
 import database
 import embeds
-from config import STORE_URL
+from cogs.orders import TrackView
 
 log = logging.getLogger("tracer.welcome")
 
@@ -42,9 +41,7 @@ class WelcomeCog(commands.Cog):
     async def welcome(self, member: discord.Member, config: dict):
         if member.bot or not await database.mark_welcomed(member.guild.id, member.id):
             return
-        view = ui.View()
-        view.add_item(ui.Button(label="Shop", url=f"{STORE_URL}/shop"))
-        view.add_item(ui.Button(label="Link your Discord", url=f"{STORE_URL}/account"))
+        view = TrackView()
         embed = embeds.welcome(member, config["panel_channel_id"])
         channel = member.guild.get_channel(config["welcome_channel_id"] or 0)
         try:

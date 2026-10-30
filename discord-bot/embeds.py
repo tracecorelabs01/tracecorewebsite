@@ -96,11 +96,23 @@ def order(o: dict, staff: bool = False) -> discord.Embed:
     return embed
 
 
+def order_title(o: dict) -> str:
+    return f"{o['number']} · {ORDER_STATUS.get(o['status'], o['status'].title())}"
+
+
+def order_line(o: dict) -> str:
+    """One line for a menu, where Discord timestamps don't show: date, total, items."""
+    day = datetime.fromisoformat(o["placedAt"].replace("Z", "+00:00")).strftime("%d %b %Y")
+    units = sum(i["qty"] for i in o["items"])
+    return f"Placed {day} · {_money(o['totalCents'], o['currency'])} · {units} item{'' if units == 1 else 's'}"[:100]
+
+
 def my_orders(orders: list[dict]) -> discord.Embed:
-    """/myorders: the orders of the customer who linked this Discord account. Only they see it."""
+    """/track: the orders of the customer this Discord account is linked to. Only they see it."""
     if not orders:
-        return note("Your orders", "Your Discord is linked, but there are no orders on that account yet.", COLOR_SILVER)
-    embed = base("Only you can see this.", COLOR_OK, "Your orders")
+        return note("Your orders", "Your Discord is linked, but there are no orders yet.", COLOR_SILVER)
+    more = f" Your latest 10 are below; the menu has all {len(orders)}." if len(orders) > 10 else ""
+    embed = base(f"Pick an order in the menu for its details. Only you can see this.{more}", COLOR_OK, "Your orders")
     for o in orders[:10]:
         things = ", ".join(f"{i['qty']} × {i['name']}" + (f" ({i['option']})" if i.get("option") else "") for i in o["items"])
         t = o.get("tracking") or {}
@@ -110,15 +122,16 @@ def my_orders(orders: list[dict]) -> discord.Embed:
             things,
             tracking and f"Tracking: {tracking}",
         ]
-        embed.add_field(name=f"{o['number']} · {ORDER_STATUS.get(o['status'], o['status'].title())}", value="\n".join(filter(None, lines))[:1024], inline=False)
+        embed.add_field(name=order_title(o), value="\n".join(filter(None, lines))[:1024], inline=False)
     return embed
 
 
 def not_linked() -> discord.Embed:
     return note(
-        "Link your Discord first",
-        "To see your orders here, link this Discord account to your TraceCore Lab account: **sign in with Discord** on the website, "
-        "or sign in and press **Connect Discord** on your account page.\n\nNo account? `/track` finds an order with its number and email.",
+        "Link your Discord once",
+        "Link this Discord account to your orders once, and `/track` shows them all here from then on.\n\n"
+        "Press **Link with my email** and enter the email you ordered with: we'll email you a 6-digit code to type in here. "
+        "Just checking one order? Press **Track one order**.",
         COLOR_AMBER,
     )
 
@@ -147,8 +160,7 @@ def help_menu(staff: bool) -> discord.Embed:
         name="For everyone",
         value="\n".join([
             "`/ask` `<question>` · ask the AI assistant about products, stock, shipping or your order",
-            "`/myorders` · all your orders, once your Discord is linked to your account",
-            "`/track` `<order>` `<email>` · follow your order, tracking and warranty",
+            "`/track` · your orders, their tracking and warranty (link your Discord once, with an email code)",
             "`/payment` · how to pay",
             "Open a ticket with the buttons in the support channel. The AI assistant answers straight away, and the team joins you.",
         ]),
@@ -187,8 +199,7 @@ def _guide(panel_channel_id: int | None) -> str:
     return (
         f"\U0001f3ab **Support tickets** · open one {where}. I answer straight away, and the team joins you.\n"
         "\U0001f916 **/ask** · products, prices, stock, shipping, payment or setup. Only you see my answer.\n"
-        "\U0001f517 **/myorders** · all your orders, nothing to type. Link your Discord first: sign in with Discord on the website, or press Connect Discord on your account page.\n"
-        "\U0001f4e6 **/track** · follow an order with its number and email.\n"
+        "\U0001f4e6 **/track** · your orders, their tracking and warranty. The first time, link your Discord with a code we email you.\n"
         "\U0001f4b3 **/payment** · how to pay (by card, on the website).\n"
         "❓ **/help** · everything I can do.\n\n"
         "I'm an AI for quick answers. Refunds, order changes and anything I can't do go to the team."

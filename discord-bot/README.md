@@ -9,8 +9,7 @@ The full guide for the team (what everything does and how it works) is the "Trac
 | --- | --- |
 | **Ticket panel** (`/ticketpanel`) | Buttons for **Orders**, **Tech support**, **Warranty** and **Reseller** tickets, plus **Track order** and a link to the shop. Each ticket is a private channel for the customer and the support team. |
 | **Order details in tickets** | Orders and warranty tickets ask for the order number and email. Tracer checks them against the website and posts the order (status, items, tracking, warranty dates) in the ticket. |
-| **`/track`** | Customers follow their order privately: status, tracking number and warranty end date. Needs the order number and the email it was placed with. |
-| **`/myorders`** | A customer's own orders, privately, with nothing to type, once their Discord is linked on the website (signed in with Discord, or **Connect Discord** on the account page). The bot only ever asks for the orders of whoever ran it. |
+| **`/track`** | A customer's own orders, privately: a menu of them, and picking one shows its status, items, tracking and warranty dates. The first time, they link their Discord to their orders with **Link with my email** (a 6-digit code emailed to them, typed in Discord), or by signing in to the website with Discord. **Track one order** looks one up by its number and email instead. The bot only ever asks for the orders of whoever is using it. The ticket panel, `/intro` and the welcome message have a **Track my orders** button that does the same. |
 | **`/order`** | Staff look up any order, with the customer's details and a link to it in the admin. |
 | **`/intro`** | Admins post an introduction to the bot (what it does, the commands) in a channel. |
 | **`/payment`** | How to pay: on the website, by card through Razorpay. |

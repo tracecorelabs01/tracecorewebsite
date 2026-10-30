@@ -13,7 +13,7 @@ import embeds
 import store
 import transcript
 from checks import admin_only, is_admin, is_support, staff_only
-from cogs.orders import TrackModal, grant_customer_role
+from cogs.orders import grant_customer_role, show_my_orders
 from config import ADMIN_IDS, BOT_NAME, COLOR_EMBER, COLOR_OK, COLOR_WARN, STORE_URL
 
 log = logging.getLogger("tracer.tickets")
@@ -156,7 +156,7 @@ class TicketPanelView(ui.View):
 
     @ui.button(label="Track order", emoji="\U0001f4e6", style=discord.ButtonStyle.success, custom_id="ticket_track", row=1)
     async def track_btn(self, interaction: discord.Interaction, _):
-        await interaction.response.send_modal(TrackModal())
+        await show_my_orders(interaction)
 
 
 async def _set_talking(channel: discord.TextChannel, allowed: bool):

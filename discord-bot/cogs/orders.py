@@ -1,4 +1,5 @@
-"""Order lookups from the website, the Customer role, how to pay, and help."""
+"""Orders: /track (your own orders, once your Discord is linked to them with an email code), /order for staff, the
+Customer role, how to pay, and help."""
 import logging
 
 import discord
@@ -46,7 +47,7 @@ async def reply_with_order(interaction: discord.Interaction, raw_number: str, em
     await interaction.followup.send(embed=embeds.order(found, staff=staff), ephemeral=True)
 
 
-class TrackModal(ui.Modal, title="Track your order"):
+class TrackModal(ui.Modal, title="Track one order"):
     number = ui.TextInput(label="Order number", placeholder="TCL-AB12CD", max_length=10)
     email = ui.TextInput(label="Email you ordered with", placeholder="you@example.com", max_length=191)
 
@@ -54,14 +55,127 @@ class TrackModal(ui.Modal, title="Track your order"):
         await reply_with_order(interaction, self.number.value, self.email.value)
 
 
+# --- /track: your own orders, linked once with an email code ---
+
+async def show_my_orders(interaction: discord.Interaction):
+    """/track and every Track my orders button: the person's orders if their Discord is linked, else how to link it."""
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    await _send_my_orders(interaction)
+
+
+async def _send_my_orders(interaction: discord.Interaction):
+    try:
+        # Always the Discord account using the bot, so nobody can see someone else's orders.
+        data = await store.get_discord_orders(interaction.user.id)
+    except store.StoreError as err:
+        return await interaction.followup.send(embed=embeds.error(str(err)), ephemeral=True)
+    if not data.get("linked"):
+        return await interaction.followup.send(embed=embeds.not_linked(), view=LinkView(), ephemeral=True)
+    orders = data["orders"]
+    if paid := next((o for o in orders if o["paymentStatus"] == "paid"), None):
+        await grant_customer_role(interaction.user, paid)
+    if not orders:
+        return await interaction.followup.send(embed=embeds.my_orders([]), ephemeral=True)
+    await interaction.followup.send(embed=embeds.my_orders(orders), view=OrderPicker(orders), ephemeral=True)
+
+
+class OrderPicker(ui.View):
+    """A menu of the person's orders under /track; picking one shows its details in the same message."""
+
+    def __init__(self, orders: list[dict]):
+        super().__init__(timeout=900)
+        self.orders = {o["number"]: o for o in orders}
+        self.pick.options = [discord.SelectOption(label=embeds.order_title(o), description=embeds.order_line(o), value=o["number"]) for o in orders[:25]]
+
+    @ui.select(placeholder="Pick an order for its details")
+    async def pick(self, interaction: discord.Interaction, select: ui.Select):
+        await interaction.response.edit_message(embed=embeds.order(self.orders[select.values[0]]), view=self)
+
+
+class LinkView(ui.View):
+    """For someone whose Discord isn't linked yet: link it with an email code, or look up one order."""
+
+    def __init__(self):
+        super().__init__(timeout=900)
+
+    @ui.button(label="Link with my email", emoji="\U0001f517", style=discord.ButtonStyle.primary)
+    async def link_btn(self, interaction: discord.Interaction, _):
+        await interaction.response.send_modal(LinkEmailModal())
+
+    @ui.button(label="Track one order", emoji="\U0001f4e6", style=discord.ButtonStyle.secondary)
+    async def one_btn(self, interaction: discord.Interaction, _):
+        await interaction.response.send_modal(TrackModal())
+
+
+class LinkEmailModal(ui.Modal, title="Link your Discord"):
+    email = ui.TextInput(label="Email you ordered with", placeholder="you@example.com", max_length=191)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await _send_link_code(interaction, self.email.value.strip())
+
+
+async def _send_link_code(interaction: discord.Interaction, email: str):
+    await interaction.response.defer(ephemeral=True, thinking=True)
+    try:
+        result = await store.start_discord_link(interaction.user.id, email)
+    except store.StoreError as err:
+        return await interaction.followup.send(embed=embeds.error(str(err)), ephemeral=True)
+    if not result["ok"]:
+        return await interaction.followup.send(embed=embeds.error(result["message"]), ephemeral=True)
+    await interaction.followup.send(embed=embeds.note("Check your email", f"{result['message']}\n\nPress **Enter the code** when it arrives."), view=CodeView(email), ephemeral=True)
+
+
+class CodeView(ui.View):
+    def __init__(self, email: str):
+        super().__init__(timeout=900)
+        self.email = email
+
+    @ui.button(label="Enter the code", style=discord.ButtonStyle.primary)
+    async def code_btn(self, interaction: discord.Interaction, _):
+        await interaction.response.send_modal(LinkCodeModal(self.email))
+
+    @ui.button(label="Send a new code", style=discord.ButtonStyle.secondary)
+    async def resend_btn(self, interaction: discord.Interaction, _):
+        await _send_link_code(interaction, self.email)
+
+
+class LinkCodeModal(ui.Modal, title="Enter your code"):
+    code = ui.TextInput(label="6-digit code from the email", placeholder="123456", min_length=6, max_length=6)
+
+    def __init__(self, email: str):
+        super().__init__()
+        self.email = email
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        try:
+            result = await store.finish_discord_link(interaction.user.id, self.email, self.code.value, interaction.user.name)
+        except store.StoreError as err:
+            return await interaction.followup.send(embed=embeds.error(str(err)), ephemeral=True)
+        if not result["ok"]:
+            return await interaction.followup.send(embed=embeds.error(result["message"]), view=CodeView(self.email), ephemeral=True)
+        await _send_my_orders(interaction)
+
+
+class TrackView(ui.View):
+    """Under /intro and the welcome message. Persistent, so the button keeps working after a restart."""
+
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(ui.Button(label="Shop", url=f"{STORE_URL}/shop"))
+
+    @ui.button(label="Track my orders", emoji="\U0001f4e6", style=discord.ButtonStyle.primary, custom_id="track_orders")
+    async def track_btn(self, interaction: discord.Interaction, _):
+        await show_my_orders(interaction)
+
+
 class OrdersCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="track", description="Follow your order: status, tracking and warranty")
-    @app_commands.describe(order="Your order number, e.g. TCL-AB12CD", email="The email you ordered with")
-    async def track_cmd(self, interaction: discord.Interaction, order: str, email: str):
-        await reply_with_order(interaction, order, email)
+    @app_commands.command(name="track", description="Your orders: status, tracking and warranty")
+    async def track_cmd(self, interaction: discord.Interaction):
+        await show_my_orders(interaction)
 
     @app_commands.command(name="order", description="Look up any order (support team)")
     @staff_only
@@ -71,33 +185,14 @@ class OrdersCog(commands.Cog):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
         await reply_with_order(interaction, order, None, staff=True)
 
-    @app_commands.command(name="myorders", description="Your orders, once your Discord is linked to your TraceCore Lab account")
-    async def myorders_cmd(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        try:
-            # Always the ID of whoever ran the command, so nobody can see someone else's orders.
-            data = await store.get_discord_orders(interaction.user.id)
-        except store.StoreError as err:
-            return await interaction.followup.send(embed=embeds.error(str(err)), ephemeral=True)
-        if not data.get("linked"):
-            view = ui.View()
-            view.add_item(ui.Button(label="Open your account", url=f"{STORE_URL}/account"))
-            return await interaction.followup.send(embed=embeds.not_linked(), view=view, ephemeral=True)
-        if paid := next((o for o in data["orders"] if o["paymentStatus"] == "paid"), None):
-            await grant_customer_role(interaction.user, paid)
-        await interaction.followup.send(embed=embeds.my_orders(data["orders"]), ephemeral=True)
-
     @app_commands.command(name="intro", description="Post an introduction to the bot in this channel (admins)")
     @admin_only
     @app_commands.guild_only()
     async def intro_cmd(self, interaction: discord.Interaction):
         if not is_admin(interaction):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
-        view = ui.View()
-        view.add_item(ui.Button(label="Shop", url=f"{STORE_URL}/shop"))
-        view.add_item(ui.Button(label="Link your Discord", url=f"{STORE_URL}/account"))
         config = await database.get_config(interaction.guild.id)
-        await interaction.response.send_message(embed=embeds.intro(config["panel_channel_id"]), view=view)
+        await interaction.response.send_message(embed=embeds.intro(config["panel_channel_id"]), view=TrackView())
 
     @app_commands.command(name="payment", description="How to pay for an order")
     async def payment_cmd(self, interaction: discord.Interaction):
