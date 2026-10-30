@@ -32,7 +32,7 @@ class Tracer(commands.Bot):
 
     async def setup_hook(self):
         await database.setup()
-        for cog in ("cogs.orders", "cogs.tickets", "cogs.assistant"):
+        for cog in ("cogs.orders", "cogs.tickets", "cogs.assistant", "cogs.welcome"):
             await self.load_extension(cog)
 
         # Buttons on messages posted before a restart keep working.

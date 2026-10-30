@@ -11,7 +11,17 @@ DB_FILE = os.path.join(DATA_DIR, "bot_test.db" if TEST_MODE else "bot.db")
 
 # Ticket types. "purchase" is the Orders ticket (the key is kept so existing setups carry over).
 TICKET_TYPES = ("purchase", "support", "warranty", "reseller")
-CONFIG_COLUMNS = ["transcript_channel_id", *(f"{t}_category_id" for t in TICKET_TYPES), "ticket_counter", "customer_role_id"]
+# welcome_*/verified_role_id: where new members are welcomed, and the role that marks them verified (cogs/welcome.py).
+# panel_channel_id: where /ticketpanel was last posted, so messages can point people there.
+CONFIG_COLUMNS = [
+    "transcript_channel_id",
+    *(f"{t}_category_id" for t in TICKET_TYPES),
+    "ticket_counter",
+    "customer_role_id",
+    "welcome_channel_id",
+    "verified_role_id",
+    "panel_channel_id",
+]
 # ai_off: 1 once the team takes a ticket over, so the AI assistant stops answering in it.
 TICKET_FIELDS = ("status", "claimed_by", "closed_at", "closed_by", "ai_off")
 
@@ -51,7 +61,18 @@ async def setup():
             "cached_tokens INTEGER, completion_tokens INTEGER, created_at TEXT)"
         )
         await db.execute("CREATE INDEX IF NOT EXISTS ai_usage_created ON ai_usage (created_at)")
-        await _add_missing_columns(db, "guild_configs", {"warranty_category_id": "INTEGER", "customer_role_id": "INTEGER"})
+        await db.execute("CREATE TABLE IF NOT EXISTS welcomed (guild_id INTEGER, user_id INTEGER, at TEXT, PRIMARY KEY (guild_id, user_id))")
+        await _add_missing_columns(
+            db,
+            "guild_configs",
+            {
+                "warranty_category_id": "INTEGER",
+                "customer_role_id": "INTEGER",
+                "welcome_channel_id": "INTEGER",
+                "verified_role_id": "INTEGER",
+                "panel_channel_id": "INTEGER",
+            },
+        )
         await _add_missing_columns(db, "tickets", {"order_number": "TEXT", "ai_off": "INTEGER DEFAULT 0"})
         await db.commit()
 
@@ -169,6 +190,14 @@ async def get_open_tickets() -> list[dict]:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM tickets WHERE status = 'open'") as cursor:
             return [dict(r) for r in await cursor.fetchall()]
+
+
+async def mark_welcomed(guild_id: int, user_id: int) -> bool:
+    """True the first time for a member, so each one is welcomed once."""
+    async with aiosqlite.connect(DB_FILE) as db:
+        cursor = await db.execute("INSERT OR IGNORE INTO welcomed (guild_id, user_id, at) VALUES (?, ?, ?)", (guild_id, user_id, str_now()))
+        await db.commit()
+        return cursor.rowcount == 1
 
 
 # --- AI assistant usage: one row per reply, for the daily and per-person limits ---

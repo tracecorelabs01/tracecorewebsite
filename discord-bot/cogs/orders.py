@@ -8,7 +8,7 @@ from discord.ext import commands
 import database
 import embeds
 import store
-from checks import is_admin, is_support
+from checks import admin_only, is_admin, is_support, staff_only
 from config import BOT_NAME, STORE_URL
 
 log = logging.getLogger("tracer.orders")
@@ -64,6 +64,7 @@ class OrdersCog(commands.Cog):
         await reply_with_order(interaction, order, email)
 
     @app_commands.command(name="order", description="Look up any order (support team)")
+    @staff_only
     @app_commands.describe(order="Order number, e.g. TCL-AB12CD")
     async def order_cmd(self, interaction: discord.Interaction, order: str):
         if not await is_support(interaction):
@@ -87,13 +88,16 @@ class OrdersCog(commands.Cog):
         await interaction.followup.send(embed=embeds.my_orders(data["orders"]), ephemeral=True)
 
     @app_commands.command(name="intro", description="Post an introduction to the bot in this channel (admins)")
+    @admin_only
+    @app_commands.guild_only()
     async def intro_cmd(self, interaction: discord.Interaction):
         if not is_admin(interaction):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
         view = ui.View()
         view.add_item(ui.Button(label="Shop", url=f"{STORE_URL}/shop"))
         view.add_item(ui.Button(label="Link your Discord", url=f"{STORE_URL}/account"))
-        await interaction.response.send_message(embed=embeds.intro(), view=view)
+        config = await database.get_config(interaction.guild.id)
+        await interaction.response.send_message(embed=embeds.intro(config["panel_channel_id"]), view=view)
 
     @app_commands.command(name="payment", description="How to pay for an order")
     async def payment_cmd(self, interaction: discord.Interaction):

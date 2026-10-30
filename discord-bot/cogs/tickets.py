@@ -12,7 +12,7 @@ import database
 import embeds
 import store
 import transcript
-from checks import is_admin, is_support
+from checks import admin_only, is_admin, is_support, staff_only
 from cogs.orders import TrackModal, grant_customer_role
 from config import ADMIN_IDS, BOT_NAME, COLOR_EMBER, COLOR_OK, COLOR_WARN, STORE_URL
 
@@ -343,12 +343,16 @@ class TicketsCog(commands.Cog):
         await self.bot.wait_until_ready()
 
     @app_commands.command(name="ticketpanel", description="Post the ticket buttons in this channel")
+    @admin_only
     async def ticketpanel_cmd(self, interaction: discord.Interaction):
         if not is_admin(interaction):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
         await interaction.response.send_message(embed=embeds.ticket_panel(), view=TicketPanelView())
+        # The welcome message and /intro point people here.
+        await database.set_config(interaction.guild.id, panel_channel_id=interaction.channel.id)
 
-    @app_commands.command(name="ticketsetup", description="Pick the transcript channel, ticket categories and support role")
+    @app_commands.command(name="ticketsetup", description="Pick the ticket categories, log channel, roles and welcome channel")
+    @admin_only
     @app_commands.describe(
         transcript_channel="Where transcripts are saved",
         orders_category="Category for Orders tickets",
@@ -357,6 +361,8 @@ class TicketsCog(commands.Cog):
         reseller_category="Category for Reseller tickets",
         support_role="Role that can see and handle tickets",
         customer_role="Role given to people who verify a paid order",
+        welcome_channel="Where new members are welcomed once verified (none: by DM)",
+        verified_role="The role your verification gives; members are welcomed when they get it",
     )
     async def ticketsetup_cmd(
         self,
@@ -368,6 +374,8 @@ class TicketsCog(commands.Cog):
         reseller_category: discord.CategoryChannel | None = None,
         support_role: discord.Role | None = None,
         customer_role: discord.Role | None = None,
+        welcome_channel: discord.TextChannel | None = None,
+        verified_role: discord.Role | None = None,
     ):
         if not is_admin(interaction):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
@@ -381,16 +389,30 @@ class TicketsCog(commands.Cog):
             await database.add_support_role(guild.id, support_role.id)
         if customer_role:
             await database.set_config(guild.id, customer_role_id=customer_role.id)
+        if welcome_channel:
+            await database.set_config(guild.id, welcome_channel_id=welcome_channel.id)
+        if verified_role:
+            await database.set_config(guild.id, verified_role_id=verified_role.id)
         await interaction.response.send_message(embed=await self._summary(guild), ephemeral=True)
 
     async def _summary(self, guild: discord.Guild, heading: str = "Ticket setup saved") -> discord.Embed:
         config = await database.get_config(guild.id)
         categories = {key: guild.get_channel(config.get(f"{key}_category_id") or 0) for key in database.TICKET_TYPES}
+        def role(key: str):
+            return guild.get_role(config.get(key) or 0)
+
         return embeds.setup_summary(
-            guild.get_channel(config.get("transcript_channel_id") or 0), categories, config["support_role_ids"], guild.get_role(config.get("customer_role_id") or 0), heading
+            guild.get_channel(config.get("transcript_channel_id") or 0),
+            categories,
+            config["support_role_ids"],
+            role("customer_role_id"),
+            guild.get_channel(config.get("welcome_channel_id") or 0),
+            role("verified_role_id"),
+            heading,
         )
 
     @app_commands.command(name="ticketautosetup", description="Create whatever's missing: support role, transcript channel, categories, Customer role")
+    @admin_only
     async def ticketautosetup_cmd(self, interaction: discord.Interaction):
         if not is_admin(interaction):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
@@ -425,6 +447,7 @@ class TicketsCog(commands.Cog):
         await interaction.followup.send(embed=await self._summary(guild, "Tickets are set up"))
 
     @app_commands.command(name="removesupportrole", description="Stop a role from seeing and handling tickets")
+    @admin_only
     @app_commands.describe(role="Role to remove")
     async def removesupportrole_cmd(self, interaction: discord.Interaction, role: discord.Role):
         if not is_admin(interaction):
@@ -433,6 +456,7 @@ class TicketsCog(commands.Cog):
         await interaction.response.send_message(embed=embeds.note("Support role removed", f"{role.mention} no longer sees new tickets.", COLOR_EMBER), ephemeral=True)
 
     @app_commands.command(name="rename", description="Rename this ticket channel")
+    @staff_only
     @app_commands.describe(name="New channel name")
     async def rename_cmd(self, interaction: discord.Interaction, name: str):
         if not await database.get_ticket(interaction.channel.id):
@@ -444,6 +468,7 @@ class TicketsCog(commands.Cog):
         await interaction.response.send_message(embed=embeds.note("Ticket renamed", f"`{old}` → `{interaction.channel.name}`"))
 
     @app_commands.command(name="add", description="Add someone to this ticket")
+    @staff_only
     @app_commands.describe(user="Who to add")
     async def add_cmd(self, interaction: discord.Interaction, user: discord.Member):
         ticket = await database.get_ticket(interaction.channel.id)
@@ -455,6 +480,7 @@ class TicketsCog(commands.Cog):
         await interaction.response.send_message(embed=embeds.note("Added to ticket", f"{user.mention} can now see this ticket.", COLOR_OK))
 
     @app_commands.command(name="remove", description="Remove someone from this ticket")
+    @staff_only
     @app_commands.describe(user="Who to remove")
     async def remove_cmd(self, interaction: discord.Interaction, user: discord.Member):
         ticket = await database.get_ticket(interaction.channel.id)
@@ -472,6 +498,7 @@ class TicketsCog(commands.Cog):
         await ask_to_close(interaction)
 
     @app_commands.command(name="reopen", description="Reopen this closed ticket")
+    @staff_only
     async def reopen_cmd(self, interaction: discord.Interaction):
         if not await is_support(interaction):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
@@ -482,10 +509,12 @@ class TicketsCog(commands.Cog):
         await _reopen(interaction.channel, interaction.user)
 
     @app_commands.command(name="delete", description="Save the transcript and delete this ticket")
+    @admin_only
     async def delete_cmd(self, interaction: discord.Interaction):
         await delete_ticket(interaction)
 
     @app_commands.command(name="deletealltickets", description="Save transcripts and delete every open ticket")
+    @admin_only
     async def deletealltickets_cmd(self, interaction: discord.Interaction):
         if not is_admin(interaction):
             return await interaction.response.send_message(embed=embeds.error("Only admins can do this."), ephemeral=True)
@@ -516,6 +545,7 @@ class TicketsCog(commands.Cog):
         await interaction.edit_original_response(content=f"Deleted **{count}** tickets.")
 
     @app_commands.command(name="ticketstats", description="Ticket counts by type")
+    @staff_only
     async def ticketstats_cmd(self, interaction: discord.Interaction):
         if not await is_support(interaction):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)

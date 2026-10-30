@@ -1,8 +1,15 @@
 """Who can do what: admins (ADMIN_IDS or server administrators) and the support team (roles from /ticketsetup)."""
 import discord
+from discord import app_commands
 
 import database
 from config import ADMIN_IDS
+
+# Who sees a command in Discord's command list, so customers only see the ones meant for them. Staff commands need
+# Manage Messages, admin ones Administrator; a server can give other roles access under Server Settings →
+# Integrations. Every command still checks the person using it (below).
+staff_only = app_commands.default_permissions(manage_messages=True)
+admin_only = app_commands.default_permissions(administrator=True)
 
 
 def _admin(user: discord.abc.User) -> bool:

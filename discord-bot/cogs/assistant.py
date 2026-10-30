@@ -12,7 +12,7 @@ from discord.ext import commands
 import ai
 import database
 import embeds
-from checks import is_support, is_support_member
+from checks import is_support, is_support_member, staff_only
 from cogs.orders import grant_customer_role
 from config import BOT_NAME, COLOR_SILVER
 
@@ -140,6 +140,7 @@ class AssistantCog(commands.Cog):
         await interaction.followup.send(embed=embeds.ai_answer(text, in_ticket=False), ephemeral=True)
 
     @app_commands.command(name="summary", description="AI summary of this ticket (support team)")
+    @staff_only
     @app_commands.guild_only()
     async def summary_cmd(self, interaction: discord.Interaction):
         if not await is_support(interaction):

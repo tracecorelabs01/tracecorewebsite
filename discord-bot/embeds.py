@@ -181,21 +181,36 @@ def help_menu(staff: bool) -> discord.Embed:
     return embed
 
 
-def intro() -> discord.Embed:
-    """/intro: what the bot does, posted for everyone in a channel."""
-    embed = base(
-        f"I'm {BOT_NAME}, {BRAND}'s assistant. Here's how I can help:\n\n"
-        "\U0001f3ab **Support tickets** · open one with the buttons in the support channel. I answer straight away, and the team joins you.\n"
+def _guide(panel_channel_id: int | None) -> str:
+    """What members can do with the bot: the body of /intro and of the welcome message."""
+    where = f"in <#{panel_channel_id}>" if panel_channel_id else "with the buttons in the support channel"
+    return (
+        f"\U0001f3ab **Support tickets** · open one {where}. I answer straight away, and the team joins you.\n"
         "\U0001f916 **/ask** · products, prices, stock, shipping, payment or setup. Only you see my answer.\n"
         "\U0001f517 **/myorders** · all your orders, nothing to type. Link your Discord first: sign in with Discord on the website, or press Connect Discord on your account page.\n"
         "\U0001f4e6 **/track** · follow an order with its number and email.\n"
         "\U0001f4b3 **/payment** · how to pay (by card, on the website).\n"
-        "❓ **/help** · every command.\n\n"
-        "I'm an AI for quick answers. Refunds, order changes and anything I can't do go to the team.",
-        COLOR_BRAND,
-        f"Meet {BOT_NAME}",
+        "❓ **/help** · everything I can do.\n\n"
+        "I'm an AI for quick answers. Refunds, order changes and anything I can't do go to the team."
     )
+
+
+def intro(panel_channel_id: int | None = None) -> discord.Embed:
+    """/intro: what the bot does, posted for everyone in a channel."""
+    embed = base(f"I'm {BOT_NAME}, {BRAND}'s assistant. Here's how I can help:\n\n" + _guide(panel_channel_id), COLOR_BRAND, f"Meet {BOT_NAME}")
     embed.set_thumbnail(url=LOGO_URL)
+    return embed
+
+
+def welcome(member: discord.Member, panel_channel_id: int | None = None) -> discord.Embed:
+    """Sent once a new member is verified (cogs/welcome.py)."""
+    embed = base(
+        f"Welcome to **{BRAND}**, {member.mention}! You're verified and ready to go. I'm {BOT_NAME}, the server's assistant. Here's how I can help:\n\n"
+        + _guide(panel_channel_id),
+        COLOR_BRAND,
+        f"Welcome, {member.display_name}",
+    )
+    embed.set_thumbnail(url=member.display_avatar.url)
     return embed
 
 
@@ -307,11 +322,12 @@ def ticket_stats(guild_name: str, tickets: list[dict]) -> discord.Embed:
     return embed
 
 
-def setup_summary(log_channel, categories: dict, role_ids: list[int], customer_role, heading: str = "Ticket setup saved") -> discord.Embed:
+def setup_summary(log_channel, categories: dict, role_ids: list[int], customer_role, welcome_channel, verified_role, heading: str = "Ticket setup saved") -> discord.Embed:
     lines = [f"**Transcripts:** {log_channel.mention if log_channel else '*not set*'}"]
     for key, k in TICKET_KINDS.items():
         cat = categories.get(key)
         lines.append(f"**{k['label']} category:** {cat.name if cat else '*not set*'}")
     lines.append(f"**Support roles:** {', '.join(f'<@&{r}>' for r in role_ids) or '*none*'}")
     lines.append(f"**Customer role** (given for a verified paid order): {customer_role.mention if customer_role else '*not set*'}")
+    lines.append(f"**Welcome:** {welcome_channel.mention if welcome_channel else 'by DM'}, when members get {verified_role.mention if verified_role else 'past Discord’s rules screening'}")
     return note(heading, "\n".join(lines), COLOR_OK)
