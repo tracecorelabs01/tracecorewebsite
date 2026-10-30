@@ -1,16 +1,21 @@
 import "server-only";
 import { and, asc, count, desc, eq, gt, inArray, isNotNull, sum } from "drizzle-orm";
 import { customers, discountCodes, getDb, loyaltyLedger, loyaltyOffers, orderItems, orders, products, reviews } from "@/db";
+import { listAddresses } from "@/lib/address";
 
 // Read-only queries for the customer account pages. Every one is scoped to the signed-in customer's id.
 
 export type CheckoutDetails = NonNullable<Awaited<ReturnType<typeof getCheckoutDetails>>>;
 
-/** What checkout fills in for a signed-in customer: their details, with the address from their latest order. */
+/**
+ * What checkout fills in for a signed-in customer: their contact details and saved addresses, the default first.
+ * An account with nothing saved yet (from before the address book) gets the address of its latest order.
+ */
 export async function getCheckoutDetails(customerId: number) {
   const db = getDb();
-  const [[c], [last]] = await Promise.all([
-    db.select({ email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone, country: customers.country }).from(customers).where(eq(customers.id, customerId)).limit(1),
+  const [[c], saved, [last]] = await Promise.all([
+    db.select({ email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone }).from(customers).where(eq(customers.id, customerId)).limit(1),
+    listAddresses(customerId),
     db
       .select({
         firstName: orders.firstName,
@@ -29,18 +34,35 @@ export async function getCheckoutDetails(customerId: number) {
       .limit(1),
   ]);
   if (!c) return null;
+  const places = saved.length ? saved : last ? [{ ...last, id: 0, isDefault: false }] : [];
   return {
     email: c.email,
-    firstName: last?.firstName || c.firstName,
-    lastName: last?.lastName || c.lastName,
-    phone: last?.phone || c.phone || "",
-    address1: last?.address1 ?? "",
-    address2: last?.address2 ?? "",
-    city: last?.city ?? "",
-    region: last?.region ?? "",
-    postalCode: last?.postalCode ?? "",
-    country: last?.country || c.country || "",
+    firstName: c.firstName || last?.firstName || "",
+    lastName: c.lastName || last?.lastName || "",
+    phone: c.phone || last?.phone || "",
+    addresses: places.map((a) => ({
+      id: a.id,
+      isDefault: a.isDefault,
+      firstName: a.firstName,
+      lastName: a.lastName,
+      address1: a.address1,
+      address2: a.address2 ?? "",
+      city: a.city,
+      region: a.region ?? "",
+      postalCode: a.postalCode,
+      country: a.country,
+    })),
   };
+}
+
+/** The account's own name and phone, for /account/details. */
+export async function getProfile(customerId: number) {
+  const [c] = await getDb()
+    .select({ email: customers.email, firstName: customers.firstName, lastName: customers.lastName, phone: customers.phone })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(1);
+  return c;
 }
 
 /** The customer behind an email that has placed orders, account or not (for codes that show those orders). */

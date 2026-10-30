@@ -57,6 +57,13 @@
       "when": 1793381024422,
       "tag": "0007_social_sign_in",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1793386787882,
+      "tag": "0008_customer_addresses",
+      "breakpoints": true
     }
   ]
 }

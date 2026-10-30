@@ -4,6 +4,8 @@ import { revalidateTag } from "next/cache";
 import { and, count, eq, gt, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { categories, customers, discountCodes, getDb, isDbConfigured, messages, orderEvents, orderItems, orders, products, subscribers } from "@/db";
+import { addressSchema, rememberAddress } from "@/lib/address";
+import { getCurrentCustomer } from "@/lib/auth/customer";
 import { getCatalog, getSetupBuilder, getStoreSettings, TAGS } from "@/lib/catalog/server";
 import { MAX_QTY } from "@/lib/catalog/types";
 import { isCompleteSetup, setupDiscountCode } from "@/lib/setup-builder";
@@ -178,17 +180,9 @@ export async function previewSetupDiscount(lines: CartInput): Promise<{ code: st
 
 /* ───────────── place order ───────────── */
 
-const orderSchema = z.object({
+const orderSchema = addressSchema.extend({
   email: z.email("Enter a valid email").max(191),
   phone: z.string().trim().max(40).optional(),
-  firstName: z.string().trim().min(1, "Required").max(80),
-  lastName: z.string().trim().min(1, "Required").max(80),
-  address1: z.string().trim().min(3, "Required").max(191),
-  address2: z.string().trim().max(191).optional(),
-  city: z.string().trim().min(1, "Required").max(120),
-  region: z.string().trim().max(120).optional(),
-  postalCode: z.string().trim().min(2, "Required").max(40),
-  country: z.string().trim().min(2, "Select a country").max(80),
   paymentMethod: z.enum(["card", "paypal", "crypto"]),
   discountCode: z.string().trim().max(40).optional(),
   note: z.string().trim().max(1000).optional(),
@@ -268,9 +262,12 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   if ((recent?.n ?? 0) >= 10) return { ok: false, error: "Too many orders from your network. Please try again later or contact support." };
 
   const email = data.email.toLowerCase();
+  const me = await getCurrentCustomer();
   let number = "";
   let placedId = 0;
   let account = false;
+  // The account whose address book keeps this address (0: none).
+  let rememberFor = 0;
   try {
     await db.transaction(async (tx) => {
       for (const l of priced.lines) {
@@ -328,6 +325,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       } else {
         [{ id: customerId }] = await tx.insert(customers).values({ email, ...profile, ordersCount: 1, ...opened }).$returningId();
       }
+      // Only the account's own order (signed in) or an account this checkout opens: typing someone else's email at
+      // checkout mustn't add addresses to their account.
+      if (me?.id === customerId || (data.createAccount && !existing?.accountCreatedAt)) rememberFor = customerId;
 
       let orderId = 0;
       for (let attempt = 0; attempt < 5 && !orderId; attempt++) {
@@ -385,6 +385,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
 
   // Stock changed: refresh the storefront catalogue in the background.
   revalidateTag(TAGS.catalog, "max");
+  // Kept for next time; the order stands even if this fails.
+  if (rememberFor) await rememberAddress(rememberFor, addressSchema.parse(data)).catch((err) => console.error("[checkout] saving the address failed", err));
   // Card orders paid online are confirmed by email once the payment is in (src/lib/razorpay.ts).
   const payOnline = data.paymentMethod === "card" && isRazorpayConfigured();
   if (!payOnline) await emailOrder(placedId, "received", { note: settings.orderNote });

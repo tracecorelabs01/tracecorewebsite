@@ -9,6 +9,7 @@ const TABS = [
   { href: "/account", label: "Orders" },
   { href: "/account/rewards", label: "Rewards" },
   { href: "/account/reviews", label: "Reviews" },
+  { href: "/account/details", label: "Details" },
 ] as const;
 
 /** Hero, tabs and sign-out shared by the signed-in account pages. */

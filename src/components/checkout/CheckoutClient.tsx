@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertTriangle, Bitcoin, Check, CreditCard, Info, Loader2, Lock, PackageSearch, ShoppingBag, Tag, UserPlus, UserRound, Wallet, X } from "lucide-react";
 import { confirmPayment, startPayment } from "@/actions/payment";
@@ -10,6 +10,7 @@ import { SocialSignIn } from "@/components/account/SocialSignIn";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import type { CheckoutDetails } from "@/lib/account";
 import type { Provider } from "@/lib/auth/oauth";
+import { COUNTRIES } from "@/lib/countries";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { PaymentLogos, TrustBadges } from "@/components/ui/Badges";
 import { ButtonLink } from "@/components/ui/Button";
@@ -18,7 +19,6 @@ import { selectSubtotal, useCart } from "@/lib/cart-store";
 import { useUi } from "@/lib/ui-store";
 import { cn, formatPrice } from "@/lib/utils";
 
-const countries = ["United States", "Canada", "United Kingdom", "Germany", "France", "Netherlands", "Sweden", "Poland", "Australia", "India", "Other"];
 const methods = [
   { id: "card", label: "Card", sub: "Debit or credit card", Icon: CreditCard },
   { id: "paypal", label: "PayPal", sub: "Pay with your PayPal balance or card", Icon: Wallet },
@@ -78,6 +78,10 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
   const [checkingCode, startCodeCheck] = useTransition();
   const [pay, setPay] = useState<{ state: PayState; error?: string }>({ state: "opening" });
   const resetOnHide = useRef(false);
+  // Which saved address fills the shipping fields; one past the last is a new address.
+  const saved = details?.addresses ?? [];
+  const [shipTo, setShipTo] = useState(0);
+  const place = saved[shipTo];
 
   // Don't show a stale confirmation if the user navigates away and back.
   useLayoutEffect(() => {
@@ -271,30 +275,51 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
           </Fieldset>
 
           <Fieldset step="02" title="Shipping">
-            <Field label="First name" name="firstName" autoComplete="given-name" required defaultValue={details?.firstName} error={fieldErrors.firstName} />
-            <Field label="Last name" name="lastName" autoComplete="family-name" required defaultValue={details?.lastName} error={fieldErrors.lastName} />
-            <Field label="Address" name="address1" autoComplete="address-line1" required className="sm:col-span-2" defaultValue={details?.address1} error={fieldErrors.address1} />
-            <Field label="Apartment, suite (optional)" name="address2" autoComplete="address-line2" className="sm:col-span-2" defaultValue={details?.address2} />
-            <Field label="City" name="city" autoComplete="address-level2" required defaultValue={details?.city} error={fieldErrors.city} />
-            <Field label="State / region (optional)" name="region" autoComplete="address-level1" defaultValue={details?.region} />
-            <Field label="Postal code" name="zip" autoComplete="postal-code" required defaultValue={details?.postalCode} error={fieldErrors.postalCode} />
-            <label>
-              <span className="type-kicker text-dim">Country</span>
-              <select
-                name="country"
-                required
-                defaultValue={details && countries.includes(details.country) ? details.country : ""}
-                className={cn("mt-2 h-12 w-full rounded-xl border bg-ink-900 px-4 text-fg outline-none transition-colors focus:border-blaze", fieldErrors.country ? "border-ember" : "border-line-strong")}
-              >
-                <option value="" disabled>
-                  Select country
-                </option>
-                {countries.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-              {fieldErrors.country && <span className="mt-1.5 block text-xs text-ember">{fieldErrors.country}</span>}
-            </label>
+            {saved.length > 0 && (
+              <label className="sm:col-span-2">
+                <span className="type-kicker text-dim">Ship to</span>
+                <select
+                  value={shipTo}
+                  onChange={(e) => setShipTo(Number(e.target.value))}
+                  className="mt-2 h-12 w-full rounded-xl border border-line-strong bg-ink-900 px-4 text-fg outline-none transition-colors focus:border-blaze"
+                >
+                  {saved.map((a, i) => (
+                    <option key={a.id} value={i}>
+                      {[`${a.firstName} ${a.lastName}`, a.address1, a.city, a.country].join(", ")}
+                      {a.isDefault ? " (default)" : ""}
+                    </option>
+                  ))}
+                  <option value={saved.length}>A new address</option>
+                </select>
+              </label>
+            )}
+            {/* A new key refills the fields from the address picked above. */}
+            <Fragment key={shipTo}>
+              <Field label="First name" name="firstName" autoComplete="given-name" required defaultValue={place?.firstName ?? details?.firstName} error={fieldErrors.firstName} />
+              <Field label="Last name" name="lastName" autoComplete="family-name" required defaultValue={place?.lastName ?? details?.lastName} error={fieldErrors.lastName} />
+              <Field label="Address" name="address1" autoComplete="address-line1" required className="sm:col-span-2" defaultValue={place?.address1} error={fieldErrors.address1} />
+              <Field label="Apartment, suite (optional)" name="address2" autoComplete="address-line2" className="sm:col-span-2" defaultValue={place?.address2} />
+              <Field label="City" name="city" autoComplete="address-level2" required defaultValue={place?.city} error={fieldErrors.city} />
+              <Field label="State / region (optional)" name="region" autoComplete="address-level1" defaultValue={place?.region} />
+              <Field label="Postal code" name="zip" autoComplete="postal-code" required defaultValue={place?.postalCode} error={fieldErrors.postalCode} />
+              <label>
+                <span className="type-kicker text-dim">Country</span>
+                <select
+                  name="country"
+                  required
+                  defaultValue={place && COUNTRIES.includes(place.country) ? place.country : ""}
+                  className={cn("mt-2 h-12 w-full rounded-xl border bg-ink-900 px-4 text-fg outline-none transition-colors focus:border-blaze", fieldErrors.country ? "border-ember" : "border-line-strong")}
+                >
+                  <option value="" disabled>
+                    Select country
+                  </option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+                {fieldErrors.country && <span className="mt-1.5 block text-xs text-ember">{fieldErrors.country}</span>}
+              </label>
+            </Fragment>
             <label className="sm:col-span-2">
               <span className="type-kicker text-dim">Order note (optional)</span>
               <textarea name="note" rows={3} maxLength={1000} className="mt-2 w-full resize-y rounded-xl border border-line-strong bg-ink-900 px-4 py-3 text-fg outline-none transition-colors focus:border-blaze" />

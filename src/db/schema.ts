@@ -204,6 +204,30 @@ export const passwordResets = mysqlTable(
   (t) => [index("password_resets_subject_idx").on(t.kind, t.subjectId)],
 );
 
+/** An account's saved shipping addresses: kept from orders it places, managed on /account/details, offered at checkout. */
+export const customerAddresses = mysqlTable(
+  "customer_addresses",
+  {
+    id: id(),
+    customerId: int("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    firstName: varchar("first_name", { length: 80 }).notNull(),
+    lastName: varchar("last_name", { length: 80 }).notNull(),
+    address1: varchar("address1", { length: 191 }).notNull(),
+    address2: varchar("address2", { length: 191 }),
+    city: varchar("city", { length: 120 }).notNull(),
+    region: varchar("region", { length: 120 }),
+    postalCode: varchar("postal_code", { length: 40 }).notNull(),
+    country: varchar("country", { length: 80 }).notNull(),
+    // The one checkout picks first. Each account with addresses has exactly one.
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("customer_addresses_customer_idx").on(t.customerId)],
+);
+
 export const customerSessions = mysqlTable(
   "customer_sessions",
   {

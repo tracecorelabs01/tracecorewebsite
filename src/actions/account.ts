@@ -3,8 +3,10 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { z } from "zod";
 import { customers, discountCodes, getDb, isDbConfigured, products, reviews } from "@/db";
 import { customerWithOrders, hasBought } from "@/lib/account";
+import { addressSchema, deleteAddress, makeDefaultAddress, saveAddress } from "@/lib/address";
 import { accountPath, consumeLoginCode, createCustomerSession, createLoginCode, destroyCustomerSession, requireCustomer } from "@/lib/auth/customer";
 import { isLoginBlocked, recordLoginAttempt } from "@/lib/auth/session";
 import { emailEnabled } from "@/lib/email";
@@ -134,6 +136,53 @@ export async function verifyTrackCode(_prev: AccountFormState, fd: FormData): Pr
 export async function endTracking() {
   await destroyCustomerSession("orders");
   redirect("/track");
+}
+
+/* ───────────── Details: the account's name, phone and saved addresses ───────────── */
+
+const CHECK_FIELDS = "Please check the highlighted fields.";
+const profileSchema = addressSchema.pick({ firstName: true, lastName: true }).extend({ phone: z.string().trim().max(40) });
+
+/** The first problem with each field, keyed by field name. */
+function fieldErrorsOf(error: z.ZodError) {
+  const fieldErrors: Record<string, string> = {};
+  for (const issue of error.issues) fieldErrors[String(issue.path[0])] ??= issue.message;
+  return fieldErrors;
+}
+
+export async function updateProfile(_prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
+  const me = await requireCustomer();
+  const parsed = profileSchema.safeParse({ firstName: str(fd.get("firstName")), lastName: str(fd.get("lastName")), phone: str(fd.get("phone")) });
+  if (!parsed.success) return { ok: false, message: CHECK_FIELDS, fieldErrors: fieldErrorsOf(parsed.error) };
+  await getDb()
+    .update(customers)
+    .set({ ...parsed.data, phone: parsed.data.phone || null })
+    .where(eq(customers.id, me.id));
+  refresh();
+  return { ok: true, message: "Saved." };
+}
+
+/** Adds an address (`id` null) or edits one of the account's own. */
+export async function saveMyAddress(id: number | null, _prev: AccountFormState, fd: FormData): Promise<AccountFormState> {
+  const me = await requireCustomer();
+  const parsed = addressSchema.safeParse(Object.fromEntries(Object.keys(addressSchema.shape).map((k) => [k, str(fd.get(k))])));
+  if (!parsed.success) return { ok: false, message: CHECK_FIELDS, fieldErrors: fieldErrorsOf(parsed.error) };
+  const problem = await saveAddress(me.id, parsed.data, Number.isInteger(id) ? id : null, fd.get("isDefault") === "on");
+  if (problem) return { ok: false, message: problem };
+  refresh();
+  return { ok: true, message: "Saved." };
+}
+
+export async function deleteMyAddress(id: number) {
+  const me = await requireCustomer();
+  if (Number.isInteger(id)) await deleteAddress(me.id, id);
+  refresh();
+}
+
+export async function makeMyDefaultAddress(id: number) {
+  const me = await requireCustomer();
+  if (Number.isInteger(id)) await makeDefaultAddress(me.id, id);
+  refresh();
 }
 
 export async function redeem(offerId: number): Promise<{ ok: boolean; message: string }> {

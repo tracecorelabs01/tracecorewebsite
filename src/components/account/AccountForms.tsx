@@ -2,8 +2,23 @@
 
 import Link from "next/link";
 import { useActionState, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
-import { Check, Copy, Loader2, Star } from "lucide-react";
-import { login, redeem, requestCode, requestTrackCode, submitReview, verifyTrackCode, type AccountFormState } from "@/actions/account";
+import { Check, Copy, Loader2, Plus, Star } from "lucide-react";
+import {
+  deleteMyAddress,
+  login,
+  makeMyDefaultAddress,
+  redeem,
+  requestCode,
+  requestTrackCode,
+  saveMyAddress,
+  submitReview,
+  updateProfile,
+  verifyTrackCode,
+  type AccountFormState,
+} from "@/actions/account";
+import { Pill } from "@/components/account/AccountShell";
+import type { SavedAddress } from "@/lib/address";
+import { COUNTRIES } from "@/lib/countries";
 import { cn } from "@/lib/utils";
 
 type Action = (prev: AccountFormState, fd: FormData) => Promise<AccountFormState>;
@@ -223,5 +238,155 @@ export function CopyCode({ code }: { code: string }) {
       {code}
       {copied ? <Check className="size-3.5 text-ok" /> : <Copy className="size-3.5 text-dim" />}
     </button>
+  );
+}
+
+/* ───────────── Details (/account/details): the account's name, phone and saved addresses ───────────── */
+
+export function ProfileForm({ email, firstName, lastName, phone }: { email: string; firstName: string; lastName: string; phone: string }) {
+  const { state, pending, onSubmit } = useAccountForm(updateProfile);
+  const errs = state?.fieldErrors ?? {};
+  return (
+    <form onSubmit={onSubmit} noValidate className="grid gap-4 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <p className="type-kicker text-dim">Email</p>
+        <p className="mt-2 break-all">{email}</p>
+        <p className="mt-1.5 text-xs text-dim">You sign in with it. To change it, contact us.</p>
+      </div>
+      <Field label="First name" name="firstName" autoComplete="given-name" defaultValue={firstName} maxLength={80} error={errs.firstName} required />
+      <Field label="Last name" name="lastName" autoComplete="family-name" defaultValue={lastName} maxLength={80} error={errs.lastName} required />
+      <Field label="Phone (optional)" name="phone" type="tel" autoComplete="tel" defaultValue={phone} maxLength={40} error={errs.phone} className="sm:col-span-2" />
+      <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+        <Status state={state} />
+        <Submit pending={pending} className="sm:ml-auto">
+          Save
+        </Submit>
+      </div>
+    </form>
+  );
+}
+
+/** The addresses checkout offers, default first. Add, edit, remove, or pick the default. */
+export function AddressBook({ addresses }: { addresses: SavedAddress[] }) {
+  // The address open for editing: its id, "new" for one being added, or null.
+  const [editing, setEditing] = useState<number | "new" | null>(null);
+  const done = () => setEditing(null);
+  return (
+    <div className="grid gap-4">
+      {addresses.length === 0 && editing !== "new" && <p className="text-muted">No saved addresses yet. The address of your next order is kept here, or add one now.</p>}
+      {addresses.length > 0 && (
+        <ul className="grid gap-4 sm:grid-cols-2">
+          {addresses.map((a) => (
+            <li key={a.id} className={editing === a.id ? "sm:col-span-2" : undefined}>
+              {editing === a.id ? <AddressForm address={a} onDone={done} /> : <AddressCard address={a} onEdit={() => setEditing(a.id)} />}
+            </li>
+          ))}
+        </ul>
+      )}
+      {editing === "new" ? (
+        <AddressForm onDone={done} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing("new")}
+          className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-dashed border-line-strong text-sm text-muted transition-colors hover:border-blaze hover:text-fg"
+        >
+          <Plus className="size-4" /> Add an address
+        </button>
+      )}
+    </div>
+  );
+}
+
+const linkButton = "underline-offset-4 transition-colors hover:text-fg hover:underline disabled:opacity-60";
+
+function AddressCard({ address: a, onEdit }: { address: SavedAddress; onEdit: () => void }) {
+  const [pending, start] = useTransition();
+  const remove = () => {
+    if (window.confirm("Remove this address?")) start(() => deleteMyAddress(a.id));
+  };
+  return (
+    <div className={cn("flex h-full flex-col gap-4 rounded-2xl border p-5", a.isDefault ? "border-blaze/50 bg-blaze/[0.04]" : "border-line")}>
+      <address className="flex-1 text-sm not-italic leading-relaxed text-muted">
+        <span className="block font-medium text-fg">
+          {a.firstName} {a.lastName}
+        </span>
+        {a.address1}
+        {a.address2 && `, ${a.address2}`}
+        <br />
+        {[a.city, a.region, a.postalCode].filter(Boolean).join(", ")}
+        <br />
+        {a.country}
+      </address>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+        {a.isDefault ? (
+          <Pill tone="ok">Default</Pill>
+        ) : (
+          <button type="button" disabled={pending} onClick={() => start(() => makeMyDefaultAddress(a.id))} className={linkButton}>
+            Make default
+          </button>
+        )}
+        <button type="button" disabled={pending} onClick={onEdit} className={linkButton}>
+          Edit
+        </button>
+        <button type="button" disabled={pending} onClick={remove} className={linkButton}>
+          Remove
+        </button>
+        {pending && <Loader2 className="size-3.5 animate-spin" />}
+      </div>
+    </div>
+  );
+}
+
+function AddressForm({ address: a, onDone }: { address?: SavedAddress; onDone: () => void }) {
+  const [state, setState] = useState<AccountFormState>(null);
+  const [pending, start] = useTransition();
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    start(async () => {
+      const res = await saveMyAddress(a?.id ?? null, null, fd);
+      if (res?.ok) onDone();
+      else setState(res);
+    });
+  };
+  const errs = state?.fieldErrors ?? {};
+  return (
+    <form onSubmit={onSubmit} noValidate className="grid gap-4 rounded-2xl border border-line-strong p-5 sm:grid-cols-2">
+      <p className="font-display text-xl uppercase sm:col-span-2">{a ? "Edit address" : "New address"}</p>
+      <Field label="First name" name="firstName" autoComplete="given-name" defaultValue={a?.firstName} maxLength={80} error={errs.firstName} required />
+      <Field label="Last name" name="lastName" autoComplete="family-name" defaultValue={a?.lastName} maxLength={80} error={errs.lastName} required />
+      <Field label="Address" name="address1" autoComplete="address-line1" defaultValue={a?.address1} maxLength={191} error={errs.address1} className="sm:col-span-2" required />
+      <Field label="Apartment, suite (optional)" name="address2" autoComplete="address-line2" defaultValue={a?.address2 ?? ""} maxLength={191} className="sm:col-span-2" />
+      <Field label="City" name="city" autoComplete="address-level2" defaultValue={a?.city} maxLength={120} error={errs.city} required />
+      <Field label="State / region (optional)" name="region" autoComplete="address-level1" defaultValue={a?.region ?? ""} maxLength={120} />
+      <Field label="Postal code" name="postalCode" autoComplete="postal-code" defaultValue={a?.postalCode} maxLength={40} error={errs.postalCode} required />
+      <label className="block">
+        <span className="type-kicker text-dim">Country</span>
+        <select name="country" required defaultValue={a && COUNTRIES.includes(a.country) ? a.country : ""} className={cn(inputClass, "text-fg", errs.country && "border-ember")}>
+          <option value="" disabled>
+            Select country
+          </option>
+          {COUNTRIES.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+        {errs.country && <span className="mt-1.5 block text-xs text-[#ff6b5e]">{errs.country}</span>}
+      </label>
+      {!a?.isDefault && (
+        <label className="flex items-center gap-3 text-sm text-muted sm:col-span-2">
+          <input type="checkbox" name="isDefault" className="size-4 accent-[#ff3d00]" /> Make this my default address
+        </label>
+      )}
+      <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center">
+        <Status state={state} />
+        <div className="flex items-center justify-end gap-5 sm:ml-auto">
+          <button type="button" onClick={onDone} className={cn(linkButton, "text-sm text-muted")}>
+            Cancel
+          </button>
+          <Submit pending={pending}>Save address</Submit>
+        </div>
+      </div>
+    </form>
   );
 }
