@@ -1,0 +1,9 @@
+# Runs update.sh: pulls Tracer's latest code from GitHub and restarts it if discord-bot/ changed. Started by tracer-update.timer.
+[Unit]
+Description=Update Tracer from GitHub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /opt/tracecore/discord-bot/update.sh

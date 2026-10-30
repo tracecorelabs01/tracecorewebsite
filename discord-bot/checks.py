@@ -5,17 +5,26 @@ import database
 from config import ADMIN_IDS
 
 
-def is_admin(interaction: discord.Interaction) -> bool:
-    if interaction.user.id in ADMIN_IDS:
+def _admin(user: discord.abc.User) -> bool:
+    if user.id in ADMIN_IDS:
         return True
-    perms = getattr(interaction.user, "guild_permissions", None)
+    perms = getattr(user, "guild_permissions", None)
     return bool(perms and perms.administrator)
 
 
-async def is_support(interaction: discord.Interaction) -> bool:
-    if is_admin(interaction):
+def is_admin(interaction: discord.Interaction) -> bool:
+    return _admin(interaction.user)
+
+
+async def is_support_member(user: discord.abc.User) -> bool:
+    """An admin, or someone with a support role. Works for message authors as well as button presses."""
+    if _admin(user):
         return True
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
+    if not isinstance(user, discord.Member):
         return False
-    config = await database.get_config(interaction.guild.id)
-    return any(role.id in config["support_role_ids"] for role in interaction.user.roles)
+    config = await database.get_config(user.guild.id)
+    return any(role.id in config["support_role_ids"] for role in user.roles)
+
+
+async def is_support(interaction: discord.Interaction) -> bool:
+    return await is_support_member(interaction.user)

@@ -19,6 +19,12 @@ ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split("
 STORE_URL = os.getenv("STORE_URL", "https://tracecorelab.com").rstrip("/")
 STORE_API_KEY = os.getenv("STORE_API_KEY", "").strip()
 
+# The AI assistant (ai.py) runs on DeepSeek, and is off without a key. The model name is a setting because DeepSeek
+# renames its models now and then. AI_DAILY_LIMIT caps AI replies per day across the server, to cap spending.
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "").strip()
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "").strip() or "deepseek-flash"
+AI_DAILY_LIMIT = int(os.getenv("AI_DAILY_LIMIT") or 300)
+
 LOGO_URL = f"{STORE_URL}/brand/logo-mark.webp"
 BANNER_URL = f"{STORE_URL}/brand/banner-gradient.webp"
 

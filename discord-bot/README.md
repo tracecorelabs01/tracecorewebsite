@@ -1,6 +1,7 @@
 # Tracer · TraceCore Lab Discord bot
 
-Support tickets for the TraceCore Lab Discord, with order tracking straight from tracecorelab.com.
+Support tickets for the TraceCore Lab Discord, with an AI assistant and order tracking straight from tracecorelab.com.
+The full guide for the team (what everything does and how it works) is the "Tracer and customer accounts" doc; this file covers setup.
 
 ## What it does
 
@@ -12,7 +13,9 @@ Support tickets for the TraceCore Lab Discord, with order tracking straight from
 | **`/order`** | Staff look up any order, with the customer's details and a link to it in the admin. |
 | **`/payment`** | How to pay: on the website, by card through Razorpay. |
 | **Transcripts** | Closing a ticket DMs the customer an HTML transcript; deleting saves one to the log channel. Records are kept, so `/ticketstats` keeps its history. |
-| **Staff wallet** | `/addfund`, `/removefund`, `/walletinfo`: a shared balance with notes, visible only to the admin using it. |
+| **AI assistant** | Answers in new tickets straight away and keeps helping until the team writes, presses Claim or the customer presses **Talk to a human**. `/ask` answers anyone privately; `/summary` sums up a ticket for staff. Runs on DeepSeek, answers only from the website's live products, prices, stock, shipping, payment and FAQ (`ai.py`, `cogs/assistant.py`). |
+| **Customer role** | Given automatically when someone verifies a paid order (order number + its email). |
+| **Idle tickets** | Waiting on the customer for a day: a reminder. Another day: closed, transcript sent. |
 | **`/help`** | Customers see their commands; staff see everything. |
 
 New paid orders are announced in a staff channel by the **website** (a Discord webhook), so that works even if the bot is offline. See "Connect the website" below.
@@ -50,8 +53,9 @@ git clone --filter=blob:none --sparse https://github.com/tracecorelabs01/traceco
 cd /opt/tracecore && git sparse-checkout set discord-bot && cd discord-bot
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 install -d -o tracer -g tracer data
-install -m 600 .env.example /etc/tracer.env && nano /etc/tracer.env   # BOT_TOKEN, ADMIN_IDS, STORE_API_KEY
-cp tracer.service /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now tracer
+install -m 600 .env.example /etc/tracer.env && nano /etc/tracer.env   # BOT_TOKEN, ADMIN_IDS, STORE_API_KEY, DEEPSEEK_API_KEY
+cp tracer.service tracer-update.service tracer-update.timer /etc/systemd/system/ && systemctl daemon-reload
+systemctl enable --now tracer tracer-update.timer
 ```
 
 | | |
@@ -59,7 +63,7 @@ cp tracer.service /etc/systemd/system/ && systemctl daemon-reload && systemctl e
 | **Logs** | `journalctl -u tracer -f` ("Tracer is online" once it's connected) |
 | **Restart / stop** | `systemctl restart tracer` / `systemctl stop tracer` |
 | **Settings** | Edit `/etc/tracer.env` (only root can read it), then restart. |
-| **Updating** | `cd /opt/tracecore/discord-bot && git pull && .venv/bin/pip install -qr requirements.txt && systemctl restart tracer`. If `tracer.service` changed, copy it again and run `systemctl daemon-reload` first. |
+| **Updating** | Automatic: `tracer-update.timer` checks GitHub every 5 minutes and, when `discord-bot/` changed, pulls it, installs packages and restarts the bot (a version that doesn't compile is skipped). Log: `journalctl -u tracer-update`. To update now: `sh /opt/tracecore/discord-bot/update.sh`. |
 | **Database** | `/opt/tracecore/discord-bot/data/bot.db`. Back it up now and then, or turn on the droplet's backups in DigitalOcean. |
 
 ## 4. In the Discord server
@@ -76,10 +80,12 @@ cp tracer.service /etc/systemd/system/ && systemctl daemon-reload && systemctl e
 | `bot.py` | Start-up, status messages, error handling |
 | `config.py` | Name, colours, status lines; secrets come from the environment (`/etc/tracer.env` on the droplet, or a local `.env`) |
 | `cogs/tickets.py` | Ticket panel, ticket channels, close/reopen/delete, transcripts, setup commands |
-| `cogs/orders.py` | `/track`, `/order`, `/payment`, `/help` |
-| `cogs/wallet.py` | Staff wallet |
-| `store.py` | Talks to the website's order API |
+| `cogs/orders.py` | `/track`, `/order`, `/payment`, `/help`, the Customer role |
+| `cogs/assistant.py` | The AI assistant in Discord: ticket answers, `/ask`, `/summary`, Talk to a human |
+| `ai.py` | The AI assistant's rules, the live store data, DeepSeek calls, order lookups, limits |
+| `store.py` | Talks to the website's bot API (orders, live store data) |
 | `embeds.py` | Every message's look |
 | `transcript.py` | HTML transcripts |
 | `database.py` | SQLite storage |
 | `tracer.service` | How the droplet runs it (systemd) |
+| `update.sh`, `tracer-update.*` | Automatic updates from GitHub every 5 minutes |

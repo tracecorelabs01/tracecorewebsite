@@ -1,12 +1,30 @@
-"""Order lookups from the website, how to pay, and help."""
+"""Order lookups from the website, the Customer role, how to pay, and help."""
+import logging
+
 import discord
 from discord import app_commands, ui
 from discord.ext import commands
 
+import database
 import embeds
 import store
 from checks import is_admin, is_support
 from config import BOT_NAME, STORE_URL
+
+log = logging.getLogger("tracer.orders")
+
+
+async def grant_customer_role(user: discord.abc.User, order: dict):
+    """Someone who verifies a paid order (order number + its email) gets the server's Customer role, if one is set."""
+    if not isinstance(user, discord.Member) or order.get("paymentStatus") != "paid":
+        return
+    config = await database.get_config(user.guild.id)
+    role = user.guild.get_role(config.get("customer_role_id") or 0)
+    if role and role not in user.roles:
+        try:
+            await user.add_roles(role, reason=f"Verified paid order {order.get('number')}")
+        except discord.HTTPException:
+            log.warning("Couldn't give %s the Customer role (is the bot's role above it?)", user)
 
 
 async def reply_with_order(interaction: discord.Interaction, raw_number: str, email: str | None, staff: bool = False):
@@ -23,6 +41,8 @@ async def reply_with_order(interaction: discord.Interaction, raw_number: str, em
         return await interaction.followup.send(embed=embeds.error(str(err)), ephemeral=True)
     if not found:
         return await interaction.followup.send(embed=embeds.order_not_found(number, with_email=not staff), ephemeral=True)
+    if not staff:
+        await grant_customer_role(interaction.user, found)
     await interaction.followup.send(embed=embeds.order(found, staff=staff), ephemeral=True)
 
 

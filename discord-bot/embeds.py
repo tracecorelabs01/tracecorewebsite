@@ -119,9 +119,10 @@ def help_menu(staff: bool) -> discord.Embed:
     embed.add_field(
         name="For everyone",
         value="\n".join([
+            "`/ask` `<question>` · ask the AI assistant about products, stock, shipping or your order",
             "`/track` `<order>` `<email>` · follow your order, tracking and warranty",
             "`/payment` · how to pay",
-            "Open a ticket with the buttons in the support channel.",
+            "Open a ticket with the buttons in the support channel. The AI assistant answers straight away, and the team joins you.",
         ]),
         inline=False,
     )
@@ -130,9 +131,11 @@ def help_menu(staff: bool) -> discord.Embed:
             name="Tickets",
             value="\n".join([
                 "`/order` `<order>` · look up any order (staff view)",
+                "`/summary` · AI summary of the ticket you're in (only you see it)",
                 "`/close`, `/reopen`, `/delete` · in a ticket",
                 "`/add` `<user>`, `/remove` `<user>`, `/rename` `<name>`",
                 "`/ticketstats` · open and closed counts",
+                "Writing in a ticket stops the AI assistant there.",
             ]),
             inline=False,
         )
@@ -140,14 +143,33 @@ def help_menu(staff: bool) -> discord.Embed:
             name="Admin",
             value="\n".join([
                 "`/ticketpanel` · post the ticket buttons",
-                "`/ticketautosetup` · create the role, log channel and categories",
+                "`/ticketautosetup` · create whatever's missing: support role, log channel, categories, Customer role",
                 "`/ticketsetup` · pick them by hand",
                 "`/removesupportrole` `<role>`, `/deletealltickets`",
-                "`/addfund`, `/removefund`, `/walletinfo` · staff wallet (only you see it)",
             ]),
             inline=False,
         )
     return embed
+
+
+# --- AI assistant ---
+
+AI_AUTHOR = f"{BOT_NAME} · AI assistant"
+
+
+def ai_answer(text: str, in_ticket: bool = True) -> discord.Embed:
+    embed = base(text, COLOR_SILVER, AI_AUTHOR)
+    tail = "Press Talk to a human for the team." if in_ticket else "Need a person? Open a ticket in the support channel."
+    embed.set_footer(text=f"AI answers can be wrong. {tail}", icon_url=LOGO_URL)
+    return embed
+
+
+def is_ai_answer(embed: discord.Embed) -> bool:
+    return embed.author.name == AI_AUTHOR
+
+
+def ai_handoff() -> discord.Embed:
+    return note("Passing you to the team", "A team member will reply here as soon as they can. The AI assistant won't answer in this ticket any more.", COLOR_OK)
 
 
 # --- Tickets ---
@@ -179,8 +201,20 @@ def ticket_welcome(user: discord.Member, category: str, number: int, description
     return embed
 
 
-def ticket_closed(by: discord.abc.User) -> discord.Embed:
-    return note("Ticket closed", f"Closed by {by.mention}. The channel is now read-only, and the team can reopen or delete it.", COLOR_EMBER)
+def ticket_closed(by: discord.abc.User, idle: bool = False) -> discord.Embed:
+    why = "Closed automatically after two days without a reply." if idle else f"Closed by {by.mention}."
+    return note("Ticket closed", f"{why} The channel is now read-only, and the team can reopen or delete it.", COLOR_EMBER)
+
+
+REMINDER_AUTHOR = "Still need help?"
+
+
+def ticket_reminder() -> discord.Embed:
+    return note(REMINDER_AUTHOR, "We haven't heard back in a day. Reply here if you still need help; otherwise this ticket closes automatically tomorrow.", COLOR_AMBER)
+
+
+def is_reminder(message: discord.Message) -> bool:
+    return message.author.bot and any(e.author.name == REMINDER_AUTHOR for e in message.embeds)
 
 
 def ticket_reopened(by: discord.abc.User) -> discord.Embed:
@@ -226,36 +260,11 @@ def ticket_stats(guild_name: str, tickets: list[dict]) -> discord.Embed:
     return embed
 
 
-def setup_summary(log_channel, categories: dict, role_ids: list[int], heading: str = "Ticket setup saved") -> discord.Embed:
+def setup_summary(log_channel, categories: dict, role_ids: list[int], customer_role, heading: str = "Ticket setup saved") -> discord.Embed:
     lines = [f"**Transcripts:** {log_channel.mention if log_channel else '*not set*'}"]
     for key, k in TICKET_KINDS.items():
         cat = categories.get(key)
         lines.append(f"**{k['label']} category:** {cat.name if cat else '*not set*'}")
     lines.append(f"**Support roles:** {', '.join(f'<@&{r}>' for r in role_ids) or '*none*'}")
+    lines.append(f"**Customer role** (given for a verified paid order): {customer_role.mention if customer_role else '*not set*'}")
     return note(heading, "\n".join(lines), COLOR_OK)
-
-
-# --- Staff wallet ---
-
-def fund_change(admin: discord.abc.User, amount: float, note_text: str, balance: float, added: bool) -> discord.Embed:
-    embed = base(f"**{'+' if added else '-'}${amount:,.2f}** {'added to' if added else 'taken from'} the wallet", COLOR_OK if added else COLOR_EMBER, "Funds added" if added else "Funds removed")
-    embed.add_field(name="New balance", value=f"**${balance:,.2f}**", inline=True)
-    if note_text:
-        embed.add_field(name="Note", value=note_text, inline=False)
-    embed.set_footer(text=f"By {admin.display_name} · {FOOTER}", icon_url=admin.display_avatar.url)
-    return embed
-
-
-def wallet(balance: float, history: list[dict], total: int) -> discord.Embed:
-    embed = base(color=COLOR_BRAND, author="Staff wallet")
-    embed.add_field(name="Balance", value=f"**${balance:,.2f}**", inline=False)
-    if history:
-        lines = [
-            f"`{'+' if tx['type'] == 'add' else '-'}${tx['amount']:,.2f}`" + (f" · *{tx['note']}*" if tx.get("note") else "") + (f" · <@{tx['by']}>" if tx.get("by") else "") + f" · {tx['date']}"
-            for tx in history
-        ]
-        prefix = f"*Latest {len(history)} of {total}*\n" if total > len(history) else ""
-        embed.add_field(name="Recent changes", value=(prefix + "\n".join(lines))[:1024], inline=False)
-    else:
-        embed.add_field(name="Recent changes", value="*Nothing yet*", inline=False)
-    return embed

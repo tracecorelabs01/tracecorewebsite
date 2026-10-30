@@ -1,20 +1,25 @@
-"""Tickets: the panel, private ticket channels, claiming and closing, transcripts, and order details inside tickets."""
+"""Tickets: the panel, private ticket channels, claiming and closing, transcripts, order details inside tickets, and
+closing tickets that have gone quiet. The AI assistant (cogs/assistant.py) answers in them."""
 import io
 import logging
+from datetime import timedelta
 
 import discord
 from discord import app_commands, ui
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 import database
 import embeds
 import store
 import transcript
 from checks import is_admin, is_support
-from cogs.orders import TrackModal
+from cogs.orders import TrackModal, grant_customer_role
 from config import ADMIN_IDS, BOT_NAME, COLOR_EMBER, COLOR_OK, COLOR_WARN, STORE_URL
 
 log = logging.getLogger("tracer.tickets")
+
+# A ticket waiting on the customer this long gets a reminder, and closes after the same again.
+IDLE = timedelta(hours=24)
 
 # Channel names start with these, e.g. order-0012.
 CHANNEL_PREFIX = {"purchase": "order", "support": "support", "warranty": "warranty", "reseller": "reseller"}
@@ -88,8 +93,10 @@ async def create_ticket(interaction: discord.Interaction, category: str, descrip
     mentions = " ".join(m.mention for m in (interaction.user, *staff_roles))
     await channel.send(mentions, embed=embeds.ticket_welcome(interaction.user, category, number, description, order_number), view=TicketActionView())
     if order_number:
-        await channel.send(embed=await _order_for_ticket(order_number, email))
+        await channel.send(embed=await _order_for_ticket(interaction.user, order_number, email))
     await interaction.edit_original_response(content=f"Your ticket is ready: {channel.mention}")
+    # The AI assistant (cogs/assistant.py) writes the first answer.
+    interaction.client.dispatch("ticket_open", channel, interaction.user)
 
 
 async def ticket_category(guild: discord.Guild, config: dict, category: str) -> discord.CategoryChannel | None:
@@ -107,7 +114,7 @@ async def ticket_category(guild: discord.Guild, config: dict, category: str) -> 
     return found
 
 
-async def _order_for_ticket(number: str, email: str | None) -> discord.Embed:
+async def _order_for_ticket(customer: discord.Member, number: str, email: str | None) -> discord.Embed:
     """The customer's order, shown in their ticket so the team has it to hand: green when verified, red when not."""
     try:
         found = await store.get_order(number, email)
@@ -115,6 +122,7 @@ async def _order_for_ticket(number: str, email: str | None) -> discord.Embed:
         return embeds.note("Order lookup", f"Couldn't look up **{number}** just now: {err}", COLOR_WARN)
     if not found:
         return embeds.note("Order not verified", f"Order **{number}** wasn't found for that email. The team will check it with you.", COLOR_EMBER)
+    await grant_customer_role(customer, found)
     embed = embeds.order(found)
     embed.colour = COLOR_OK
     return embed
@@ -160,11 +168,10 @@ async def _set_talking(channel: discord.TextChannel, allowed: bool):
         await channel.set_permissions(target, overwrite=overwrite)
 
 
-async def _close(interaction: discord.Interaction, ticket: dict):
-    channel = interaction.channel
-    await database.close_ticket(channel.id, interaction.user.id)
+async def _close(channel: discord.TextChannel, by: discord.abc.User, ticket: dict, idle: bool = False):
+    await database.close_ticket(channel.id, by.id)
     await _set_talking(channel, False)
-    await channel.send(embed=embeds.ticket_closed(interaction.user), view=ClosedTicketView())
+    await channel.send(embed=embeds.ticket_closed(by, idle), view=ClosedTicketView())
     await _dm_transcript(channel, await database.get_ticket(channel.id) or ticket)
 
 
@@ -188,7 +195,8 @@ class TicketActionView(ui.View):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
         if not await database.get_ticket(interaction.channel.id):
             return await interaction.response.send_message(embed=embeds.error("This isn't a ticket channel."), ephemeral=True)
-        await database.update_ticket(interaction.channel.id, claimed_by=interaction.user.id)
+        # The team has it now, so the AI assistant stops answering here.
+        await database.update_ticket(interaction.channel.id, claimed_by=interaction.user.id, ai_off=1)
         await interaction.response.send_message(embed=embeds.ticket_claimed(interaction.user))
 
 
@@ -208,7 +216,7 @@ async def _confirm_close(interaction: discord.Interaction):
     if not ticket or ticket["status"] == "closed":
         return await interaction.response.edit_message(content="This ticket is already closed.", view=None)
     await interaction.response.edit_message(content="Ticket closed.", view=None)
-    await _close(interaction, ticket)
+    await _close(interaction.channel, interaction.user, ticket)
 
 
 class ConfirmView(ui.View):
@@ -304,6 +312,36 @@ class TicketsCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    async def cog_load(self):
+        self.idle_sweep.start()
+
+    async def cog_unload(self):
+        self.idle_sweep.cancel()
+
+    @tasks.loop(minutes=30)
+    async def idle_sweep(self):
+        """Tickets waiting on the customer: a reminder after a day without a reply, and closed after another day.
+        Tickets waiting on the team (the customer wrote last) are left alone."""
+        now = discord.utils.utcnow()
+        for ticket in await database.get_open_tickets():
+            channel = self.bot.get_channel(ticket["channel_id"])
+            if not isinstance(channel, discord.TextChannel):
+                continue
+            last = [m async for m in channel.history(limit=1)]
+            if not last or last[0].author.id == ticket["user_id"] or now - last[0].created_at < IDLE:
+                continue
+            try:
+                if embeds.is_reminder(last[0]):
+                    await _close(channel, self.bot.user, ticket, idle=True)
+                else:
+                    await channel.send(f"<@{ticket['user_id']}>", embed=embeds.ticket_reminder())
+            except discord.HTTPException:
+                log.exception("Idle check failed for ticket channel %s", channel.id)
+
+    @idle_sweep.before_loop
+    async def _before_idle_sweep(self):
+        await self.bot.wait_until_ready()
+
     @app_commands.command(name="ticketpanel", description="Post the ticket buttons in this channel")
     async def ticketpanel_cmd(self, interaction: discord.Interaction):
         if not is_admin(interaction):
@@ -318,6 +356,7 @@ class TicketsCog(commands.Cog):
         warranty_category="Category for Warranty tickets",
         reseller_category="Category for Reseller tickets",
         support_role="Role that can see and handle tickets",
+        customer_role="Role given to people who verify a paid order",
     )
     async def ticketsetup_cmd(
         self,
@@ -328,6 +367,7 @@ class TicketsCog(commands.Cog):
         warranty_category: discord.CategoryChannel | None = None,
         reseller_category: discord.CategoryChannel | None = None,
         support_role: discord.Role | None = None,
+        customer_role: discord.Role | None = None,
     ):
         if not is_admin(interaction):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
@@ -339,38 +379,49 @@ class TicketsCog(commands.Cog):
                 await database.set_category_id(guild.id, key, cat.id)
         if support_role:
             await database.add_support_role(guild.id, support_role.id)
+        if customer_role:
+            await database.set_config(guild.id, customer_role_id=customer_role.id)
         await interaction.response.send_message(embed=await self._summary(guild), ephemeral=True)
 
     async def _summary(self, guild: discord.Guild, heading: str = "Ticket setup saved") -> discord.Embed:
         config = await database.get_config(guild.id)
         categories = {key: guild.get_channel(config.get(f"{key}_category_id") or 0) for key in database.TICKET_TYPES}
-        return embeds.setup_summary(guild.get_channel(config.get("transcript_channel_id") or 0), categories, config["support_role_ids"], heading)
+        return embeds.setup_summary(
+            guild.get_channel(config.get("transcript_channel_id") or 0), categories, config["support_role_ids"], guild.get_role(config.get("customer_role_id") or 0), heading
+        )
 
-    @app_commands.command(name="ticketautosetup", description="Create the support role, transcript channel and ticket categories")
+    @app_commands.command(name="ticketautosetup", description="Create whatever's missing: support role, transcript channel, categories, Customer role")
     async def ticketautosetup_cmd(self, interaction: discord.Interaction):
         if not is_admin(interaction):
             return await interaction.response.send_message(embed=embeds.no_permission(), ephemeral=True)
         await interaction.response.defer(thinking=True)
         guild = interaction.guild
         reason = f"Set up by {BOT_NAME}"
+        config = await database.get_config(guild.id)
+        # Whatever is already set up is kept; only what's missing (or was deleted) is made.
         try:
-            role = discord.utils.get(guild.roles, name="Support Team") or await guild.create_role(name="Support Team", mentionable=True, reason=reason)
-            logs = discord.utils.get(guild.text_channels, name="ticket-logs") or await guild.create_text_channel(
-                "ticket-logs",
-                overwrites={
-                    guild.default_role: discord.PermissionOverwrite(view_channel=False),
-                    guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True),
-                    role: discord.PermissionOverwrite(view_channel=True, read_message_history=True),
-                },
-                reason=reason,
-            )
-            await database.set_config(guild.id, transcript_channel_id=logs.id)
-            for key, name in CATEGORY_NAMES.items():
-                cat = discord.utils.get(guild.categories, name=name) or await guild.create_category(name, reason=reason)
-                await database.set_category_id(guild.id, key, cat.id)
+            staff = [r for r in map(guild.get_role, config["support_role_ids"]) if r]
+            if not staff:
+                staff = [discord.utils.get(guild.roles, name="Support Team") or await guild.create_role(name="Support Team", mentionable=True, reason=reason)]
+                await database.add_support_role(guild.id, staff[0].id)
+            if not guild.get_channel(config["transcript_channel_id"] or 0):
+                logs = discord.utils.get(guild.text_channels, name="ticket-logs") or await guild.create_text_channel(
+                    "ticket-logs",
+                    overwrites={
+                        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                        guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True),
+                        **{role: discord.PermissionOverwrite(view_channel=True, read_message_history=True) for role in staff},
+                    },
+                    reason=reason,
+                )
+                await database.set_config(guild.id, transcript_channel_id=logs.id)
+            if not guild.get_role(config["customer_role_id"] or 0):
+                customer = discord.utils.get(guild.roles, name="Customer") or await guild.create_role(name="Customer", reason=reason)
+                await database.set_config(guild.id, customer_role_id=customer.id)
+            for key in CATEGORY_NAMES:
+                await ticket_category(guild, config, key)
         except discord.Forbidden:
             return await interaction.followup.send(embed=embeds.error("I need the Manage Roles and Manage Channels permissions for this."))
-        await database.add_support_role(guild.id, role.id)
         await interaction.followup.send(embed=await self._summary(guild, "Tickets are set up"))
 
     @app_commands.command(name="removesupportrole", description="Stop a role from seeing and handling tickets")

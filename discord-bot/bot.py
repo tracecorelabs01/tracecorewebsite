@@ -1,4 +1,4 @@
-"""Tracer, the TraceCore Lab Discord bot: support tickets, order tracking from the website, and a staff wallet."""
+"""Tracer, the TraceCore Lab Discord bot: support tickets with an AI assistant, and order tracking from the website."""
 import itertools
 import logging
 import sys
@@ -7,6 +7,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
+import ai
 import database
 import embeds
 from config import BOT_NAME, BOT_TOKEN, STATUS_MESSAGES
@@ -25,27 +26,29 @@ class Tracer(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.members = True  # to find staff and ticket owners
-        intents.message_content = True  # to write message text into transcripts
+        intents.message_content = True  # for transcripts, and for the AI assistant to read tickets
         super().__init__(command_prefix=commands.when_mentioned, intents=intents)
         self.statuses = itertools.cycle(STATUS_MESSAGES)
 
     async def setup_hook(self):
         await database.setup()
-        for cog in ("cogs.orders", "cogs.tickets", "cogs.wallet"):
+        for cog in ("cogs.orders", "cogs.tickets", "cogs.assistant"):
             await self.load_extension(cog)
 
         # Buttons on messages posted before a restart keep working.
+        from cogs.assistant import HumanView
         from cogs.tickets import ClosedTicketView, TicketActionView, TicketPanelView
 
         self.add_view(TicketPanelView())
         self.add_view(TicketActionView())
         self.add_view(ClosedTicketView())
+        self.add_view(HumanView())
 
         synced = await self.tree.sync()
         log.info("Synced %d slash commands", len(synced))
 
     async def on_ready(self):
-        log.info("%s is online as %s in %d server(s)", BOT_NAME, self.user, len(self.guilds))
+        log.info("%s is online as %s in %d server(s). AI assistant: %s", BOT_NAME, self.user, len(self.guilds), "on" if ai.ENABLED else "off (no DEEPSEEK_API_KEY)")
         if not self.rotate_status.is_running():
             self.rotate_status.start()
 

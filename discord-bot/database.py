@@ -1,6 +1,6 @@
-"""SQLite storage: ticket settings per server, tickets, and the staff wallet."""
+"""SQLite storage: ticket settings per server, tickets, and the AI assistant's usage (for its limits)."""
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import aiosqlite
 
@@ -11,16 +11,18 @@ DB_FILE = os.path.join(DATA_DIR, "bot_test.db" if TEST_MODE else "bot.db")
 
 # Ticket types. "purchase" is the Orders ticket (the key is kept so existing setups carry over).
 TICKET_TYPES = ("purchase", "support", "warranty", "reseller")
-CONFIG_COLUMNS = ["transcript_channel_id", *(f"{t}_category_id" for t in TICKET_TYPES), "ticket_counter"]
-TICKET_FIELDS = ("status", "claimed_by", "closed_at", "closed_by")
+CONFIG_COLUMNS = ["transcript_channel_id", *(f"{t}_category_id" for t in TICKET_TYPES), "ticket_counter", "customer_role_id"]
+# ai_off: 1 once the team takes a ticket over, so the AI assistant stops answering in it.
+TICKET_FIELDS = ("status", "claimed_by", "closed_at", "closed_by", "ai_off")
 
 
 def str_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
-def cents(amount: float) -> int:
-    return round(amount * 100)
+def _stamp(when: datetime) -> str:
+    """Sortable UTC time, so usage can be counted with a plain >= comparison."""
+    return when.strftime("%Y-%m-%d %H:%M:%S")
 
 
 async def _add_missing_columns(db: aiosqlite.Connection, table: str, columns: dict[str, str]):
@@ -44,11 +46,13 @@ async def setup():
             "CREATE TABLE IF NOT EXISTS tickets (channel_id INTEGER PRIMARY KEY, guild_id INTEGER, user_id INTEGER, category TEXT, number INTEGER, "
             "description TEXT, status TEXT, claimed_by INTEGER, created_at TEXT, closed_at TEXT, closed_by INTEGER)"
         )
-        await db.execute("CREATE TABLE IF NOT EXISTS wallet_state (id INTEGER PRIMARY KEY, balance REAL)")
-        await db.execute("CREATE TABLE IF NOT EXISTS wallet_history (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, amount REAL, note TEXT, added_by INTEGER, date TEXT)")
-        await _add_missing_columns(db, "guild_configs", {"warranty_category_id": "INTEGER"})
-        await _add_missing_columns(db, "tickets", {"order_number": "TEXT"})
-        await db.execute("INSERT OR IGNORE INTO wallet_state (id, balance) VALUES (1, 0)")
+        await db.execute(
+            "CREATE TABLE IF NOT EXISTS ai_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, prompt_tokens INTEGER, "
+            "cached_tokens INTEGER, completion_tokens INTEGER, created_at TEXT)"
+        )
+        await db.execute("CREATE INDEX IF NOT EXISTS ai_usage_created ON ai_usage (created_at)")
+        await _add_missing_columns(db, "guild_configs", {"warranty_category_id": "INTEGER", "customer_role_id": "INTEGER"})
+        await _add_missing_columns(db, "tickets", {"order_number": "TEXT", "ai_off": "INTEGER DEFAULT 0"})
         await db.commit()
 
 
@@ -159,38 +163,37 @@ async def get_user_open_tickets(guild_id: int, user_id: int) -> list[dict]:
             return [dict(r) for r in await cursor.fetchall()]
 
 
-# --- Staff wallet (amounts rounded to cents so totals don't drift) ---
-
-async def get_wallet() -> float:
-    async with aiosqlite.connect(DB_FILE) as db:
-        async with db.execute("SELECT balance FROM wallet_state WHERE id = 1") as cursor:
-            row = await cursor.fetchone()
-    return cents(row[0] if row else 0) / 100
-
-
-async def add_fund(amount: float, note: str, by: int):
-    async with aiosqlite.connect(DB_FILE) as db:
-        await db.execute("UPDATE wallet_state SET balance = ROUND(balance + ?, 2) WHERE id = 1", (cents(amount) / 100,))
-        await db.execute("INSERT INTO wallet_history (type, amount, note, added_by, date) VALUES ('add', ?, ?, ?, ?)", (cents(amount) / 100, note, by, str_now()))
-        await db.commit()
-
-
-async def remove_fund(amount: float, note: str, by: int) -> bool:
-    amount = cents(amount) / 100
-    async with aiosqlite.connect(DB_FILE) as db:
-        cursor = await db.execute("UPDATE wallet_state SET balance = ROUND(balance - ?, 2) WHERE id = 1 AND balance >= ?", (amount, amount))
-        if cursor.rowcount == 0:
-            return False
-        await db.execute("INSERT INTO wallet_history (type, amount, note, added_by, date) VALUES ('remove', ?, ?, ?, ?)", (amount, note, by, str_now()))
-        await db.commit()
-    return True
-
-
-async def get_fund_history(limit: int = 10) -> tuple[list[dict], int]:
+async def get_open_tickets() -> list[dict]:
+    """Every open ticket, in every server (for closing idle ones)."""
     async with aiosqlite.connect(DB_FILE) as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT COUNT(*) AS n FROM wallet_history") as cursor:
-            total = (await cursor.fetchone())["n"]
-        async with db.execute("SELECT type, amount, note, added_by AS by, date FROM wallet_history ORDER BY id DESC LIMIT ?", (limit,)) as cursor:
-            rows = [dict(r) for r in await cursor.fetchall()]
-    return rows[::-1], total
+        async with db.execute("SELECT * FROM tickets WHERE status = 'open'") as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+
+# --- AI assistant usage: one row per reply, for the daily and per-person limits ---
+
+async def log_ai_usage(user_id: int, prompt_tokens: int, cached_tokens: int, completion_tokens: int):
+    async with aiosqlite.connect(DB_FILE) as db:
+        await db.execute(
+            "INSERT INTO ai_usage (user_id, prompt_tokens, cached_tokens, completion_tokens, created_at) VALUES (?, ?, ?, ?, ?)",
+            (user_id, prompt_tokens, cached_tokens, completion_tokens, _stamp(datetime.now(timezone.utc))),
+        )
+        await db.commit()
+
+
+async def _count_ai_usage(where: str, params: tuple) -> int:
+    async with aiosqlite.connect(DB_FILE) as db:
+        async with db.execute(f"SELECT COUNT(*) FROM ai_usage WHERE {where}", params) as cursor:
+            return (await cursor.fetchone())[0]
+
+
+async def ai_replies_today() -> int:
+    """AI replies since midnight UTC."""
+    midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return await _count_ai_usage("created_at >= ?", (_stamp(midnight),))
+
+
+async def ai_replies_since(user_id: int, hours: int) -> int:
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    return await _count_ai_usage("user_id = ? AND created_at >= ?", (user_id, _stamp(since)))
