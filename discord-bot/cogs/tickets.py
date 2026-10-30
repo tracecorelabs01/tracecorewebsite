@@ -63,17 +63,16 @@ async def create_ticket(interaction: discord.Interaction, category: str, descrip
 
     config = await database.get_config(guild.id)
     number = await database.next_ticket_number(guild.id)
-    parent_id = config.get(f"{category}_category_id")
-    parent = guild.get_channel(parent_id) if parent_id else None
+    parent = await ticket_category(guild, config, category)
 
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False),
         interaction.user: discord.PermissionOverwrite(**FULL_ACCESS),
         guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_channels=True, manage_messages=True),
     }
-    for role_id in config["support_role_ids"]:
-        if role := guild.get_role(role_id):
-            overwrites[role] = discord.PermissionOverwrite(**FULL_ACCESS)
+    staff_roles = [role for role in map(guild.get_role, config["support_role_ids"]) if role]
+    for role in staff_roles:
+        overwrites[role] = discord.PermissionOverwrite(**FULL_ACCESS)
     for admin_id in ADMIN_IDS:
         if member := guild.get_member(admin_id):
             overwrites[member] = discord.PermissionOverwrite(**FULL_ACCESS, manage_channels=True, manage_messages=True)
@@ -85,23 +84,40 @@ async def create_ticket(interaction: discord.Interaction, category: str, descrip
         return await interaction.edit_original_response(content=None, embed=embeds.error("I don't have permission to create channels. Please tell the team."))
 
     await database.create_ticket(channel.id, guild.id, interaction.user.id, category, number, description, order_number)
-    await channel.send(embed=embeds.ticket_welcome(interaction.user, category, number, description, order_number), view=TicketActionView())
+    # Mentioning the customer and the support roles notifies them.
+    mentions = " ".join(m.mention for m in (interaction.user, *staff_roles))
+    await channel.send(mentions, embed=embeds.ticket_welcome(interaction.user, category, number, description, order_number), view=TicketActionView())
     if order_number:
         await channel.send(embed=await _order_for_ticket(order_number, email))
-    ping = await channel.send(interaction.user.mention)
-    await ping.delete()
     await interaction.edit_original_response(content=f"Your ticket is ready: {channel.mention}")
 
 
+async def ticket_category(guild: discord.Guild, config: dict, category: str) -> discord.CategoryChannel | None:
+    """The saved category for this kind of ticket. If none is saved or it was deleted, the one with the usual name is
+    used, or made, and saved, so tickets never land at the top of the server. None only if the bot can't make it."""
+    saved = guild.get_channel(config.get(f"{category}_category_id") or 0)
+    if isinstance(saved, discord.CategoryChannel):
+        return saved
+    name = CATEGORY_NAMES[category]
+    try:
+        found = discord.utils.get(guild.categories, name=name) or await guild.create_category(name, reason=f"Ticket category for {BOT_NAME}")
+    except discord.Forbidden:
+        return None
+    await database.set_category_id(guild.id, category, found.id)
+    return found
+
+
 async def _order_for_ticket(number: str, email: str | None) -> discord.Embed:
-    """The customer's order, shown in their ticket so the team has it to hand."""
+    """The customer's order, shown in their ticket so the team has it to hand: green when verified, red when not."""
     try:
         found = await store.get_order(number, email)
     except store.StoreError as err:
         return embeds.note("Order lookup", f"Couldn't look up **{number}** just now: {err}", COLOR_WARN)
     if not found:
-        return embeds.note("Order not verified", f"Order **{number}** wasn't found for that email. The team will check it with you.", COLOR_WARN)
-    return embeds.order(found)
+        return embeds.note("Order not verified", f"Order **{number}** wasn't found for that email. The team will check it with you.", COLOR_EMBER)
+    embed = embeds.order(found)
+    embed.colour = COLOR_OK
+    return embed
 
 
 class TicketPanelView(ui.View):
