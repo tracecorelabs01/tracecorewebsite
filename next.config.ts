@@ -51,6 +51,9 @@ const nextConfig: NextConfig = {
   experimental: {
     // Product photo uploads go through Server Actions.
     serverActions: { bodySizeLimit: "12mb" },
+    // The build starts a worker per CPU by default: 57 on Hostinger's build server, which crashes it (SIGABRT).
+    // Two are plenty for this site's ~70 pages.
+    cpus: 2,
   },
 };
 
