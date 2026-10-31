@@ -1,8 +1,12 @@
 import type { ReactNode } from "react";
 import { StoreShell } from "@/components/layout/StoreShell";
-import { getPublicSettings } from "@/lib/catalog/server";
+import { getPublicSettings, getShopMenu } from "@/lib/catalog/server";
 
 export default async function StoreLayout({ children }: { children: ReactNode }) {
-  const settings = await getPublicSettings();
-  return <StoreShell settings={settings}>{children}</StoreShell>;
+  const [settings, menu] = await Promise.all([getPublicSettings(), getShopMenu()]);
+  return (
+    <StoreShell settings={settings} menu={menu}>
+      {children}
+    </StoreShell>
+  );
 }

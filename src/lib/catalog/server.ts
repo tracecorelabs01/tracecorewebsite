@@ -9,7 +9,7 @@ import { defaultSettings, resolveSettings, type StoreSettings } from "@/lib/sett
 import type { PublicSettings } from "@/lib/settings-defaults";
 import { defaultSetupBuilder, type SetupBuilderConfig } from "@/lib/setup-builder";
 import { resolveSetupBuilder, SETUP_BUILDER_KEY } from "@/lib/setup-builder-schema";
-import { ART_KEYS, type ArtKey, type CategoryInfo, type Product, type ProductVisual, type PublicReview, type ReviewSummary, type StockStatus } from "./types";
+import { ART_KEYS, type ArtKey, type CategoryInfo, type Product, type ProductVisual, type PublicReview, type ReviewSummary, type ShopMenu, type StockStatus } from "./types";
 
 // Cache tags — admin mutations call updateTag() with these.
 export const TAGS = { catalog: "catalog", settings: "settings", reviews: "reviews" } as const;
@@ -23,6 +23,16 @@ export interface Catalog {
 export async function getCatalog(): Promise<Catalog> {
   if (!isDbConfigured()) return { products: demoProducts, categories: demoCategories };
   return loadCatalog();
+}
+
+/** The header's Shop mega menu: categories that have products, and Ferrum to feature. */
+export async function getShopMenu(): Promise<ShopMenu> {
+  const { products, categories } = await getCatalog();
+  const ferrum = products.find((p) => p.slug === "ferrum");
+  return {
+    categories: categories.map((c) => ({ ...c, count: products.filter((p) => p.category === c.id).length })).filter((c) => c.count > 0),
+    featured: ferrum ? { slug: ferrum.slug, name: ferrum.name, tagline: ferrum.tagline, price: ferrum.price, compareAt: ferrum.compareAt, visual: ferrum.visual } : null,
+  };
 }
 
 export async function getProductBySlug(slug: string) {

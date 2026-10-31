@@ -1,12 +1,12 @@
 import { LogoMark } from "@/components/brand/Logo";
 import { StoreShell } from "@/components/layout/StoreShell";
 import { ButtonLink } from "@/components/ui/Button";
-import { getPublicSettings } from "@/lib/catalog/server";
+import { getPublicSettings, getShopMenu } from "@/lib/catalog/server";
 
 export default async function NotFound() {
-  const settings = await getPublicSettings();
+  const [settings, menu] = await Promise.all([getPublicSettings(), getShopMenu()]);
   return (
-    <StoreShell settings={settings}>
+    <StoreShell settings={settings} menu={menu}>
     <section className="relative isolate flex min-h-[100svh] items-center overflow-hidden pt-28">
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
         <div className="absolute inset-0 bg-grid opacity-60 mask-radial" />

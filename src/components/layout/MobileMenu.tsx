@@ -6,16 +6,22 @@ import { AnimatePresence, motion } from "motion/react";
 import { ButtonLink } from "@/components/ui/Button";
 import { DiscordIcon, TikTokIcon, XIcon, YouTubeIcon } from "@/components/ui/icons";
 import { EASE_EXPO } from "@/components/ui/motion";
+import type { ShopMenu } from "@/lib/catalog/types";
 import { site } from "@/lib/site";
 import { useUi } from "@/lib/ui-store";
 import { useStoreSettings } from "./StoreSettings";
 
 const links = [{ label: "Home", href: "/" }, ...site.nav];
 
-export function MobileMenu() {
+export function MobileMenu({ menu }: { menu: ShopMenu }) {
   const open = useUi((s) => s.menuOpen);
   const setMenu = useUi((s) => s.setMenu);
   const { links: social } = useStoreSettings();
+  const shopLinks = [
+    { label: "Setup Builder", href: "/shop#build" },
+    ...menu.categories.map((c) => ({ label: c.label, href: `/shop?category=${c.id}` })),
+    ...(menu.featured ? [{ label: menu.featured.name, href: `/product/${menu.featured.slug}` }] : []),
+  ];
 
   useEffect(() => {
     if (!open) return;
@@ -52,6 +58,21 @@ export function MobileMenu() {
                       <span className="font-display text-5xl uppercase text-fg transition-colors group-active:text-blaze">{l.label}</span>
                       <span className="font-mono text-xs text-dim">0{i + 1}</span>
                     </Link>
+                    {l.href === "/shop" && (
+                      // The desktop mega menu's links, as chips.
+                      <div className="-mt-1 flex flex-wrap gap-2 pb-5">
+                        {shopLinks.map((s) => (
+                          <Link
+                            key={s.href}
+                            href={s.href}
+                            onClick={() => setMenu(false)}
+                            className="rounded-full border border-line-strong px-3.5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted transition-colors active:border-blaze active:text-fg"
+                          >
+                            {s.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 </li>
               ))}

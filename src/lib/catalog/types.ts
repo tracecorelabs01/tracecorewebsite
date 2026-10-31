@@ -45,6 +45,12 @@ export interface Product {
   seoDescription?: string;
 }
 
+/** The header's Shop menu: the categories that have products, and Ferrum to feature. */
+export interface ShopMenu {
+  categories: (CategoryInfo & { count: number })[];
+  featured: Pick<Product, "slug" | "name" | "tagline" | "price" | "compareAt" | "visual"> | null;
+}
+
 export interface PublicReview {
   name: string;
   handle: string;

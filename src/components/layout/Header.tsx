@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
-import { ShoppingBag, UserRound } from "lucide-react";
+import { ChevronDown, ShoppingBag, UserRound } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { ScrambleText } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/Button";
@@ -12,12 +12,38 @@ import { DiscordIcon } from "@/components/ui/icons";
 import { CssMarquee } from "@/components/ui/Marquee";
 import { EASE_EXPO } from "@/components/ui/motion";
 import { selectCount, useCart } from "@/lib/cart-store";
+import type { ShopMenu } from "@/lib/catalog/types";
 import { site } from "@/lib/site";
+import { ShopMegaMenu } from "./ShopMegaMenu";
 import { useStoreSettings } from "./StoreSettings";
 import { useUi } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
 
-export function Header() {
+/** The Shop mega menu's open state. Leaving closes it after a beat, so the pointer can cross the gap to the panel. */
+function useShopMenu() {
+  const [open, setOpen] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  return {
+    open,
+    show: () => {
+      window.clearTimeout(timer.current);
+      setOpen(true);
+    },
+    hideSoon: () => {
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setOpen(false), 150);
+    },
+    hide: () => {
+      window.clearTimeout(timer.current);
+      setOpen(false);
+    },
+  };
+}
+type ShopMenuState = ReturnType<typeof useShopMenu>;
+
+export function Header({ menu }: { menu: ShopMenu }) {
+  const shop = useShopMenu();
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = useState(false);
   const hidden = useUi((s) => s.headerHidden);
@@ -65,13 +91,13 @@ export function Header() {
       <div
         className={cn(
           "border-b transition-[background-color,border-color,backdrop-filter] duration-500",
-          scrolled || menuOpen ? "border-line bg-ink-950/75 backdrop-blur-xl" : "border-transparent bg-transparent",
+          scrolled || menuOpen || shop.open ? "border-line bg-ink-950/75 backdrop-blur-xl" : "border-transparent bg-transparent",
         )}
       >
         <nav className="container-x flex h-[72px] items-center justify-between gap-6" aria-label="Main">
           <Logo onNavigate={() => setMenu(false)} />
           <Suspense fallback={<NavLinksStatic />}>
-            <NavLinks />
+            <NavLinks menu={menu} shop={shop} hidden={hidden} />
           </Suspense>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <a
@@ -103,28 +129,56 @@ export function Header() {
   );
 }
 
-function NavLinks() {
+function NavLinks({ menu, shop, hidden }: { menu: ShopMenu; shop: ShopMenuState; hidden: boolean }) {
   const pathname = usePathname();
   const [hovered, setHovered] = useState<number | null>(null);
   return (
     <ul className="hidden items-center lg:flex" onPointerLeave={() => setHovered(null)}>
       {site.nav.map((item, i) => {
         const active = !item.href.includes("?") && (pathname === item.href || pathname.startsWith(item.href + "/"));
+        const isShop = item.href === "/shop";
+        // The Shop item holds the mega menu, so it isn't `relative`: the panel spans the header instead.
         return (
-          <li key={item.href} className="relative" onPointerEnter={() => setHovered(i)}>
-            <Link
-              href={item.href}
-              className={cn(
-                "relative z-10 block px-4 py-2 font-mono text-[12px] uppercase tracking-[0.14em] transition-colors",
-                active ? "text-fg" : "text-muted hover:text-fg",
+          <li
+            key={item.href}
+            onPointerEnter={() => {
+              setHovered(i);
+              if (isShop) shop.show();
+            }}
+            onPointerLeave={isShop ? shop.hideSoon : undefined}
+            onBlur={isShop ? (e) => !e.currentTarget.contains(e.relatedTarget) && shop.hide() : undefined}
+            onKeyDown={
+              isShop
+                ? (e) => {
+                    if (e.key !== "Escape") return;
+                    // Focus first: focusing Shop opens the menu, so closing has to come after.
+                    e.currentTarget.querySelector("a")?.focus();
+                    shop.hide();
+                  }
+                : undefined
+            }
+          >
+            <div className="relative">
+              <Link
+                href={item.href}
+                onFocus={isShop ? shop.show : undefined}
+                onClick={isShop ? shop.hide : undefined}
+                aria-expanded={isShop ? shop.open : undefined}
+                aria-controls={isShop ? "shop-menu" : undefined}
+                className={cn(
+                  "relative z-10 flex items-center gap-1.5 px-4 py-2 font-mono text-[12px] uppercase tracking-[0.14em] transition-colors",
+                  active || (isShop && shop.open) ? "text-fg" : "text-muted hover:text-fg",
+                )}
+              >
+                <ScrambleText text={item.label} />
+                {isShop && <ChevronDown aria-hidden className={cn("size-3.5 transition-transform duration-300", shop.open && "rotate-180")} />}
+              </Link>
+              {hovered === i && (
+                <motion.span layoutId="nav-hover" className="absolute inset-0 rounded-full bg-white/[0.06]" transition={{ type: "spring", stiffness: 380, damping: 32 }} />
               )}
-            >
-              <ScrambleText text={item.label} />
-            </Link>
-            {hovered === i && (
-              <motion.span layoutId="nav-hover" className="absolute inset-0 rounded-full bg-white/[0.06]" transition={{ type: "spring", stiffness: 380, damping: 32 }} />
-            )}
-            {active && <motion.span layoutId="nav-active" className="absolute inset-x-4 -bottom-0.5 h-[2px] bg-brand" />}
+              {active && <motion.span layoutId="nav-active" className="absolute inset-x-4 -bottom-0.5 h-[2px] bg-brand" />}
+            </div>
+            {isShop && <ShopMegaMenu open={shop.open && !hidden} menu={menu} onNavigate={shop.hide} />}
           </li>
         );
       })}

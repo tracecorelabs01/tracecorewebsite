@@ -34,10 +34,9 @@ export const site = {
     { value: 24, suffix: "h", label: "Typical dispatch" },
   ],
   nav: [
+    // Shop opens the mega menu (categories, Setup Builder, Ferrum) in the header.
     { label: "Shop", href: "/shop" },
-    { label: "Setup Builder", href: "/shop#build" },
-    { label: "DMA Cards", href: "/shop?category=dma" },
-    { label: "Ferrum", href: "/product/ferrum" },
+    { label: "Partners", href: "/partners" },
     { label: "FAQ", href: "/faq" },
     { label: "Support", href: "/support" },
   ],
