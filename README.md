@@ -127,6 +127,7 @@ Newsletter campaigns: sign-ups are stored under **Subscribers**. Send campaigns 
 - Login rate limiting per IP and per email; every Server Action re-checks the session and role.
 - `src/proxy.ts` keeps signed-out visitors out of `/admin` and adds `noindex` / anti-framing headers.
 - Every change is written to the activity log. CSV exports neutralise spreadsheet formulas.
+- `overrides` in package.json pin patched versions of `esbuild` and `minimatch` (both only used by the dev tooling). minimatch 11 isn't callable the way the ESLint React/import/jsx-a11y plugins call minimatch 3, so their rules that take glob options (e.g. `react/jsx-pascal-case` with `allowedNames`) would throw if switched on; none are in this project's config.
 
 ---
 
