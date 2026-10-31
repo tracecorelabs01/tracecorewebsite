@@ -72,6 +72,7 @@ docker rm -f tcl-mysql     # delete it (and its data)
 | Expenses | Record business spending; spend, revenue, profit and margin by period and category, 12-month view, CSV export | admin |
 | Setup builder | The shop page configurator: bundle discount, every question and answer, product picks, fuser specs, add-ons | admin |
 | Settings | Announcement bar, shipping thresholds, social links, stats, payment badges, order note | admin |
+| Legal pages | Terms, refund & cancellation, shipping and privacy policies shown at `/legal/...` (Razorpay checks these). Until saved, drafts from `src/lib/legal.ts` are shown | admin |
 | Activity | Audit log of every change | admin |
 | Staff | Add staff, roles, disable accounts, reset passwords | owner |
 

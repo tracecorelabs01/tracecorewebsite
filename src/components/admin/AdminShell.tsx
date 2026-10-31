@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   Boxes,
   ExternalLink,
+  FileText,
   FolderTree,
   Gift,
   History,
@@ -68,6 +69,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: typeof P
     group: "Store",
     items: [
       { href: "/admin/settings", label: "Settings", icon: Settings, min: "admin" },
+      { href: "/admin/legal", label: "Legal pages", icon: FileText, min: "admin" },
       { href: "/admin/staff", label: "Staff", icon: ShieldCheck, min: "owner" },
       { href: "/admin/activity", label: "Activity", icon: History, min: "admin" },
     ],
