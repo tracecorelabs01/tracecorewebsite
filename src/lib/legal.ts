@@ -88,7 +88,7 @@ Every product has a 3-month warranty from the purchase date, and returns are han
 
 ## Defective or damaged items
 
-If a product is defective, or arrives damaged, contact us within 3 months of the purchase date with your order number and a photo or short description of the problem.
+If a product is defective or damaged, contact us within 3 months of the purchase date with your order number and a photo or short description of the problem. Damage that happened in transit is a claim with the courier, which we'll help you file (see our [terms](/legal/terms)).
 
 - We'll help you troubleshoot first. If the item is defective or damaged, we replace it.
 - We only accept replacement requests for defective or damaged items, not refund requests.
@@ -139,7 +139,7 @@ Please check your shipping address at checkout. To change it, contact us before 
 
 ## Lost or damaged parcels
 
-If your tracking hasn't moved for 7 days, or your parcel arrives damaged, contact us. We'll open a claim with the courier and send you a replacement if it's lost or damaged in transit.
+A parcel is your responsibility once we hand it to the courier, as our [terms](/legal/terms) explain. If your tracking hasn't moved for 7 days, or your parcel arrives damaged, contact us within 48 hours of delivery: we'll give you the tracking details and invoice you need, and help you file a claim with the courier.
 
 ${CONTACT}`,
 
