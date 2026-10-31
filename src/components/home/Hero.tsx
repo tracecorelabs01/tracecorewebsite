@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { ArrowRight, Globe2, ShieldCheck, Truck } from "lucide-react";
 import { LogoMark } from "@/components/brand/Logo";
-import { FerrumShowcase } from "./FerrumShowcase";
+import { ProductShowcase } from "./ProductShowcase";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { Stars } from "@/components/ui/bits";
 import { ButtonLink } from "@/components/ui/Button";
@@ -26,7 +26,7 @@ function StaticMark() {
   );
 }
 
-export function Hero({ rating, ferrumPrice }: { rating: ReviewSummary | null; ferrumPrice?: number }) {
+export function Hero({ rating, ferrumPrice, cardPrice }: { rating: ReviewSummary | null; ferrumPrice?: number; cardPrice?: number }) {
   const play = useUi((s) => s.introDone);
   const { setupDiscountPercent } = useStoreSettings();
   const fade = (delay: number) => ({
@@ -128,7 +128,31 @@ export function Hero({ rating, ferrumPrice }: { rating: ReviewSummary | null; fe
           transition={{ duration: 1.4, ease: EASE_EXPO, delay: 0.15 }}
         >
           <Orb play={play} />
-          {ferrumPrice !== undefined && <FerrumShowcase play={play} price={ferrumPrice} />}
+          {cardPrice !== undefined && (
+            <ProductShowcase
+              scene="card"
+              play={play}
+              href="/product/tracecore-75t"
+              name="TraceCore 75T"
+              price={cardPrice}
+              badge="Best-seller"
+              className="-left-[26%] top-[0%] aspect-[3/4] w-[54%] xl:w-[56%]"
+              labelClassName="bottom-[4%] left-[18%]"
+            />
+          )}
+          {ferrumPrice !== undefined && (
+            <ProductShowcase
+              scene="ferrum"
+              play={play}
+              href="/product/ferrum"
+              name="Ferrum"
+              price={ferrumPrice}
+              badge="New"
+              fallback="/products/ferrum-thumb.webp"
+              className="-bottom-[5%] -right-[3%] aspect-[16/11] w-[50%] xl:w-[58%]"
+              labelClassName="-bottom-[3%] right-[9%]"
+            />
+          )}
         </motion.div>
       </div>
 
@@ -178,7 +202,7 @@ function Orb({ play }: { play: boolean }) {
   }, []);
 
   const labels = [
-    { text: "FPGA · Artix-7", pos: "left-[2%] top-[18%]", delay: 1.0 },
+    { text: "FPGA · Artix-7", pos: "right-[6%] top-[10%]", delay: 1.0 },
     { text: "Link · USB-C 3.0", pos: "right-[0%] top-[42%]", delay: 1.15 },
     { text: "Bus · PCIe x1", pos: "bottom-[14%] left-[10%]", delay: 1.3 },
   ];

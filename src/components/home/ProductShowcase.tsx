@@ -3,21 +3,49 @@
 import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { motion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
 import { EASE_EXPO } from "@/components/ui/motion";
-import { formatPrice } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 
-const loadScene = () => import("./FerrumScene");
-const FerrumScene = dynamic(loadScene, { ssr: false, loading: () => null });
+type SceneProps = { play: boolean; active: boolean; hover: RefObject<boolean> };
 
-/** 3D Ferrum floating at the bottom-right of the hero, linking to its product page. Desktop only. */
-export function FerrumShowcase({ play, price }: { play: boolean; price: number }) {
+const SCENES = {
+  ferrum: { load: () => import("./FerrumScene"), Scene: dynamic<SceneProps>(() => import("./FerrumScene"), { ssr: false, loading: () => null }) },
+  card: { load: () => import("./DmaCardScene"), Scene: dynamic<SceneProps>(() => import("./DmaCardScene"), { ssr: false, loading: () => null }) },
+};
+
+/** A 3D product floating in the hero, linking to its product page. Desktop only; a photo stands in without WebGL. */
+export function ProductShowcase({
+  scene,
+  play,
+  href,
+  name,
+  price,
+  badge,
+  fallback,
+  className,
+  labelClassName,
+}: {
+  scene: keyof typeof SCENES;
+  play: boolean;
+  href: string;
+  name: string;
+  price: number;
+  badge: string;
+  /** Shown instead of the 3D model when WebGL isn't available. */
+  fallback?: string;
+  /** Position and size within the hero's visual column. */
+  className: string;
+  /** Position of the name and price pill. */
+  labelClassName: string;
+}) {
   const ref = useRef<HTMLAnchorElement>(null);
   const hover = useRef(false);
   const [use3d, setUse3d] = useState<boolean | null>(null);
   const [active, setActive] = useState(true);
+  const { Scene, load } = SCENES[scene];
 
   useEffect(() => {
     let webgl = false;
@@ -28,7 +56,7 @@ export function FerrumShowcase({ play, price }: { play: boolean; price: number }
     const capable = webgl && window.matchMedia("(min-width: 1024px) and (prefers-reduced-motion: no-preference)").matches;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- capability check after mount
     setUse3d(capable);
-    if (capable) loadScene();
+    if (capable) load();
 
     const el = ref.current;
     if (!el) return;
@@ -38,16 +66,16 @@ export function FerrumShowcase({ play, price }: { play: boolean; price: number }
       io.disconnect();
       setActive(false); // route hidden by Activity: stop the render loop
     };
-  }, []);
+  }, [load]);
 
   return (
     <Link
       ref={ref}
-      href="/product/ferrum"
-      aria-label={`Ferrum precision input device, ${formatPrice(price)}`}
+      href={href}
+      aria-label={`${name}, ${formatPrice(price)}`}
       onPointerEnter={() => (hover.current = true)}
       onPointerLeave={() => (hover.current = false)}
-      className="group absolute -bottom-[5%] -right-[3%] z-20 hidden aspect-[16/11] w-[50%] lg:block xl:w-[58%]"
+      className={cn("group absolute z-20 hidden lg:block", className)}
     >
       <span aria-hidden className="pointer-events-none absolute inset-[18%] rounded-full bg-[radial-gradient(circle,rgb(255_61_0/0.24),transparent_70%)] opacity-70 blur-2xl transition-opacity duration-500 group-hover:opacity-100" />
       <motion.span
@@ -57,22 +85,24 @@ export function FerrumShowcase({ play, price }: { play: boolean; price: number }
         animate={{ opacity: play ? 1 : 0 }}
         transition={{ duration: 1, delay: 0.9 }}
       />
-
-      {use3d && play && <FerrumScene play={play} active={active} hover={hover} />}
-      {use3d === false && (
+      {use3d && play && <Scene play={play} active={active} hover={hover} />}
+      {use3d === false && fallback && (
         <span className="absolute inset-[12%] rotate-[-8deg] overflow-hidden rounded-2xl border border-white/10 shadow-[0_30px_60px_-20px_rgb(0_0_0/0.9)]">
-          <Image src="/products/ferrum-thumb.webp" alt="" fill sizes="280px" className="object-cover" />
+          <Image src={fallback} alt="" fill sizes="280px" className="object-cover" />
         </span>
       )}
 
       <motion.span
-        className="absolute -bottom-[3%] right-[9%] flex items-center gap-2 whitespace-nowrap rounded-full border border-line-strong bg-ink-900/70 py-1 pl-1 pr-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-fg/85 backdrop-blur transition-colors duration-300 group-hover:border-blaze/60"
+        className={cn(
+          "absolute flex items-center gap-2 whitespace-nowrap rounded-full border border-line-strong bg-ink-900/70 py-1 pl-1 pr-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-fg/85 backdrop-blur transition-colors duration-300 group-hover:border-blaze/60",
+          labelClassName,
+        )}
         initial={{ opacity: 0, y: 10 }}
         animate={play ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
         transition={{ duration: 0.8, ease: EASE_EXPO, delay: 1.35 }}
       >
-        <span className="rounded-full bg-brand px-2 py-0.5 text-[9.5px] font-semibold text-white">New</span>
-        Ferrum · {formatPrice(price)}
+        <span className="rounded-full bg-brand px-2 py-0.5 text-[9.5px] font-semibold text-white">{badge}</span>
+        {name} · {formatPrice(price)}
         <ArrowUpRight className="size-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
       </motion.span>
     </Link>

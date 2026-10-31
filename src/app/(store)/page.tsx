@@ -11,10 +11,11 @@ import { getCatalog, getReviewsData } from "@/lib/catalog/server";
 export default async function Home() {
   const [{ products, categories }, { reviews, summary }] = await Promise.all([getCatalog(), getReviewsData()]);
   const ferrum = products.find((p) => p.slug === "ferrum");
+  const card = products.find((p) => p.slug === "tracecore-75t");
 
   return (
     <>
-      <Hero rating={summary} ferrumPrice={ferrum?.price} />
+      <Hero rating={summary} ferrumPrice={ferrum?.price} cardPrice={card?.price} />
       <TickerBands />
       <VideoReveal />
       <FeaturedProducts products={products} categories={categories} />
