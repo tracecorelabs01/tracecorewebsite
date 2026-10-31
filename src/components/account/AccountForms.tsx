@@ -36,9 +36,9 @@ function useAccountForm(action: Action) {
   return { state, pending, onSubmit };
 }
 
-const inputClass = "mt-2 h-12 w-full rounded-xl border border-line-strong bg-ink-900 px-4 outline-none transition-colors placeholder:text-dim focus:border-blaze";
+export const inputClass = "mt-2 h-12 w-full rounded-xl border border-line-strong bg-ink-900 px-4 outline-none transition-colors placeholder:text-dim focus:border-blaze";
 
-function Field({ label, error, hint, className, ...props }: { label: string; error?: string; hint?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
+export function Field({ label, error, hint, className, ...props }: { label: string; error?: string; hint?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className={cn("block", className)}>
       <span className="type-kicker text-dim">{label}</span>
@@ -48,7 +48,7 @@ function Field({ label, error, hint, className, ...props }: { label: string; err
   );
 }
 
-function Submit({ pending, children, className }: { pending: boolean; children: ReactNode; className?: string }) {
+export function Submit({ pending, children, className }: { pending: boolean; children: ReactNode; className?: string }) {
   return (
     <button
       type="submit"
@@ -64,7 +64,7 @@ function Submit({ pending, children, className }: { pending: boolean; children: 
   );
 }
 
-function Status({ state }: { state: AccountFormState }) {
+export function Status({ state }: { state: { ok: boolean; message?: string } | null }) {
   if (!state?.message) return null;
   return (
     <p role={state.ok ? "status" : "alert"} className={cn("text-sm", state.ok ? "text-ok" : "text-[#ff6b5e]")}>
@@ -97,10 +97,11 @@ function EmailStep({ email, next, flow, onRestart }: { email?: string; next?: st
   if (state?.ok && state.email) return <CodeStep email={state.email} next={next} flow={flow} create={state.create} sent={state.message} onRestart={onRestart} />;
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
-      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state?.email ?? email} error={state?.fieldErrors?.email} hint="The one you ordered with." required />
+      <input type="hidden" name="next" value={next ?? ""} />
+      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state?.email ?? email} error={state?.fieldErrors?.email} hint={next?.startsWith("/partners") ? undefined : "The one you ordered with."} required />
       <Status state={state} />
       {state?.guest ? (
-        // Orders but no account: create it with a code, or just track the orders.
+        // No account yet (orders as a guest, or applying to be a partner): create it with a code, or just track the orders.
         <div className="grid gap-3">
           <button
             type="submit"
@@ -112,9 +113,11 @@ function EmailStep({ email, next, flow, onRestart }: { email?: string; next?: st
             {pending && <Loader2 className="size-4 animate-spin" />}
             Create my account
           </button>
-          <Link href={`/track?${new URLSearchParams({ email: state.email ?? "" })}`} className="text-center text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
-            Or track your orders without an account
-          </Link>
+          {!next?.startsWith("/partners") && (
+            <Link href={`/track?${new URLSearchParams({ email: state.email ?? "" })}`} className="text-center text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
+              Or track your orders without an account
+            </Link>
+          )}
         </div>
       ) : (
         <Submit pending={pending}>Email me a code</Submit>

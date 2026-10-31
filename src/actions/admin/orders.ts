@@ -12,6 +12,7 @@ import { requireAdmin, type AdminUser } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
 import { announcePaidOrder } from "@/lib/discord";
 import { emailOrder, type OrderEmail } from "@/lib/emails/orders";
+import { syncOrderCommission } from "@/lib/affiliates";
 import { syncOrderPoints } from "@/lib/loyalty";
 
 type Order = typeof orders.$inferSelect;
@@ -108,6 +109,7 @@ async function changeStatus(user: AdminUser, orderId: number, to: OrderStatus, r
     }
     await tx.update(orders).set(statusPatch(order, to, new Date())).where(eq(orders.id, orderId));
     const points = await syncOrderPoints(tx, orderId);
+    await syncOrderCommission(tx, orderId);
     if (points) events.push(pointsEvent(points));
     await addEvents(tx, orderId, user, events);
     return { halted: false as const, order, restocked, notes };
@@ -170,6 +172,7 @@ async function changePayment(user: AdminUser, orderId: number, to: PaymentStatus
     }
     await tx.update(orders).set(patch).where(eq(orders.id, orderId));
     const points = await syncOrderPoints(tx, orderId);
+    await syncOrderCommission(tx, orderId);
     if (points) events.push(pointsEvent(points));
     await addEvents(tx, orderId, user, events);
     return { halted: false as const, order, statusChanged, moved };

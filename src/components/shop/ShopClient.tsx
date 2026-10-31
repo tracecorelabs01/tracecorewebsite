@@ -7,6 +7,7 @@ import { ChevronDown, Search, X } from "lucide-react";
 import type { CategoryInfo, Product } from "@/lib/catalog/types";
 import { ProductCard } from "@/components/product/ProductCard";
 import { EASE_EXPO } from "@/components/ui/motion";
+import { usePriceOf } from "@/lib/partner-pricing";
 import { useUi } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ type Sort = keyof typeof sorts;
 
 export function ShopClient({ products, categories }: { products: Product[]; categories: CategoryInfo[] }) {
   const params = useSearchParams();
+  const priceOf = usePriceOf();
   const router = useRouter();
   const pathname = usePathname();
   const headerHidden = useUi((s) => s.headerHidden);
@@ -45,12 +47,12 @@ export function ShopClient({ products, categories }: { products: Product[]; cate
         (!q || [p.name, p.tagline, p.categoryLabel, ...p.highlights].some((s) => s.toLowerCase().includes(q))),
     );
     const sorted = [...filtered];
-    if (sort === "price-asc") sorted.sort((a, b) => a.price - b.price);
-    if (sort === "price-desc") sorted.sort((a, b) => b.price - a.price);
+    if (sort === "price-asc") sorted.sort((a, b) => priceOf(a) - priceOf(b));
+    if (sort === "price-desc") sorted.sort((a, b) => priceOf(b) - priceOf(a));
     if (sort === "rating") sorted.sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);
     if (sort === "featured") sorted.sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
     return sorted;
-  }, [active, query, sort, products]);
+  }, [active, query, sort, products, priceOf]);
 
   const counts = useMemo(() => {
     const m: Record<string, number> = { all: products.length };

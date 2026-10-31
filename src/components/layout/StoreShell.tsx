@@ -8,6 +8,7 @@ import { Footer } from "./Footer";
 import { CartDrawer } from "./CartDrawer";
 import { Cursor } from "./Cursor";
 import { StoreSettingsProvider } from "./StoreSettings";
+import { ReferralTracker } from "@/components/partners/ReferralTracker";
 
 /** Storefront chrome: smooth scroll, intro, header, cart, footer. Not used by /admin. */
 export function StoreShell({ settings, children }: { settings: PublicSettings; children: ReactNode }) {
@@ -25,6 +26,7 @@ export function StoreShell({ settings, children }: { settings: PublicSettings; c
         </main>
         <Footer />
         <CartDrawer />
+        <ReferralTracker />
         <Cursor />
       </Providers>
       <div className="grain" aria-hidden />

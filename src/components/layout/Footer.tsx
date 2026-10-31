@@ -41,6 +41,7 @@ const columns = [
       { label: "Contact support", href: "/support" },
       { label: "Shipping", href: "/faq#shipping" },
       { label: "Warranty", href: "/faq#warranty" },
+      { label: "Partner program", href: "/partners" },
     ],
   },
   {

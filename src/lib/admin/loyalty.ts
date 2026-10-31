@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, desc, eq, gt, isNotNull, sql, sum } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, isNotNull, like, sql, sum } from "drizzle-orm";
 import { customers, discountCodes, getDb, loyaltyLedger, loyaltyOffers, products } from "@/db";
 import { pointsBalance, withProductNames } from "@/lib/loyalty";
 
@@ -17,7 +17,8 @@ export async function getLoyaltyStats() {
     db
       .select({ n: count() })
       .from(discountCodes)
-      .where(and(isNotNull(discountCodes.customerId), gt(discountCodes.usedCount, 0))),
+      // Reward codes only: partners' AFF- store credit codes are customer codes too.
+      .where(and(isNotNull(discountCodes.customerId), like(discountCodes.code, "PTS-%"), gt(discountCodes.usedCount, 0))),
   ]);
   return {
     accounts: accounts?.n ?? 0,

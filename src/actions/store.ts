@@ -5,6 +5,7 @@ import { and, count, eq, gt, gte, inArray, isNull, lt, or, sql } from "drizzle-o
 import { z } from "zod";
 import { categories, customers, discountCodes, getDb, isDbConfigured, messages, orderEvents, orderItems, orders, products, subscribers } from "@/db";
 import { addressSchema, rememberAddress } from "@/lib/address";
+import { currentPartner, getProgram, partnerByCode, partnerPriceMap, partnerTerms, rememberPartner, type Partner } from "@/lib/affiliates";
 import { getCurrentCustomer } from "@/lib/auth/customer";
 import { getCatalog, getSetupBuilder, getStoreSettings, TAGS } from "@/lib/catalog/server";
 import { MAX_QTY } from "@/lib/catalog/types";
@@ -64,8 +65,8 @@ function discountError(row: typeof discountCodes.$inferSelect | undefined, subto
   return null;
 }
 
-/** Re-prices the cart from the database (client prices are never trusted). */
-async function priceCart(lines: CartInput, code?: string): Promise<Priced> {
+/** Re-prices the cart from the database (client prices are never trusted), at the referring partner's prices if any. */
+async function priceCart(lines: CartInput, code?: string, partner?: Partner | null): Promise<Priced> {
   const settings = await getStoreSettings();
 
   if (!isDbConfigured()) {
@@ -88,6 +89,11 @@ async function priceCart(lines: CartInput, code?: string): Promise<Priced> {
   const slugs = [...new Set(lines.map((l) => l.slug))];
   const rows = await db.select().from(products).where(and(inArray(products.slug, slugs), eq(products.status, "active")));
   const bySlug = new Map(rows.map((r) => [r.slug, r]));
+  const terms = partner ? await partnerTerms(partner.id, db) : null;
+  const unitPrice = (p: (typeof rows)[number]) => {
+    const t = terms?.get(p.id);
+    return t?.visible ? t.priceCents : p.priceCents;
+  };
 
   // Combine quantities per product for stock checks (same product, different options).
   const wanted = new Map<string, number>();
@@ -121,8 +127,8 @@ async function priceCart(lines: CartInput, code?: string): Promise<Priced> {
       name: p.name,
       option: p.optionName && values.length ? l.option : undefined,
       qty: l.qty,
-      unitCents: p.priceCents,
-      lineTotalCents: p.priceCents * l.qty,
+      unitCents: unitPrice(p),
+      lineTotalCents: unitPrice(p) * l.qty,
       stock: guarded ? "guarded" : p.trackInventory ? "backorder" : "untracked",
     });
   }
@@ -161,11 +167,24 @@ async function priceCart(lines: CartInput, code?: string): Promise<Priced> {
 
 /* ───────────── discount preview ───────────── */
 
-export async function previewDiscount(code: string, lines: CartInput): Promise<{ ok: true; code: string; discountCents: number } | { ok: false; error: string }> {
+export type CodePreview =
+  | { ok: true; code: string; discountCents: number }
+  /** A partner's code: their prices from now on, no discount. */
+  | { ok: true; partner: { name: string; prices: Record<string, number> } }
+  | { ok: false; error: string };
+
+export async function previewDiscount(code: string, lines: CartInput): Promise<CodePreview> {
   const parsedCode = z.string().trim().min(2).max(40).safeParse(code);
   const parsedLines = z.array(lineSchema).min(1).max(50).safeParse(lines);
   if (!parsedCode.success || !parsedLines.success) return { ok: false, error: "Enter a valid code." };
-  const priced = await priceCart(parsedLines.data, parsedCode.data);
+  const me = await getCurrentCustomer();
+  const partner = await partnerByCode(parsedCode.data);
+  if (partner) {
+    if (me && me.email.toLowerCase() === partner.email.toLowerCase()) return { ok: false, error: "That's your own partner code: it doesn't apply to your orders." };
+    await rememberPartner(partner.id, "code", (await getProgram()).cookieDays);
+    return { ok: true, partner: { name: partner.name, prices: await partnerPriceMap(partner.id) } };
+  }
+  const priced = await priceCart(parsedLines.data, parsedCode.data, await currentPartner({ buyerEmail: me?.email }));
   if (!priced.ok) return { ok: false, error: priced.error };
   return { ok: true, code: priced.discount!.code, discountCents: priced.discount!.cents };
 }
@@ -174,7 +193,8 @@ export async function previewDiscount(code: string, lines: CartInput): Promise<{
 export async function previewSetupDiscount(lines: CartInput): Promise<{ code: string; cents: number } | null> {
   const parsed = z.array(lineSchema).min(1).max(50).safeParse(lines);
   if (!parsed.success) return null;
-  const priced = await priceCart(parsed.data);
+  const me = await getCurrentCustomer();
+  const priced = await priceCart(parsed.data, undefined, await currentPartner({ buyerEmail: me?.email }));
   return priced.ok && priced.discount ? { code: priced.discount.code, cents: priced.discount.cents } : null;
 }
 
@@ -238,7 +258,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   if (data.paymentMethod !== "card" && !settings.manualPayments[data.paymentMethod]) {
     return { ok: false, error: "That payment method isn't available any more. Please choose another." };
   }
-  const priced = await priceCart(data.lines, data.discountCode || undefined);
+  // The partner who referred the buyer (never the buyer themselves): their prices, and the order is theirs.
+  const partner = await currentPartner({ buyerEmail: data.email });
+  const priced = await priceCart(data.lines, data.discountCode || undefined, partner);
   if (!priced.ok) return { ok: false, error: priced.error, cartIssues: priced.cartIssues };
 
   const summary = {
@@ -357,6 +379,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
             discountCode: priced.discount?.code ?? null,
             customerNote: data.note || null,
             ip,
+            affiliateId: partner?.id ?? null,
+            affiliateSource: partner?.source ?? null,
           })
           .$returningId();
       }

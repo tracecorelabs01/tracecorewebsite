@@ -8,12 +8,14 @@ import type { Product } from "@/lib/catalog/types";
 import { Badge, Price, StatusDot, Stars } from "@/components/ui/bits";
 import { Tilt, pauseOffscreen } from "@/components/ui/motion";
 import { useCart } from "@/lib/cart-store";
+import { usePrice } from "@/lib/partner-pricing";
 import { useUi } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
 import { ProductVisual } from "./ProductVisual";
 
 export function ProductCard({ product, eager, className }: { product: Product; eager?: boolean; className?: string }) {
   const add = useCart((s) => s.add);
+  const price = usePrice(product);
   const openCart = useUi((s) => s.openCart);
   const pulseCart = useUi((s) => s.pulseCart);
   const [added, setAdded] = useState(false);
@@ -65,7 +67,7 @@ export function ProductCard({ product, eager, className }: { product: Product; e
           </h3>
           <p className="text-sm text-muted">{product.tagline}</p>
           <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-            <Price price={product.price} compareAt={product.compareAt} />
+            <Price {...price} />
             <button
               type="button"
               onClick={onAdd}

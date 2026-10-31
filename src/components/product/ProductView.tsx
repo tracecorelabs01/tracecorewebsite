@@ -9,6 +9,7 @@ import { MAX_QTY, type Product } from "@/lib/catalog/types";
 import { Accordion, Badge, Kicker, Price, QuantityStepper, StatusDot, Stars } from "@/components/ui/bits";
 import { EASE_EXPO, Reveal, RevealLines, Tilt, pauseOffscreen } from "@/components/ui/motion";
 import { useCart } from "@/lib/cart-store";
+import { usePrice } from "@/lib/partner-pricing";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { useUi } from "@/lib/ui-store";
 import { cn, formatPrice } from "@/lib/utils";
@@ -19,6 +20,7 @@ import { ProductVisual } from "./ProductVisual";
 export function ProductView({ product, related }: { product: Product; related: Product[] }) {
   const router = useRouter();
   const add = useCart((s) => s.add);
+  const price = usePrice(product);
   const openCart = useUi((s) => s.openCart);
   const pulseCart = useUi((s) => s.pulseCart);
   const play = useUi((s) => s.introDone);
@@ -178,7 +180,7 @@ export function ProductView({ product, related }: { product: Product; related: P
               )}
 
               <div className="mt-8 border-t border-line pt-8">
-                <Price price={product.price} compareAt={product.compareAt} large />
+                <Price {...price} large />
                 <p className="mt-6 leading-relaxed text-fg/80">{product.summary}</p>
               </div>
 
@@ -227,7 +229,7 @@ export function ProductView({ product, related }: { product: Product; related: P
                       </motion.span>
                     ) : (
                       <motion.span key="add" className="flex items-center gap-2.5" initial={{ y: 24 }} animate={{ y: 0 }} exit={{ y: -24 }}>
-                        <ShoppingBag className="size-4" /> Add to cart · {formatPrice(product.price * qty)}
+                        <ShoppingBag className="size-4" /> Add to cart · {formatPrice(price.price * qty)}
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -342,7 +344,7 @@ export function ProductView({ product, related }: { product: Product; related: P
               <div className="min-w-0 flex-1">
                 <div className="truncate font-display text-xl uppercase leading-tight">{product.name}</div>
                 <div className="truncate text-xs text-muted">
-                  {formatPrice(product.price)}
+                  {formatPrice(price.price)}
                   {option ? ` · ${option}` : ""}
                 </div>
               </div>

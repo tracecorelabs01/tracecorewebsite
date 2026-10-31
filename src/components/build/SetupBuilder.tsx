@@ -10,6 +10,7 @@ import { Kicker } from "@/components/ui/bits";
 import { Button } from "@/components/ui/Button";
 import { EASE_EXPO } from "@/components/ui/motion";
 import { useCart } from "@/lib/cart-store";
+import { usePartnerProducts } from "@/lib/partner-pricing";
 import { STEP_ORDER, fill, fuserFor, isCompleteSetup, maxHzFor, numberWord, widestFuser, type BuilderTier, type Heading, type SetupBuilderConfig, type StepKey } from "@/lib/setup-builder";
 import { useUi } from "@/lib/ui-store";
 import { cn, formatPrice } from "@/lib/utils";
@@ -20,7 +21,9 @@ type Line = { key: string; role: string; step: StepKey; product: Product; what: 
 const cols = (n: number) => (n <= 1 ? "" : n === 2 || n === 4 ? "sm:grid-cols-2" : "lg:grid-cols-3");
 
 /** The configurator, driven by the config from /admin/setup-builder. `preview` (admin) can't add to the cart. */
-export function SetupBuilder({ config: c, products, preview }: { config: SetupBuilderConfig; products: Product[]; preview?: boolean }) {
+export function SetupBuilder({ config: c, products: catalog, preview }: { config: SetupBuilderConfig; products: Product[]; preview?: boolean }) {
+  // At the referring partner's prices, if any, so every total below adds up to what checkout charges.
+  const products = usePartnerProducts(catalog);
   const { setupDiscountPercent } = useStoreSettings();
   const add = useCart((s) => s.add);
   const openCart = useUi((s) => s.openCart);

@@ -298,6 +298,9 @@ export const orders = mysqlTable(
     deliveredAt: datetime("delivered_at"),
     cancelledAt: datetime("cancelled_at"),
     ip: varchar("ip", { length: 64 }),
+    /** The affiliate partner who referred the order, and how: their link (cookie) or their code at checkout. */
+    affiliateId: int("affiliate_id").references(() => affiliates.id, { onDelete: "set null" }),
+    affiliateSource: mysqlEnum("affiliate_source", ["link", "code"]),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -308,6 +311,7 @@ export const orders = mysqlTable(
     index("orders_email_idx").on(t.email),
     index("orders_customer_idx").on(t.customerId),
     uniqueIndex("orders_razorpay_order_uq").on(t.razorpayOrderId),
+    index("orders_affiliate_idx").on(t.affiliateId),
   ],
 );
 
@@ -500,4 +504,144 @@ export const activityLog = mysqlTable(
     createdAt: createdAt(),
   },
   (t) => [index("activity_log_created_idx").on(t.createdAt)],
+);
+
+/* ───────────── Affiliate program ───────────── */
+// Partners (approved customer accounts) refer orders with a link or their code. What each partner may promote,
+// what they earn and the prices their customers pay are set per product at three levels: the program, the
+// partner's group, and the partner. Commissions follow the order like loyalty points do (src/lib/affiliates.ts).
+
+export const COMMISSION_KINDS = ["percent", "fixed"] as const;
+
+export const affiliateGroups = mysqlTable("affiliate_groups", {
+  id: id(),
+  name: varchar("name", { length: 80 }).notNull(),
+  description: varchar("description", { length: 255 }).notNull().default(""),
+  /** New partners join this group. */
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const affiliates = mysqlTable(
+  "affiliates",
+  {
+    id: id(),
+    customerId: int("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    status: mysqlEnum("status", ["pending", "approved", "rejected", "suspended"]).notNull().default("pending"),
+    /** In their link (?ref=CODE) and typed at checkout. Never the same as a discount code. */
+    code: varchar("code", { length: 32 }).notNull(),
+    groupId: int("group_id").references(() => affiliateGroups.id, { onDelete: "set null" }),
+    /** The name customers and the team see (a channel or shop name). */
+    name: varchar("name", { length: 120 }).notNull(),
+    website: varchar("website", { length: 255 }),
+    /** From the application: where and how they'd promote. */
+    audience: text("audience"),
+    paypalEmail: varchar("paypal_email", { length: 191 }),
+    /** Staff only. */
+    notes: text("notes"),
+    approvedAt: datetime("approved_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("affiliates_customer_uq").on(t.customerId), uniqueIndex("affiliates_code_uq").on(t.code), index("affiliates_status_idx").on(t.status)],
+);
+
+export const affiliateRules = mysqlTable(
+  "affiliate_rules",
+  {
+    id: id(),
+    /** "program", "group:<id>" or "partner:<id>". The ids are repeated as foreign keys so rules go with their group or partner. */
+    scope: varchar("scope", { length: 24 }).notNull(),
+    groupId: int("group_id").references(() => affiliateGroups.id, { onDelete: "cascade" }),
+    affiliateId: int("affiliate_id").references(() => affiliates.id, { onDelete: "cascade" }),
+    productId: int("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    /** null = inherit from the level above (the program's null means not in the program). */
+    visible: boolean("visible"),
+    commissionKind: mysqlEnum("commission_kind", COMMISSION_KINDS),
+    /** percent: hundredths of a percent (1000 = 10%); fixed: cents per unit. */
+    commissionValue: int("commission_value"),
+    /** What customers referred by the partner pay; null = inherit (the program's null means the regular price). */
+    priceCents: int("price_cents"),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("affiliate_rules_scope_product_uq").on(t.scope, t.productId)],
+);
+
+export const affiliateClicks = mysqlTable(
+  "affiliate_clicks",
+  {
+    id: id(),
+    affiliateId: int("affiliate_id")
+      .notNull()
+      .references(() => affiliates.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+    clicks: int("clicks").notNull().default(0),
+  },
+  (t) => [uniqueIndex("affiliate_clicks_day_uq").on(t.affiliateId, t.day)],
+);
+
+export const affiliatePayouts = mysqlTable(
+  "affiliate_payouts",
+  {
+    id: id(),
+    affiliateId: int("affiliate_id")
+      .notNull()
+      .references(() => affiliates.id, { onDelete: "cascade" }),
+    method: mysqlEnum("method", ["paypal", "store_credit"]).notNull(),
+    amountCents: int("amount_cents").notNull(),
+    status: mysqlEnum("status", ["requested", "paid", "rejected"]).notNull().default("requested"),
+    paypalEmail: varchar("paypal_email", { length: 191 }),
+    /** The PayPal transaction ID, or the store-credit code. */
+    reference: varchar("reference", { length: 191 }),
+    note: varchar("note", { length: 255 }),
+    processedBy: int("processed_by").references(() => adminUsers.id, { onDelete: "set null" }),
+    paidAt: datetime("paid_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("affiliate_payouts_affiliate_idx").on(t.affiliateId), index("affiliate_payouts_status_idx").on(t.status)],
+);
+
+export interface CommissionLine {
+  productId: number | null;
+  name: string;
+  qty: number;
+  /** The line's price after its share of the order discount. */
+  baseCents: number;
+  kind: (typeof COMMISSION_KINDS)[number];
+  value: number;
+  cents: number;
+}
+
+export const affiliateCommissions = mysqlTable(
+  "affiliate_commissions",
+  {
+    id: id(),
+    affiliateId: int("affiliate_id")
+      .notNull()
+      .references(() => affiliates.id, { onDelete: "cascade" }),
+    /** Set on order commissions (one per order); adjustments have none. */
+    orderId: int("order_id").references(() => orders.id, { onDelete: "cascade" }),
+    kind: mysqlEnum("kind", ["order", "adjustment"]).notNull().default("order"),
+    amountCents: int("amount_cents").notNull(),
+    status: mysqlEnum("status", ["pending", "approved", "paid", "reversed"]).notNull().default("pending"),
+    lines: jsonCol<CommissionLine[]>("lines"),
+    note: varchar("note", { length: 255 }),
+    payoutId: int("payout_id").references(() => affiliatePayouts.id, { onDelete: "set null" }),
+    approvedAt: datetime("approved_at"),
+    /** When a commission already paid out was taken back with an adjustment, so it's only taken back once. */
+    clawedBackAt: datetime("clawed_back_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("affiliate_commissions_order_uq").on(t.orderId),
+    index("affiliate_commissions_affiliate_idx").on(t.affiliateId, t.status),
+    index("affiliate_commissions_payout_idx").on(t.payoutId),
+  ],
 );

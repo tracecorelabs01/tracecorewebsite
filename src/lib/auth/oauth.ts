@@ -49,10 +49,10 @@ export const enabledProviders = (): Provider[] => (["google", "discord"] as cons
 
 const redirectUri = (p: Provider) => url(`/api/auth/${p}/callback`);
 
-/** Where to go after signing in: checkout or an account page, nowhere else. */
+/** Where to go after signing in: checkout, an account page or a partner page, nowhere else. */
 export function afterSignIn(next: unknown) {
   const path = String(next ?? "");
-  return path === "/checkout" || /^\/account(\/[\w-]*)*$/.test(path) ? path : "/account";
+  return path === "/checkout" || /^\/(account|partners)(\/[\w-]*)*$/.test(path) ? path : "/account";
 }
 
 export function authorizeUrl(p: Provider, state: string) {

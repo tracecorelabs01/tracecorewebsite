@@ -16,6 +16,7 @@ import { PaymentLogos, TrustBadges } from "@/components/ui/Badges";
 import { ButtonLink } from "@/components/ui/Button";
 import { EASE_EXPO } from "@/components/ui/motion";
 import { selectSubtotal, useCart } from "@/lib/cart-store";
+import { usePartnerPricing } from "@/lib/partner-pricing";
 import { useUi } from "@/lib/ui-store";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -63,6 +64,9 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
   const lines = useCart((s) => s.lines);
   const subtotal = useCart(selectSubtotal);
   const clear = useCart((s) => s.clear);
+  const reprice = useCart((s) => s.reprice);
+  const partner = usePartnerPricing((s) => s.partner);
+  const setPartner = usePartnerPricing((s) => s.set);
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
   const settings = useStoreSettings();
@@ -95,19 +99,21 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
 
   const cartInput = lines.map((l) => ({ slug: l.slug, option: l.option, qty: l.qty }));
   const cartKey = JSON.stringify(cartInput);
+  // Partner prices change the subtotal, so a quote is for this cart at these prices.
+  const quoteKey = cartKey + (partner ? `@${partner.name}` : "");
   // The server decides whether the cart is a complete setup; a code replaces the setup discount.
   const [setupQuote, setSetupQuote] = useState<{ key: string; discount: { code: string; cents: number } | null } | null>(null);
   const checkSetup = !demo && hydrated && !discount && lines.length > 0;
   useEffect(() => {
     if (!checkSetup) return;
     let current = true;
-    previewSetupDiscount(JSON.parse(cartKey)).then((d) => current && setSetupQuote({ key: cartKey, discount: d }));
+    previewSetupDiscount(JSON.parse(cartKey)).then((d) => current && setSetupQuote({ key: quoteKey, discount: d }));
     return () => {
       current = false;
     };
-  }, [cartKey, checkSetup]);
+  }, [cartKey, quoteKey, checkSetup]);
   // Only trust a quote for the cart as it is now.
-  const setupDiscount = checkSetup && setupQuote?.key === cartKey ? setupQuote.discount : null;
+  const setupDiscount = checkSetup && setupQuote?.key === quoteKey ? setupQuote.discount : null;
   const discountCents = (discount ?? setupDiscount)?.cents ?? 0;
   const shipping = subtotal >= settings.freeShippingThreshold || subtotal === 0 ? 0 : settings.flatShipping;
   const total = Math.max(0, subtotal - discountCents / 100) + shipping;
@@ -118,7 +124,14 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
     setDiscountMsg(null);
     startCodeCheck(async () => {
       const res = await previewDiscount(value, cartInput);
-      if (res.ok) {
+      if (res.ok && "partner" in res) {
+        // A partner's code: their prices from now on, not a discount.
+        setPartner(res.partner);
+        reprice(res.partner.prices);
+        setDiscount(null);
+        setDiscountMsg(null);
+        setCode("");
+      } else if (res.ok) {
         setDiscount({ code: res.code, cents: res.discountCents });
         setDiscountMsg(`${res.code} applied`);
       } else {
@@ -454,6 +467,7 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
                 </div>
               )}
               {discountMsg && !discount && <p className="mt-2 text-xs text-ember">{discountMsg}</p>}
+              {partner && <p className="mt-2 text-xs text-ok">Partner prices from {partner.name} applied.</p>}
             </div>
 
             <dl className="mt-5 space-y-2 border-t border-line pt-5 text-sm">

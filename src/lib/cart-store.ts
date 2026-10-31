@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { MAX_QTY, type Product, type ProductVisual } from "@/lib/catalog/types";
+import { partnerPriceNow } from "@/lib/partner-pricing";
 
 export interface CartLine {
   key: string;
@@ -23,6 +24,8 @@ interface CartState {
   setQty: (key: string, qty: number) => void;
   remove: (key: string) => void;
   clear: () => void;
+  /** The referring partner's prices, for the lines they cover. */
+  reprice: (prices: Record<string, number>) => void;
 }
 
 const cap = (qty: number, max?: number) => Math.max(1, Math.min(MAX_QTY, max ?? MAX_QTY, qty));
@@ -41,7 +44,7 @@ export const useCart = create<CartState>()(
           set({
             lines: [
               ...get().lines,
-              { key, slug: product.slug, name: product.name, option, price: product.price, qty: cap(qty, product.maxQty), visual: product.visual, maxQty: product.maxQty },
+              { key, slug: product.slug, name: product.name, option, price: partnerPriceNow(product.slug) ?? product.price, qty: cap(qty, product.maxQty), visual: product.visual, maxQty: product.maxQty },
             ],
           });
         }
@@ -50,6 +53,7 @@ export const useCart = create<CartState>()(
       setQty: (key, qty) => set((state) => ({ lines: state.lines.map((l) => (l.key === key ? { ...l, qty: cap(qty, l.maxQty) } : l)) })),
       remove: (key) => set((state) => ({ lines: state.lines.filter((l) => l.key !== key) })),
       clear: () => set({ lines: [] }),
+      reprice: (prices) => set((state) => ({ lines: state.lines.map((l) => (prices[l.slug] != null ? { ...l, price: prices[l.slug] } : l)) })),
     }),
     {
       name: "tracecore-cart",

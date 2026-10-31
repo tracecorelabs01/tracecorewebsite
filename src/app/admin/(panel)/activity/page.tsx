@@ -21,6 +21,7 @@ const ENTITY_LABELS: Record<ActivityEntity, string> = {
   settings: "Settings",
   staff: "Staff",
   session: "Sessions",
+  affiliate: "Affiliates",
 };
 
 const ACTION_TONE: Record<string, Tone> = {

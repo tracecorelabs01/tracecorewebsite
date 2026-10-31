@@ -7,7 +7,8 @@ import { InternalNoteForm, PaymentForm, ShippingForm, StatusForm } from "@/compo
 import { OrderTimeline } from "@/components/admin/orders/OrderTimeline";
 import { OrderTotals } from "@/components/admin/orders/OrderTotals";
 import { Card, DescriptionList, LinkButton, OrderStatusBadge, PageHeader, PaymentBadge, Table, Td, Th } from "@/components/admin/ui";
-import { ORDER_STATUSES, PAYMENT_STATUSES } from "@/db";
+import { eq } from "drizzle-orm";
+import { affiliateCommissions, affiliates, getDb, ORDER_STATUSES, PAYMENT_STATUSES } from "@/db";
 import { dateTime, money } from "@/lib/admin/format";
 import { addressLines, getOrder } from "@/lib/admin/orders";
 import { hasRole, requireAdmin } from "@/lib/auth/session";
@@ -129,6 +130,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
                 ))}
               </address>
             </Card>
+            {order.affiliateId && <ReferredBy orderId={order.id} affiliateId={order.affiliateId} source={order.affiliateSource} />}
             <Card title="Customer note">
               {order.customerNote ? (
                 <p className="whitespace-pre-wrap break-words text-sm text-fg/90">{order.customerNote}</p>
@@ -191,5 +193,28 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
         </div>
       </div>
     </>
+  );
+}
+
+/** The partner who referred the order, and its commission. */
+async function ReferredBy({ orderId, affiliateId, source }: { orderId: number; affiliateId: number; source: "link" | "code" | null }) {
+  const db = getDb();
+  const [[partner], [commission]] = await Promise.all([
+    db.select({ name: affiliates.name, code: affiliates.code }).from(affiliates).where(eq(affiliates.id, affiliateId)).limit(1),
+    db.select({ amountCents: affiliateCommissions.amountCents, status: affiliateCommissions.status }).from(affiliateCommissions).where(eq(affiliateCommissions.orderId, orderId)).limit(1),
+  ]);
+  if (!partner) return null;
+  return (
+    <Card title="Referred by">
+      <p className="text-sm">
+        <Link href={`/admin/affiliates/${affiliateId}`} className="text-fg hover:text-amber">
+          {partner.name}
+        </Link>{" "}
+        <span className="text-dim">
+          · {source === "code" ? "their code" : "their link"} ({partner.code})
+        </span>
+      </p>
+      <p className="mt-1 text-xs text-muted">{commission ? `Commission ${money(commission.amountCents)}, ${commission.status}` : "No commission yet: it's added once the order is paid."}</p>
+    </Card>
   );
 }

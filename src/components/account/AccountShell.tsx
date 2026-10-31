@@ -5,21 +5,44 @@ import { logout } from "@/actions/account";
 import { PageHero } from "@/components/ui/PageHero";
 import { cn } from "@/lib/utils";
 
-const TABS = [
+type Tab = { href: string; label: string };
+
+const TABS: Tab[] = [
   { href: "/account", label: "Orders" },
   { href: "/account/rewards", label: "Rewards" },
   { href: "/account/reviews", label: "Reviews" },
   { href: "/account/details", label: "Details" },
-] as const;
+];
 
-/** Hero, tabs and sign-out shared by the signed-in account pages. */
-export function AccountShell({ active, title, description, children }: { active?: (typeof TABS)[number]["href"]; title: ReactNode; description?: ReactNode; children: ReactNode }) {
+export const PARTNER_TABS: Tab[] = [
+  { href: "/partners", label: "Overview" },
+  { href: "/partners/products", label: "Products" },
+  { href: "/partners/orders", label: "Orders" },
+  { href: "/partners/payouts", label: "Payouts" },
+];
+
+/** Hero, tabs and sign-out shared by the signed-in account pages, and by the partner portal with its own tabs. */
+export function AccountShell({
+  active,
+  title,
+  description,
+  children,
+  tabs = TABS,
+  kicker = "Your account",
+}: {
+  active?: string;
+  title: ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
+  tabs?: Tab[];
+  kicker?: string;
+}) {
   return (
     <>
-      <PageHero kicker="Your account" crumbs={[{ label: "Home", href: "/" }, { label: "Account" }]} lines={[title]} description={description} />
+      <PageHero kicker={kicker} crumbs={[{ label: "Home", href: "/" }, { label: tabs === TABS ? "Account" : "Partners" }]} lines={[title]} description={description} />
       <section className="container-x pb-28">
         <nav aria-label="Account" className="mb-8 flex flex-wrap items-center gap-2">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <Link
               key={t.href}
               href={t.href}

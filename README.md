@@ -96,6 +96,16 @@ Accounts keep an address book (`customer_addresses`, `src/lib/address.ts`). The 
 
 Points are added when an order is marked paid (by default 100 per $1 of products after discounts; shipping doesn't earn) and taken back if it's refunded, cancelled or marked unpaid. Offers are set up under **Loyalty**; redeeming one spends the points and issues a single-use `PTS-` discount code. Reviews from accounts are verified buyers only and wait for approval in **Reviews**.
 
+### Affiliate program
+
+Partners (`/partners`) are customer accounts the team approves. Anyone can apply: on the way to `/partners` the sign-in page can open an account with an email code even without an order. Approved partners get a portal with their referral link (`?ref=CODE` on any page) and code, the products they can promote with their commission and customer price, the orders they referred (no customer details), and payouts. The admin runs it under **Affiliates** (`src/lib/affiliates.ts`, `src/actions/admin/affiliates.ts`):
+
+- **Products, commissions and prices** are set per product at three levels, each overriding the one below: the partner, their group, the program (**Program & products**). A product is promotable only if a level says so (the program's default is no). Commission is a percentage of the price after discounts, or a fixed amount per unit (shipping never counts). The customer price is what people referred by that partner pay; partners can't set prices or discounts.
+- **Referrals:** a link visit or the partner's code typed into the checkout code box remembers the partner for the referral window (30 days by default; the last one wins). The shop, cart and checkout then show that partner's prices, and the order is theirs. Partners never earn on, or get prices for, their own orders.
+- **Commissions** follow the order like loyalty points: pending when it's paid, approved a hold period after delivery (14 days by default; the 15-minute sweep in `src/instrumentation.ts` approves them, or approve one by hand), reversed if it's cancelled or refunded first, and taken back from the next payout if it was already paid.
+- **Payouts:** a partner takes their whole available balance as store credit (a single-use `AFF-` code worth that amount on an order of at least that value) straight away, or asks for PayPal once it reaches the minimum ($50 by default); the team sends it and marks it paid under **Payouts**, which emails the partner. Admins can also add bonuses or deductions.
+- The partner terms are a Legal page (`/legal/affiliate`), editable like the other policies.
+
 ### Email (Resend)
 
 Set `RESEND_API_KEY` (a sending-only key for your domain), `EMAIL_FROM` and `ORDER_ALERT_EMAIL`. Without them the store still takes orders, but sends no email and customers can't sign in to their accounts. Every email shares one themed layout (`src/lib/email.ts`) headed by the store logo (`public/brand/email-logo.png`, the site header's logo as a PNG at 4x, since email clients don't show SVG or web fonts), has a plain-text version, replies to `EMAIL_REPLY_TO` (or `ORDER_ALERT_EMAIL`), links to the Discord from Settings, and carries an idempotency key so a retry never sends it twice.

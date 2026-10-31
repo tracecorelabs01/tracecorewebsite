@@ -17,11 +17,15 @@ export async function register() {
   const { importDiskUploads } = await import("@/lib/storage");
   await importDiskUploads().catch((err) => console.error("[storage] importing images from disk failed", err));
 
-  const { releaseExpiredOrders } = await import("@/lib/admin/expire-orders");
-  const sweep = () =>
+  const [{ releaseExpiredOrders }, { approveDueCommissions }] = await Promise.all([import("@/lib/admin/expire-orders"), import("@/lib/affiliates")]);
+  const sweep = () => {
     releaseExpiredOrders()
       .then((n) => n && console.log(`[orders] released ${n} unpaid order(s) past their reservation time`))
       .catch((err) => console.error("[orders] reservation sweep failed", err));
+    approveDueCommissions()
+      .then((n) => n && console.log(`[affiliates] approved ${n} commission(s) past their hold period`))
+      .catch((err) => console.error("[affiliates] commission approval failed", err));
+  };
 
   // ponytail: in-process timer, fine for a single Node process; switch to a cron calling a route if the app runs on several.
   setTimeout(sweep, 30_000).unref();

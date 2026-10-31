@@ -34,6 +34,22 @@ async function accountFor(email: string) {
 
 const SEND_FAILED: AccountFormState = { ok: false, message: "We couldn't send the email just now. Please try again in a minute." };
 
+/** Signing in on the way to the partner program, where anyone may open an account to apply. */
+const forPartners = (next: FormDataEntryValue | null) => /^\/partners(\/|$)/.test(String(next ?? ""));
+
+/** The customer record for an email, created (with no orders and no account yet) if there isn't one. */
+async function customerByEmail(email: string) {
+  const [c] = await getDb().select({ id: customers.id, firstName: customers.firstName }).from(customers).where(eq(customers.email, email)).limit(1);
+  return c;
+}
+
+async function customerFor(email: string) {
+  const db = getDb();
+  await db.insert(customers).values({ email }).onDuplicateKeyUpdate({ set: { email } });
+  const [c] = await db.select({ id: customers.id, firstName: customers.firstName }).from(customers).where(eq(customers.email, email)).limit(1);
+  return c;
+}
+
 /**
  * Emails a 6-digit sign-in code, or says plainly that the email has no account. A guest (orders, no account) can
  * ask for a code that creates their account (`create`), which `login` opens once the code checks out.
@@ -55,7 +71,11 @@ export async function requestCode(_prev: AccountFormState, fd: FormData): Promis
     if (!(await sendLoginCode(email, c.firstName || null, await createLoginCode(c.id)))) return SEND_FAILED;
     return { ok: true, email, message: `We've emailed a 6-digit code to ${email}. It works once, for 10 minutes.` };
   }
-  const guest = await customerWithOrders(email);
+  // Applying to the partner program needs an account, so there anyone can open one with a code.
+  const guest = (await customerWithOrders(email)) ?? (forPartners(fd.get("next")) && fd.get("create") === "1" ? await customerFor(email) : undefined);
+  if (!guest && forPartners(fd.get("next"))) {
+    return { ok: false, guest: true, email, message: `There's no account for ${email} yet. Create one to apply.` };
+  }
   if (!guest) {
     return { ok: false, email, message: "You don't have an account with us. You get one when you check out and choose Create an account.", fieldErrors: { email: "No account with this email." } };
   }
@@ -77,7 +97,7 @@ export async function login(_prev: AccountFormState, fd: FormData): Promise<Acco
   if (await isLoginBlocked(key, ip)) return BLOCKED;
   // A guest creating their account: proving the email with the code is what opens it.
   const create = fd.get("create") === "1";
-  const c = (await accountFor(email)) ?? (create ? await customerWithOrders(email) : undefined);
+  const c = (await accountFor(email)) ?? (create ? ((await customerWithOrders(email)) ?? (forPartners(fd.get("next")) ? await customerByEmail(email) : undefined)) : undefined);
   const valid = Boolean(c) && (await consumeLoginCode(c!.id, code));
   await recordLoginAttempt(key, ip, valid);
   if (!valid) return { ok: false, message: "That code is wrong or has expired. Check the newest email, or send a new code.", fieldErrors: { code: "Wrong or expired code." } };

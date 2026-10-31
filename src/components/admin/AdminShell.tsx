@@ -9,6 +9,7 @@ import {
   FileText,
   FolderTree,
   Gift,
+  Handshake,
   History,
   Inbox,
   LayoutDashboard,
@@ -32,7 +33,7 @@ import { LogoMark } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 
 type Role = "owner" | "admin" | "staff";
-export type NavCounts = { orders: number; messages: number; reviews: number; lowStock: number };
+export type NavCounts = { orders: number; messages: number; reviews: number; lowStock: number; partners: number };
 
 const RANK: Record<Role, number> = { staff: 1, admin: 2, owner: 3 };
 
@@ -45,6 +46,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: typeof P
       { href: "/admin/customers", label: "Customers", icon: Users },
       { href: "/admin/discounts", label: "Discounts", icon: TicketPercent, min: "admin" },
       { href: "/admin/loyalty", label: "Loyalty", icon: Gift, min: "admin" },
+      { href: "/admin/affiliates", label: "Affiliates", icon: Handshake, min: "admin", badge: "partners" },
     ],
   },
   { group: "Finance", items: [{ href: "/admin/expenses", label: "Expenses", icon: Wallet, min: "admin" }] },

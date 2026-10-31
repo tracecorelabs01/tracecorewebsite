@@ -12,6 +12,7 @@ import { money } from "@/lib/admin/format";
 import type { NewEvent, Tx } from "@/lib/admin/order-stock";
 import { announcePaidOrder } from "@/lib/discord";
 import { emailOrder } from "@/lib/emails/orders";
+import { syncOrderCommission } from "@/lib/affiliates";
 import { syncOrderPoints } from "@/lib/loyalty";
 
 const API = "https://api.razorpay.com/v1";
@@ -172,6 +173,7 @@ export async function settlePayment(p: RazorpayPayment): Promise<SettleOutcome> 
     }
     await tx.update(orders).set(patch).where(eq(orders.id, order.id));
     const points = await syncOrderPoints(tx, order.id);
+    await syncOrderCommission(tx, order.id);
     if (points > 0) events.push({ type: "payment", message: `Customer earned ${points.toLocaleString("en-US")} loyalty points` });
     await addEvents(tx, order.id, events);
     return { outcome: "paid" as const, order };
@@ -201,6 +203,7 @@ export async function recordRefund(refund: RazorpayRefund, payment: RazorpayPaym
       await tx.update(orders).set({ paymentStatus: "refunded" }).where(eq(orders.id, order.id));
       events.push({ type: "payment", message: "Payment changed: paid → refunded" });
       const points = await syncOrderPoints(tx, order.id);
+      await syncOrderCommission(tx, order.id);
       if (points < 0) events.push({ type: "payment", message: `${(-points).toLocaleString("en-US")} loyalty points taken back` });
       await addEvents(tx, order.id, events);
       return order.id;

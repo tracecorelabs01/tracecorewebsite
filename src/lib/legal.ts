@@ -16,6 +16,7 @@ export const LEGAL_DOCS = {
   refunds: "Refund & cancellation policy",
   shipping: "Shipping & delivery policy",
   privacy: "Privacy policy",
+  affiliate: "Partner program terms",
 } as const;
 export type LegalSlug = keyof typeof LEGAL_DOCS;
 export const isLegalSlug = (s: string): s is LegalSlug => Object.hasOwn(LEGAL_DOCS, s);
@@ -28,7 +29,53 @@ const CONTACT = `## Contact
 
 Questions about this policy? Email {{supportEmail}}, use the form on our [support page](/support), or open a ticket in our Discord server. Please include your order number if it's about an order.`;
 
+const AFFILIATE_DRAFT = `## About the program
+
+The TraceCore Lab partner program pays partners for orders they refer. These terms apply to everyone in it, together with our [terms of service](/legal/terms). By applying, you agree to them.
+
+## Joining
+
+Anyone with a TraceCore Lab account can apply. We review every application by hand and may approve or decline it at our discretion. Your partner account is personal: don't share it or let anyone else use your link or code.
+
+## Your link, your code and partner prices
+
+- Your partner portal has your referral link and your partner code. Customers who visit through your link, or type your code at checkout, are referred by you for the referral window shown in your portal. If they later use another partner's link or code, that partner gets the order.
+- Customers you refer pay the partner prices we set for you, which may differ from our regular prices. You can't set or change prices or offer your own discounts.
+- One partner gets each order. Orders you place yourself never earn a commission and don't get partner prices.
+
+## Commissions
+
+- You earn on the products shown in your portal, at the rate shown there: a percentage of the product's price after any discount, or a fixed amount per unit. Shipping, taxes and products not shown in your portal don't earn a commission.
+- A commission is pending once the order is paid. It's approved a set number of days after the order is delivered, as shown in your portal, and can then be paid out.
+- If an order is cancelled or refunded, its commission is reversed. If it had already been paid out, the amount comes off your next payout.
+- We may withhold or reverse commissions on orders that look fraudulent or that break these terms.
+
+## Payouts
+
+- **Store credit:** turn your available balance into a single-use code worth that amount, straight away. It works on one order of at least that value and can't be exchanged for cash.
+- **PayPal:** once your available balance reaches the minimum shown in your portal, you can ask for it to be sent to your PayPal account. We send payouts by hand, usually within a few business days.
+- You're responsible for any taxes on what you earn.
+
+## How you may promote us
+
+- Be honest and accurate about our products, prices and policies. Don't promise anything we don't, such as different warranty terms or refunds.
+- Say clearly that your links and code are affiliate links, as advertising rules require where you and your audience are.
+- Our products are sold for education and research. Never present them as cheats, "undetected", or a way to get around anti-cheat systems, and don't promote them in places built for cheating.
+- No spam, no fake reviews, no misleading ads, and no paid search ads on our brand name.
+- Don't use our name or logo in a way that suggests you are TraceCore Lab or speak for us.
+
+## Ending the partnership
+
+You can leave the program at any time by contacting us. We may suspend or end a partnership at any time, for example if these terms are broken. When a partnership ends, approved commissions are still paid out unless they come from orders that break these terms.
+
+## Changes to these terms
+
+We may update these terms. The latest version is always on this page, and we'll tell active partners about important changes.
+
+${CONTACT}`;
+
 export const LEGAL_DRAFTS: Record<LegalSlug, string> = {
+  affiliate: AFFILIATE_DRAFT,
   terms: `## About us
 
 TraceCoreLab ("we", "us") runs the online store at tracecorelab.com. The store is operated by [Registered business name], [Registered business address]. By placing an order or using this site, you agree to these terms.

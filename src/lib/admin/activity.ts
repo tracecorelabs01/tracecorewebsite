@@ -5,7 +5,7 @@ import { activityLog, adminUsers, getDb } from "@/db";
 export const ACTIVITY_PAGE_SIZE = 50;
 
 /** Entities offered as filter tabs on /admin/activity. */
-export const ACTIVITY_ENTITIES = ["order", "product", "category", "discount", "review", "message", "subscriber", "customer", "settings", "staff", "session"] as const;
+export const ACTIVITY_ENTITIES = ["order", "product", "category", "discount", "review", "message", "subscriber", "customer", "settings", "staff", "session", "affiliate"] as const;
 export type ActivityEntity = (typeof ACTIVITY_ENTITIES)[number];
 
 export async function listActivity({ entity, q, page }: { entity?: ActivityEntity; q?: string; page: number }) {
