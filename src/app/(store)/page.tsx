@@ -5,6 +5,7 @@ import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { WhyUs } from "@/components/home/WhyUs";
 import { SequenceScroll } from "@/components/home/SequenceScroll";
 import { Reviews } from "@/components/home/Reviews";
+import { PartnerCta } from "@/components/home/PartnerCta";
 import { FaqPreview } from "@/components/home/FaqPreview";
 import { getCatalog, getReviewsData } from "@/lib/catalog/server";
 
@@ -22,6 +23,7 @@ export default async function Home() {
       <WhyUs />
       <SequenceScroll />
       <Reviews reviews={reviews} summary={summary} />
+      <PartnerCta />
       <FaqPreview />
     </>
   );

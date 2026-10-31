@@ -1,15 +1,21 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { connection } from "next/server";
+import type { ReactNode } from "react";
 import { BadgePercent, Handshake, Wallet } from "lucide-react";
 import { AccountShell, Panel, PARTNER_TABS, Pill, shortDay } from "@/components/account/AccountShell";
 import { ApplyForm, CopyText } from "@/components/partners/PartnerForms";
+import { DiscordIcon } from "@/components/ui/icons";
 import { PageHero } from "@/components/ui/PageHero";
 import { isDbConfigured } from "@/db";
+import { getLinkedAccounts } from "@/lib/account";
+import { param } from "@/lib/admin/format";
 import { COMMISSION_STATUS } from "@/lib/affiliate-labels";
 import { getProgram, partnerBalance, partnerCommissions, partnerForCustomer, partnerStats } from "@/lib/affiliates";
 import { getCurrentCustomer } from "@/lib/auth/customer";
+import { oauthEnabled } from "@/lib/auth/oauth";
 import { site } from "@/lib/site";
-import { formatPrice } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Partner program",
@@ -20,11 +26,25 @@ export const instant = false;
 
 const usd = (cents: number) => formatPrice(cents / 100);
 
-export default async function PartnersPage() {
+// How signing in with or connecting Discord went (/api/auth/discord/callback sends people back here).
+const NOTICES: Record<string, { ok: boolean; text: string }> = {
+  discord: { ok: true, text: "Discord connected. You can apply now." },
+  taken: { ok: false, text: "That Discord account is linked to another TraceCore Lab account. Sign out, then continue with Discord to use that one." },
+  oauth: { ok: false, text: "Signing in with Discord didn't work. Please try again." },
+  cancelled: { ok: false, text: "Discord sign-in was cancelled." },
+  unverified: { ok: false, text: "Your Discord account's email isn't verified yet. Verify it in Discord, then try again." },
+};
+
+export default async function PartnersPage({ searchParams }: PageProps<"/partners">) {
+  // Linked from the header and homepage: without this, prefetching it would run the database queries below.
+  await connection();
   const me = await getCurrentCustomer();
   const partner = me && isDbConfigured() ? await partnerForCustomer(me.id) : null;
   const program = isDbConfigured() ? await getProgram() : null;
   if (partner?.status === "approved") return <Dashboard partnerId={partner.id} code={partner.code} name={partner.name} cookieDays={program!.cookieDays} />;
+  // Partners sign up with Discord only: it's their login, and how the team reaches them.
+  const [discord, sp] = await Promise.all([me ? getLinkedAccounts(me.id).then((l) => l.discord) : null, searchParams]);
+  const notice = NOTICES[param(sp.linked) ?? param(sp.error) ?? ""];
 
   return (
     <>
@@ -55,20 +75,33 @@ export default async function PartnersPage() {
           ))}
         </div>
         <Panel title={partner ? "Your application" : "Apply"}>
+          {notice && (
+            <p role={notice.ok ? "status" : "alert"} className={cn("mb-5 text-sm", notice.ok ? "text-ok" : "text-[#ff6b5e]")}>
+              {notice.text}
+            </p>
+          )}
           {!program?.enabled && !partner ? (
             <p className="text-muted">The partner program isn&apos;t taking applications right now. Check back soon.</p>
+          ) : !partner && !oauthEnabled("discord") ? (
+            <p className="text-muted">Partner sign-up opens soon. Check back shortly.</p>
           ) : !me ? (
             <div className="grid gap-4">
-              <p className="text-muted">Partners use their TraceCore Lab account. Sign in (or create one with your email) to apply.</p>
-              <Link
-                href="/account/login?next=/partners"
-                className="flex h-12 items-center justify-center bg-brand px-7 text-[12px] font-semibold uppercase tracking-[0.16em] text-white clip-slant [--slant:13px] hover:brightness-110"
-              >
-                Sign in to apply
-              </Link>
+              <p className="text-muted">Partners sign up with Discord, with no email or password. Your Discord account is your partner login.</p>
+              <DiscordButton href="/api/auth/discord/start?next=/partners">Continue with Discord</DiscordButton>
+            </div>
+          ) : !partner && !discord ? (
+            <div className="grid gap-4">
+              <p className="text-muted">Partners sign up through Discord. Connect your Discord account to {me.email} to apply.</p>
+              <DiscordButton href="/api/auth/discord/start?link=1&next=/partners">Connect Discord</DiscordButton>
             </div>
           ) : !partner ? (
-            <ApplyForm defaultName={[me.firstName, me.lastName].filter(Boolean).join(" ")} />
+            <div className="grid gap-5">
+              <p className="flex items-center gap-2 text-sm text-muted">
+                <DiscordIcon className="size-4 text-[#5865F2]" />
+                Applying as <span className="text-fg">{discord}</span>
+              </p>
+              <ApplyForm defaultName={[me.firstName, me.lastName].filter(Boolean).join(" ")} />
+            </div>
           ) : partner.status === "pending" ? (
             <p className="text-muted">
               We&apos;ve got your application for <span className="text-fg">{partner.name}</span>, sent {shortDay(partner.createdAt)}. The team reviews every one by hand and will email you the decision.
@@ -81,6 +114,15 @@ export default async function PartnersPage() {
         </Panel>
       </section>
     </>
+  );
+}
+
+function DiscordButton({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a href={href} className="flex h-12 items-center justify-center gap-2.5 rounded-xl bg-[#5865F2] px-6 text-sm font-semibold text-white transition-[filter] hover:brightness-110">
+      <DiscordIcon className="size-5" />
+      {children}
+    </a>
   );
 }
 

@@ -1,5 +1,5 @@
-// Sends someone to Discord or Google to sign in. ?next= is where to return to (checkout or an account page);
-// ?link=1 links the provider to the signed-in account instead of signing in (the account page's Connect button).
+// Sends someone to Discord or Google to sign in. ?next= is where to return to (checkout, an account or partner page);
+// ?link=1 links the provider to the signed-in account instead of signing in (the Connect Discord buttons).
 
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";

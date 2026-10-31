@@ -97,11 +97,10 @@ function EmailStep({ email, next, flow, onRestart }: { email?: string; next?: st
   if (state?.ok && state.email) return <CodeStep email={state.email} next={next} flow={flow} create={state.create} sent={state.message} onRestart={onRestart} />;
   return (
     <form onSubmit={onSubmit} noValidate className="grid gap-5">
-      <input type="hidden" name="next" value={next ?? ""} />
-      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state?.email ?? email} error={state?.fieldErrors?.email} hint={next?.startsWith("/partners") ? undefined : "The one you ordered with."} required />
+      <Field label="Email" name="email" type="email" autoComplete="email" defaultValue={state?.email ?? email} error={state?.fieldErrors?.email} hint="The one you ordered with." required />
       <Status state={state} />
       {state?.guest ? (
-        // No account yet (orders as a guest, or applying to be a partner): create it with a code, or just track the orders.
+        // Orders but no account: create it with a code, or just track the orders.
         <div className="grid gap-3">
           <button
             type="submit"
@@ -113,11 +112,9 @@ function EmailStep({ email, next, flow, onRestart }: { email?: string; next?: st
             {pending && <Loader2 className="size-4 animate-spin" />}
             Create my account
           </button>
-          {!next?.startsWith("/partners") && (
-            <Link href={`/track?${new URLSearchParams({ email: state.email ?? "" })}`} className="text-center text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
-              Or track your orders without an account
-            </Link>
-          )}
+          <Link href={`/track?${new URLSearchParams({ email: state.email ?? "" })}`} className="text-center text-sm text-muted underline-offset-4 hover:text-fg hover:underline">
+            Or track your orders without an account
+          </Link>
         </div>
       ) : (
         <Submit pending={pending}>Email me a code</Submit>

@@ -13,7 +13,7 @@ export function FaqPreview() {
     <section className="relative py-28 md:py-36" aria-labelledby="faq-heading">
       <div className="container-x grid gap-14 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <Kicker index="06">Quick answers</Kicker>
+          <Kicker index="07">Quick answers</Kicker>
           <RevealLines as="h2" className="type-h2 mt-5" lines={[<span key="a" id="faq-heading">Got</span>, <span key="b" className="text-gradient">questions?</span>]} />
           <Reveal delay={0.1}>
             <p className="mt-6 max-w-md text-muted">The essentials on ordering, shipping and setup. Can&apos;t find what you need? 24/7 support is a message away.</p>

@@ -46,7 +46,7 @@ export async function partnerStatusCounts() {
 
 export async function getPartner(id: number) {
   const [row] = await getDb()
-    .select({ partner: affiliates, email: customers.email, firstName: customers.firstName, lastName: customers.lastName })
+    .select({ partner: affiliates, email: customers.email, firstName: customers.firstName, lastName: customers.lastName, discordId: customers.discordId, discordUsername: customers.discordUsername })
     .from(affiliates)
     .innerJoin(customers, eq(affiliates.customerId, customers.id))
     .where(eq(affiliates.id, id))

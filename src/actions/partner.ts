@@ -17,6 +17,7 @@ import {
   rememberPartner,
   requestPayout,
 } from "@/lib/affiliates";
+import { getLinkedAccounts } from "@/lib/account";
 import { getCurrentCustomer, requireCustomer } from "@/lib/auth/customer";
 import { cookieIsSecure } from "@/lib/auth/session";
 import { sendApplicationAlert, sendApplicationReceived, sendPayoutRequestAlert, sendStoreCredit } from "@/lib/emails/partners";
@@ -61,6 +62,7 @@ export async function applyAsPartner(_prev: PartnerFormState, fd: FormData): Pro
   const me = await requireCustomer();
   if (!(await getProgram()).enabled) return { ok: false, message: "The partner program isn't taking applications right now." };
   if (await partnerForCustomer(me.id)) return { ok: false, message: "You've already applied." };
+  if (!(await getLinkedAccounts(me.id)).discord) return { ok: false, message: "Connect your Discord account first. Partners sign up through Discord." };
   const parsed = applySchema.safeParse({ name: fd.get("name") ?? "", website: String(fd.get("website") ?? "").trim(), audience: fd.get("audience") ?? "", paypalEmail: String(fd.get("paypalEmail") ?? "").trim() });
   const fieldErrors: Record<string, string> = {};
   if (!parsed.success) for (const i of parsed.error.issues) fieldErrors[String(i.path[0])] ??= i.message;

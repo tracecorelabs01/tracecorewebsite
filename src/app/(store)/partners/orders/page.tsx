@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Partner orders", robots: { index: fa
 export const instant = false;
 
 export default async function PartnerOrdersPage() {
-  const { partner } = await requirePartner("/partners/orders");
+  const { partner } = await requirePartner();
   const rows = await partnerCommissions(partner.id, 200);
 
   return (

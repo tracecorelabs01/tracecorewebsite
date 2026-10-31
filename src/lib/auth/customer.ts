@@ -83,10 +83,10 @@ export async function requireCustomer(): Promise<Customer> {
   return customer;
 }
 
-/** Only send people back to account or partner pages after signing in. */
+/** Only send people back to account pages after signing in. */
 export function accountPath(next: unknown) {
   const path = String(next ?? "");
-  return /^\/(account|partners)(\/[\w-]*)*$/.test(path) ? path : "/account";
+  return /^\/account(\/[\w-]*)*$/.test(path) ? path : "/account";
 }
 
 /** A new sign-in code for this customer. It replaces any earlier one, works once, for 10 minutes. */

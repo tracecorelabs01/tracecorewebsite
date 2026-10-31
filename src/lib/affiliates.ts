@@ -389,10 +389,11 @@ export function partnerPayouts(affiliateId: number, db: Db = getDb()) {
 
 /* ───────────── partner accounts ───────────── */
 
-/** For the partner portal pages: the signed-in, approved partner (anyone else is sent to sign in, or to /partners). */
-export async function requirePartner(path: string) {
+/** For the partner portal pages: the signed-in, approved partner. Anyone else goes to /partners. */
+export async function requirePartner() {
   const me = await getCurrentCustomer();
-  if (!me) redirect(`/account/login?${new URLSearchParams({ next: path })}`);
+  // Partners sign in with Discord, offered on /partners.
+  if (!me) redirect("/partners");
   const partner = await partnerForCustomer(me.id);
   if (partner?.status !== "approved") redirect("/partners");
   return { me, partner };

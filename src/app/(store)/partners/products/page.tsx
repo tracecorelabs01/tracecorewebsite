@@ -15,7 +15,7 @@ export const instant = false;
 const perUnit = (t: Terms) => (t.commission.kind === "percent" ? Math.round((t.priceCents * t.commission.value) / 10_000) : Math.min(t.commission.value, t.priceCents));
 
 export default async function PartnerProductsPage() {
-  const { partner } = await requirePartner("/partners/products");
+  const { partner } = await requirePartner();
   const [terms, { products }] = await Promise.all([partnerTerms(partner.id), getCatalog()]);
   const bySlug = new Map(products.map((p) => [p.slug, p]));
   const visible = [...terms.values()].filter((t) => t.visible && bySlug.has(t.slug));

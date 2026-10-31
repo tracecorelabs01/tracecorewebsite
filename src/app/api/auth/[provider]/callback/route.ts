@@ -18,7 +18,9 @@ export async function GET(req: Request, { params }: RouteContext<"/api/auth/[pro
   } catch {}
   jar.delete({ name: OAUTH_COOKIE, path: "/api/auth" });
 
-  const failed = saved.link ? "/account?error=" : "/account/login?error=";
+  // Linking, and the partner program's Discord-only sign-in, report back to the page they started from.
+  const back = afterSignIn(saved.next);
+  const failed = saved.link || back.startsWith("/partners") ? `${back}?error=` : "/account/login?error=";
   if (!isProvider(provider) || saved.provider !== provider || !saved.state || query.get("state") !== saved.state) return goTo(`${failed}oauth`);
   const code = query.get("code");
   if (!code) return goTo(`${failed}cancelled`); // they pressed Cancel on the provider's page
@@ -29,8 +31,8 @@ export async function GET(req: Request, { params }: RouteContext<"/api/auth/[pro
   if (saved.link) {
     const me = await getCurrentCustomer();
     if (!me) return goTo("/account/login");
-    return goTo((await linkProfile(provider, result.profile, me.id)) ? `/account?linked=${provider}` : "/account?error=taken");
+    return goTo((await linkProfile(provider, result.profile, me.id)) ? `${back}?linked=${provider}` : `${back}?error=taken`);
   }
   await signInWithProfile(provider, result.profile);
-  return goTo(afterSignIn(saved.next));
+  return goTo(back);
 }

@@ -101,12 +101,13 @@ export async function setPartnerStatus(id: number, status: "approved" | "rejecte
   const user = await requireAdmin("admin");
   const db = getDb();
   const [row] = await db
-    .select({ status: affiliates.status, approvedAt: affiliates.approvedAt, name: affiliates.name, code: affiliates.code, email: customers.email, firstName: customers.firstName })
+    .select({ status: affiliates.status, approvedAt: affiliates.approvedAt, name: affiliates.name, code: affiliates.code, email: customers.email, firstName: customers.firstName, discordId: customers.discordId })
     .from(affiliates)
     .innerJoin(customers, eq(affiliates.customerId, customers.id))
     .where(eq(affiliates.id, id))
     .limit(1);
-  if (!row || row.status === status) return;
+  // Partners must have Discord linked to be approved (the partner page hides Approve until they do).
+  if (!row || row.status === status || (status === "approved" && !row.discordId)) return;
   await db
     .update(affiliates)
     .set({ status, ...(status === "approved" && !row.approvedAt ? { approvedAt: new Date() } : {}) })

@@ -35,7 +35,7 @@ The TraceCore Lab partner program pays partners for orders they refer. These ter
 
 ## Joining
 
-Anyone with a TraceCore Lab account can apply. We review every application by hand and may approve or decline it at our discretion. Your partner account is personal: don't share it or let anyone else use your link or code.
+You apply by signing in with Discord: your Discord account is your partner login, and it has to stay linked to your partner account. We review every application by hand and may approve or decline it at our discretion. Your partner account is personal: don't share it or let anyone else use your link or code.
 
 ## Your link, your code and partner prices
 

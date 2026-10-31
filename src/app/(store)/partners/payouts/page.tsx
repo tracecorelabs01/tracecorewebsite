@@ -12,7 +12,7 @@ export const instant = false;
 const usd = (cents: number) => formatPrice(cents / 100);
 
 export default async function PartnerPayoutsPage() {
-  const { partner } = await requirePartner("/partners/payouts");
+  const { partner } = await requirePartner();
   const [program, balance, payouts] = await Promise.all([getProgram(), partnerBalance(partner.id), partnerPayouts(partner.id)]);
 
   return (

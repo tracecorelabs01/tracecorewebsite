@@ -23,7 +23,7 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
   const id = Number((await params).id);
   const row = Number.isInteger(id) ? await getPartner(id) : null;
   if (!row) notFound();
-  const { partner: a, email, firstName, lastName } = row;
+  const { partner: a, email, firstName, lastName, discordId, discordUsername } = row;
   const [groups, stats, balance, commissions, payouts, rules] = await Promise.all([
     listGroups(),
     partnerStats(id),
@@ -50,12 +50,18 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
         }
         back={{ href: "/admin/affiliates", label: "Affiliates" }}
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Partners sign up through Discord: no linked Discord, no approval. */}
+            {!discordId && a.status !== "approved" ? (
+              <span className="text-sm text-muted">Can&apos;t approve: no Discord linked</span>
+            ) : null}
             {a.status === "pending" && (
               <>
-                <ConfirmButton action={setPartnerStatus.bind(null, id, "approved")} variant="primary" size="md" confirm={`Approve ${a.name}? They'll be emailed their code.`}>
-                  Approve
-                </ConfirmButton>
+                {discordId && (
+                  <ConfirmButton action={setPartnerStatus.bind(null, id, "approved")} variant="primary" size="md" confirm={`Approve ${a.name}? They'll be emailed their code.`}>
+                    Approve
+                  </ConfirmButton>
+                )}
                 <ConfirmButton action={setPartnerStatus.bind(null, id, "rejected")} size="md" confirm={`Decline ${a.name}'s application? They'll be emailed.`}>
                   Decline
                 </ConfirmButton>
@@ -66,7 +72,7 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
                 Suspend
               </ConfirmButton>
             )}
-            {(a.status === "suspended" || a.status === "rejected") && (
+            {discordId && (a.status === "suspended" || a.status === "rejected") && (
               <ConfirmButton action={setPartnerStatus.bind(null, id, "approved")} variant="primary" size="md" confirm={`Make ${a.name} an active partner?`}>
                 {a.status === "suspended" ? "Reinstate" : "Approve"}
               </ConfirmButton>
@@ -116,6 +122,7 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
           <Card title="Application">
             <DescriptionList
               items={[
+                { label: "Discord", value: discordId ? (discordUsername ?? discordId) : "Not linked" },
                 { label: "Applied", value: dateTime(a.createdAt) },
                 { label: "Approved", value: a.approvedAt ? dateTime(a.approvedAt) : "—" },
                 { label: "Website", value: a.website ? <a href={a.website} target="_blank" rel="noreferrer" className="hover:text-fg">{a.website}</a> : "—" },
