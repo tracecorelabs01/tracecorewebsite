@@ -49,7 +49,7 @@ docker rm -f tcl-mysql     # delete it (and its data)
 ### Hosting notes
 
 - **The build reads the database** (product pages are prerendered from the catalogue), so `DATABASE_URL` must be reachable at build time too.
-- **Uploads**: `STORAGE_DRIVER=local` stores product photos in `./storage/uploads` — fine on a VPS / Node server (keep that folder between deploys). On serverless hosts (Vercel, Netlify) use `STORAGE_DRIVER=s3` with any S3-compatible bucket (Cloudflare R2, AWS S3, Backblaze B2…); see `.env.example`.
+- **Uploads**: product photos are stored in the database (`media` table) and served at `/media/...`, so they survive deploys on hosts that build each deploy into a fresh folder (Hostinger does). For a large catalogue, `STORAGE_DRIVER=s3` uses any S3-compatible bucket instead (Cloudflare R2, AWS S3, Backblaze B2…); see `.env.example`.
 - **Connections**: shared hosts limit MySQL connections per user — keep `DATABASE_POOL_SIZE` small (default 5).
 
 ---

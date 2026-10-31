@@ -14,6 +14,8 @@ export async function register() {
   } catch (err) {
     console.error("[db] applying migrations failed; run `npm run db:migrate`", err);
   }
+  const { importDiskUploads } = await import("@/lib/storage");
+  await importDiskUploads().catch((err) => console.error("[storage] importing images from disk failed", err));
 
   const { releaseExpiredOrders } = await import("@/lib/admin/expire-orders");
   const sweep = () =>

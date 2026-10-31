@@ -64,6 +64,13 @@
       "when": 1793386787882,
       "tag": "0008_customer_addresses",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1793428259272,
+      "tag": "0009_media",
+      "breakpoints": true
     }
   ]
 }

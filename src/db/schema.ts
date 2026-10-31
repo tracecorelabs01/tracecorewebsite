@@ -132,6 +132,20 @@ export const products = mysqlTable(
   ],
 );
 
+/** File bytes as a MEDIUMBLOB (up to 16 MB). */
+const mediumBlob = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "mediumblob" });
+
+/**
+ * Uploaded files (product images), served by /media/[...key]. They live in the database, not on disk, because
+ * the host builds every deploy into a fresh folder: files written next to the app were lost on the next push.
+ */
+export const media = mysqlTable("media", {
+  key: varchar("key", { length: 191 }).primaryKey(),
+  contentType: varchar("content_type", { length: 64 }).notNull(),
+  data: mediumBlob("data").notNull(),
+  createdAt: createdAt(),
+});
+
 export const productImages = mysqlTable(
   "product_images",
   {

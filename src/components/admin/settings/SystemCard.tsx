@@ -13,7 +13,7 @@ export function SystemCard({ info }: { info: SystemInfo }) {
             value: (
               <>
                 <span className="font-mono text-xs">{info.storageDriver}</span>
-                <span className="block text-xs text-dim">{info.storageDriver === "s3" ? "S3-compatible bucket" : "This server's disk"}</span>
+                <span className="block text-xs text-dim">{info.storageDriver === "s3" ? "S3-compatible bucket" : "The store's database"}</span>
               </>
             ),
           },
