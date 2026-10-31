@@ -3,7 +3,7 @@
 import "server-only";
 import { timingSafeEqual } from "node:crypto";
 import type { orders } from "@/db";
-import { warrantyEnds, warrantyMonths } from "@/lib/warranty";
+import { warrantyEnds } from "@/lib/warranty";
 
 export function authorizedBot(req: Request) {
   const key = process.env.BOT_API_KEY;
@@ -18,7 +18,7 @@ type BotItem = { slug: string; name: string; option: string | null; qty: number 
 
 /** An order for its customer: status, items with their warranty end, tracking and points. No address or email. */
 export function botOrder(o: typeof orders.$inferSelect, items: BotItem[], points: number) {
-  const warrantyStart = o.paymentStatus === "paid" ? (o.deliveredAt ?? o.paidAt) : null;
+  const warrantyUntil = o.paymentStatus === "paid" ? warrantyEnds(o.createdAt) : null;
   return {
     number: o.number,
     status: o.status,
@@ -35,7 +35,7 @@ export function botOrder(o: typeof orders.$inferSelect, items: BotItem[], points
       name: i.name,
       option: i.option,
       qty: i.qty,
-      warrantyUntil: warrantyStart ? warrantyEnds(warrantyStart, warrantyMonths(i.slug)) : null,
+      warrantyUntil,
     })),
   };
 }

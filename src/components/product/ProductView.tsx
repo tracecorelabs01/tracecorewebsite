@@ -12,6 +12,7 @@ import { useCart } from "@/lib/cart-store";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { useUi } from "@/lib/ui-store";
 import { cn, formatPrice } from "@/lib/utils";
+import { WARRANTY_MONTHS } from "@/lib/warranty";
 import { ProductCard } from "./ProductCard";
 import { ProductVisual } from "./ProductVisual";
 
@@ -61,11 +62,10 @@ export function ProductView({ product, related }: { product: Product; related: P
     }, 700);
   }
 
-  const warranty = product.specs.find((s) => s.label === "Warranty")?.value ?? "12 months";
   const perks = [
     { Icon: Truck, title: `Free shipping over ${formatPrice(settings.freeShippingThreshold)}`, text: "Dispatched within one business day" },
-    { Icon: ShieldCheck, title: `${warranty} warranty`, text: "Repair or replace, no fuss" },
-    { Icon: RotateCcw, title: "14-day returns", text: "On unopened items" },
+    { Icon: ShieldCheck, title: `${WARRANTY_MONTHS}-month warranty`, text: "Defective or damaged? We replace it" },
+    { Icon: RotateCcw, title: "Returns under warranty", text: `Within ${WARRANTY_MONTHS} months of purchase` },
     { Icon: Headphones, title: "24/7 support", text: "On Discord, day or night" },
   ];
 
@@ -301,7 +301,7 @@ export function ProductView({ product, related }: { product: Product; related: P
                   },
                   {
                     q: "Shipping & returns",
-                    a: `Orders placed on business days usually leave our lab within 24 hours. Shipping is free over ${formatPrice(settings.freeShippingThreshold)}; below that a flat ${formatPrice(settings.flatShipping)} applies. Unopened items can be returned within 14 days.`,
+                    a: `Orders placed on business days usually leave our lab within 24 hours. Shipping is free over ${formatPrice(settings.freeShippingThreshold)}; below that a flat ${formatPrice(settings.flatShipping)} applies. Returns are warranty claims: within ${WARRANTY_MONTHS} months of purchase, defective or damaged items are replaced (not refunded).`,
                   },
                 ]}
               />

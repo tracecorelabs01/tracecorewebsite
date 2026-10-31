@@ -120,10 +120,10 @@ const ITEMS: Item[] = [
     category: "dma",
     price: 5000,
     summary: "A standalone DMA device that works without custom firmware. Contact us before ordering for current lead times.",
-    highlights: ["No custom firmware needed", "Third-party device, manufacturer warranty"],
+    highlights: ["No custom firmware needed", "Third-party device, 3-month warranty from us"],
     specs: [
       { label: "Firmware", value: "Not required" },
-      { label: "Warranty", value: "Handled by the manufacturer" },
+      { label: "Warranty", value: "3 months" },
     ],
     inTheBox: ["Heino 2.0"],
   },

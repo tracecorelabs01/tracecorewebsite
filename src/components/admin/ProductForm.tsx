@@ -107,7 +107,7 @@ export function ProductForm({
               <Textarea name="inTheBox" defaultValue={(p?.inTheBox ?? []).join("\n")} rows={6} placeholder={"TraceCore 75T card\nUSB-C cable (1 m)"} />
             </Field>
             <Field label="Tech specs" name="specs" className="sm:col-span-2" hint='Write each spec as "Label: Value".'>
-              <Textarea name="specs" defaultValue={(p?.specs ?? []).map((s) => `${s.label}: ${s.value}`).join("\n")} rows={6} placeholder={"FPGA: Xilinx Artix-7 XC7A75T\nWarranty: 12 months"} className="font-mono text-[13px]" />
+              <Textarea name="specs" defaultValue={(p?.specs ?? []).map((s) => `${s.label}: ${s.value}`).join("\n")} rows={6} placeholder={"FPGA: Xilinx Artix-7 XC7A75T\nWarranty: 3 months"} className="font-mono text-[13px]" />
             </Field>
           </div>
         </Card>

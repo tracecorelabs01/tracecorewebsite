@@ -6,7 +6,7 @@ import { and, asc, eq, sum } from "drizzle-orm";
 import { customers, getDb, loyaltyLedger, orderEvents, orderItems, orders } from "@/db";
 import { addressLines } from "@/lib/admin/orders";
 import { button, C, code, customerReplyTo, escapeHtml, label, layout, p, panel, pill, sendEmail, small, staffInbox, strong, url } from "@/lib/email";
-import { warrantyEnds, warrantyMonths } from "@/lib/warranty";
+import { WARRANTY_MONTHS, warrantyEnds } from "@/lib/warranty";
 
 export type OrderEmail = "received" | "paid" | "shipped" | "tracking" | "delivered" | "cancelled" | "refunded";
 
@@ -186,10 +186,10 @@ function render(kind: OrderEmail, d: Data, note?: string): Rendered {
         body: progress(o.status === "delivered" ? 3 : 2) + p(`We've updated the tracking details for order ${strong(o.number)}.`) + tracking(o),
       };
     case "delivered": {
-      const start = o.deliveredAt ?? new Date();
-      const warranty = d.items
-        .map((i) => `<div style="padding:4px 0;font-size:13px;color:${C.text}">${escapeHtml(i.name)} · ${warrantyMonths(i.slug)}-month warranty, until ${day(warrantyEnds(start, warrantyMonths(i.slug)))}</div>`)
-        .join("");
+      const until = day(warrantyEnds(o.createdAt));
+      const warranty =
+        d.items.map((i) => `<div style="padding:4px 0;font-size:13px;color:${C.text}">${escapeHtml(i.name)} · ${WARRANTY_MONTHS}-month warranty, until ${until}</div>`).join("") +
+        `<div style="padding:8px 0 0;font-size:12px;color:${C.dim}">Defective or damaged? Reply to this email and we'll replace it.</div>`;
       return {
         subject: `Order ${o.number} was delivered`,
         preheader: "Enjoy your new gear. Your warranty dates are inside.",

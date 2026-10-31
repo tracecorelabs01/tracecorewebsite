@@ -7,7 +7,7 @@ import { authorizedBot } from "@/lib/bot-api";
 import { getCatalog, getPublicSettings } from "@/lib/catalog/server";
 import { MAX_QTY, STOCK_LABEL } from "@/lib/catalog/types";
 import { site } from "@/lib/site";
-import { warrantyMonths } from "@/lib/warranty";
+import { WARRANTY_MONTHS } from "@/lib/warranty";
 
 export async function GET(req: Request) {
   if (!authorizedBot(req)) return Response.json({ error: "unauthorized" }, { status: 401 });
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       // Most a customer can buy in one order right now, as checkout enforces it. Exact stock isn't shared.
       maxPerOrder: Math.min(MAX_QTY, p.maxQty ?? MAX_QTY),
       option: p.option ?? null,
-      warrantyMonths: warrantyMonths(p.slug),
+      warrantyMonths: WARRANTY_MONTHS,
       rating: p.reviewCount ? { average: p.rating, reviews: p.reviewCount } : null,
       summary: p.summary,
       highlights: p.highlights,

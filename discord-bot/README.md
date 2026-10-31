@@ -21,7 +21,7 @@ The full guide for the team (what everything does and how it works) is the "Trac
 
 New paid orders are announced in a staff channel by the **website** (a Discord webhook), so that works even if the bot is offline. See "Connect the website" below.
 
-Warranty dates follow the FAQ: 12 months on all hardware, 24 on the 100T Pro, counted from delivery (`src/lib/warranty.ts` on the website).
+Warranty dates follow the FAQ: 3 months on everything, counted from the purchase date (`src/lib/warranty.ts` on the website). Defective or damaged items are replaced, not refunded.
 
 ## 1. Discord Developer Portal
 

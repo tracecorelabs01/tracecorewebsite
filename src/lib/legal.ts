@@ -58,7 +58,7 @@ How and when we ship is explained in our [shipping policy](/legal/shipping).
 
 ## Warranty
 
-Our hardware has a 12-month warranty against manufacturing defects (24 months on the TraceCore 100T Pro), starting from delivery. If a product fails because of a defect, we'll repair or replace it. The warranty doesn't cover damage from accidents, liquid, misuse or physical modification. See our [refund policy](/legal/refunds) for how to make a claim.
+Every product has a 3-month warranty from the purchase date. If a product is defective or arrives damaged, we replace it: we don't refund defective or damaged items. Returns are handled as warranty claims within the same 3 months. The warranty doesn't cover damage from accidents, liquid, misuse or physical modification. See our [refund policy](/legal/refunds) for how to make a claim.
 
 ## Accounts
 
@@ -80,33 +80,32 @@ ${CONTACT}`,
 
   refunds: `## Cancelling an order
 
-You can cancel any order before it ships and get a full refund. Contact us with your order number as soon as possible. Once an order has shipped it can't be cancelled, but it may be returned as described below.
+You can cancel any order before it ships and get a full refund. Contact us with your order number as soon as possible. Once an order has shipped it can't be cancelled; after that, returns are warranty claims, as described below.
 
-## Returns
+## Returns are warranty claims
 
-Unopened, unused items in their original packaging can be returned within 14 days of delivery.
+Every product has a 3-month warranty from the purchase date, and returns are handled as warranty claims within those 3 months. We don't accept returns because you changed your mind.
 
-- Contact us first with your order number and we'll send you return instructions. Parcels sent without asking us may not be accepted.
-- You pay for return shipping, unless the item is faulty or we sent the wrong item.
-- Once the return arrives and we've checked it, we refund the item price.
+## Defective or damaged items
 
-## Opened items
+If a product is defective, or arrives damaged, contact us within 3 months of the purchase date with your order number and a photo or short description of the problem.
 
-Opened items can't be returned because you changed your mind, but they're still covered by the warranty. Digital items, such as firmware or licence keys, can't be refunded once delivered unless they don't work as described.
+- We'll help you troubleshoot first. If the item is defective or damaged, we replace it.
+- We only accept replacement requests for defective or damaged items, not refund requests.
+- Contact us before sending anything back and we'll tell you how to return it. Parcels sent without asking us may not be accepted.
+- For a confirmed defect or damage, we cover the shipping of the replacement.
 
-## Faulty, damaged or wrong items
+If we sent you the wrong item, tell us within 7 days of delivery and we'll send the right one at our cost.
 
-If something arrives damaged, faulty or isn't what you ordered, tell us within 7 days of delivery with your order number and a photo or short description. We'll replace it, or refund it if a replacement isn't possible, and we cover the shipping.
+## What the warranty doesn't cover
 
-## Warranty claims
+- Damage from accidents, liquid, misuse or physical modification after delivery.
+- Claims made more than 3 months after the purchase date.
+- Digital items, such as firmware or licence keys, once delivered. If one doesn't work as described, we replace it.
 
-Hardware is covered for 12 months against manufacturing defects (24 months on the TraceCore 100T Pro). Contact us with your order number and a description of the problem. We'll help you troubleshoot first, then repair or replace the item. If neither is possible, we'll refund it.
+## When we refund
 
-## How refunds are paid
-
-- Refunds go back to the payment method you used. Card refunds are made through Razorpay and usually appear within 5 to 7 business days after we approve them, depending on your bank.
-- Shipping costs are refunded when the return is because of our mistake or a faulty item.
-- You'll get an email when your refund is issued.
+Refunds are only given when an order is cancelled before it ships, by you or by us (for example, if an item sold out). They go back to the payment method you used: card refunds are made through Razorpay and usually appear within 5 to 7 business days, depending on your bank. You'll get an email when the refund is issued.
 
 ${CONTACT}`,
 
@@ -140,7 +139,7 @@ Please check your shipping address at checkout. To change it, contact us before 
 
 ## Lost or damaged parcels
 
-If your tracking hasn't moved for 7 days, or your parcel arrives damaged, contact us. We'll open a claim with the courier and replace or refund your order if it's lost or damaged in transit.
+If your tracking hasn't moved for 7 days, or your parcel arrives damaged, contact us. We'll open a claim with the courier and send you a replacement if it's lost or damaged in transit.
 
 ${CONTACT}`,
 

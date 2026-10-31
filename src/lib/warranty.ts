@@ -1,12 +1,11 @@
-// Warranty terms, as the FAQ states them: 12 months on all hardware, 24 on the 100T Pro.
-// Counted from delivery, or from payment while an order hasn't been marked delivered.
+// The warranty on everything the store sells: 3 months from the purchase date. Defective or damaged items are
+// replaced, not refunded, and returns are handled as warranty claims. The FAQ and the policies say the same.
 
-const MONTHS_BY_SLUG: Record<string, number> = { "tracecore-100t-pro": 24 };
+export const WARRANTY_MONTHS = 3;
 
-export const warrantyMonths = (productSlug: string) => MONTHS_BY_SLUG[productSlug] ?? 12;
-
-export function warrantyEnds(start: Date, months: number) {
-  const end = new Date(start);
-  end.setUTCMonth(end.getUTCMonth() + months);
+/** When the warranty on an order's items ends: WARRANTY_MONTHS after the order was placed. */
+export function warrantyEnds(purchased: Date) {
+  const end = new Date(purchased);
+  end.setUTCMonth(end.getUTCMonth() + WARRANTY_MONTHS);
   return end;
 }

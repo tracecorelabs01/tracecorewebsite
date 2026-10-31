@@ -14,6 +14,7 @@ import { EASE_EXPO, Magnetic, RevealLines, pauseOffscreen } from "@/components/u
 import type { ReviewSummary } from "@/lib/catalog/types";
 import { useUi } from "@/lib/ui-store";
 import { seeded } from "@/lib/utils";
+import { WARRANTY_MONTHS } from "@/lib/warranty";
 
 const loadScene = () => import("./LogoScene");
 const LogoScene = dynamic(loadScene, { ssr: false, loading: () => null });
@@ -116,7 +117,7 @@ export function Hero({ rating, ferrumPrice, cardPrice }: { rating: ReviewSummary
               <Truck className="size-4 text-blaze" /> Ships within 24h
             </li>
             <li className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-blaze" /> 12-month warranty
+              <ShieldCheck className="size-4 text-blaze" /> {WARRANTY_MONTHS}-month warranty
             </li>
           </motion.ul>
         </div>

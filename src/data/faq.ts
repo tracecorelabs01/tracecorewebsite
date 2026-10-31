@@ -72,11 +72,11 @@ export const faqGroups: FaqGroup[] = [
     items: [
       {
         q: "What warranty do you offer?",
-        a: "All hardware is covered by a 12-month warranty against manufacturing defects (24 months on the 100T Pro). If something isn't right, we'll repair or replace it.",
+        a: "Every product has a 3-month warranty from the purchase date. If it's defective or arrives damaged, we replace it. We don't refund defective or damaged items: warranty claims are replacements only.",
       },
       {
         q: "What's your return policy?",
-        a: "Unopened items can be returned within 14 days of delivery. Opened items are covered by the warranty. See the refund policy for full details.",
+        a: "Returns are handled as warranty claims, up to 3 months after the purchase date. Open a warranty ticket in our Discord or contact us with your order number, and if the item is defective or damaged we'll send you a replacement. We don't give refunds on returns. See the refund policy for full details.",
       },
       {
         q: "How do I contact support?",

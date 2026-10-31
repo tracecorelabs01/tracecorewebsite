@@ -12,7 +12,7 @@ const src = (i: number) => `/sequence/${String(i + 1).padStart(3, "0")}.webp`;
 const steps = [
   { n: "01", title: "Choose your setup", text: "Pick a card, add Ferrum and the accessories you need — or grab a bundle and save." },
   { n: "02", title: "Plug in & go", text: "Every order ships with a quick-start card, and step-by-step guides live on our Discord." },
-  { n: "03", title: "Backed by the lab", text: "A 12-month warranty and 24/7 support." },
+  { n: "03", title: "Backed by the lab", text: "A 3-month replacement warranty and 24/7 support." },
 ];
 
 /** Scroll-scrubbed image sequence (the operator reveal) drawn to a canvas. */

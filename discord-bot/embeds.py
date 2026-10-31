@@ -11,7 +11,7 @@ FOOTER = f"{BOT_NAME} · {BRAND}"
 TICKET_KINDS = {
     "purchase": {"label": "Orders", "emoji": "\U0001f6d2", "blurb": "Questions about an order, payment or delivery", "color": COLOR_BRAND},
     "support": {"label": "Tech support", "emoji": "\U0001f6e0️", "blurb": "Setup help and troubleshooting", "color": COLOR_SILVER},
-    "warranty": {"label": "Warranty", "emoji": "\U0001f6e1️", "blurb": "Repairs and replacements for faulty hardware", "color": COLOR_AMBER},
+    "warranty": {"label": "Warranty", "emoji": "\U0001f6e1️", "blurb": "Replacements for defective or damaged items, within 3 months of purchase", "color": COLOR_AMBER},
     "reseller": {"label": "Reseller", "emoji": "\U0001f91d", "blurb": "Bulk orders and reseller enquiries", "color": COLOR_OK},
 }
 
