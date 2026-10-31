@@ -72,7 +72,7 @@ export const faqGroups: FaqGroup[] = [
     items: [
       {
         q: "What warranty do you offer?",
-        a: "Every product has a 3-month warranty from the purchase date. If it's defective or arrives damaged, we replace it. We don't refund defective or damaged items: warranty claims are replacements only.",
+        a: "Every product has a 3-month warranty from the purchase date. Defective or damaged products are replaced, not refunded: warranty claims are replacements only. Damage that happens in transit is a claim with the courier, which we'll help you file.",
       },
       {
         q: "What's your return policy?",
