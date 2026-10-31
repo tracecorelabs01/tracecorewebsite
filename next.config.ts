@@ -47,6 +47,9 @@ const nextConfig: NextConfig = {
   },
   cacheComponents: true,
   partialPrefetching: true,
+  // Hostinger deploys the standalone server output, which only holds files the code is traced to use. The
+  // migrations applied at startup (src/instrumentation.ts) are read from disk by path, so copy them in.
+  outputFileTracingIncludes: { "/*": ["./drizzle/**/*"] },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: s3
