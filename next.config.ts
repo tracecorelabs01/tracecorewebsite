@@ -4,17 +4,19 @@ import type { NextConfig } from "next";
 const s3 = process.env.S3_PUBLIC_URL ? new URL(process.env.S3_PUBLIC_URL) : null;
 
 // CSP without nonces: nonces would force every page to render dynamically. Everything the
-// site loads is same-origin apart from Razorpay's checkout (card payments); 'unsafe-inline'
-// covers Next's own inline bootstrap scripts.
+// site loads is same-origin apart from Razorpay's checkout (card payments) and Google Translate,
+// which loads only after a visitor picks a language; 'unsafe-inline' covers Next's own inline
+// bootstrap scripts.
+const translate = "https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://www.gstatic.com";
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com ${translate}${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
+  `style-src 'self' 'unsafe-inline' ${translate}`,
   // i.ytimg.com and youtube-nocookie.com: video thumbnails and click-to-load embeds in guides (```youtube blocks).
-  `img-src 'self' data: blob: https://cdn.razorpay.com https://i.ytimg.com${s3 ? ` ${s3.origin}` : ""}`,
-  "frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.youtube-nocookie.com",
-  "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
-  "font-src 'self'",
+  `img-src 'self' data: blob: https://cdn.razorpay.com https://i.ytimg.com https://fonts.gstatic.com https://www.google.com ${translate}${s3 ? ` ${s3.origin}` : ""}`,
+  `frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com https://www.youtube-nocookie.com ${translate}`,
+  `connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com ${translate}`,
+  "font-src 'self' https://fonts.gstatic.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

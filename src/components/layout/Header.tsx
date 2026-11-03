@@ -15,6 +15,7 @@ import { selectCount, useCart } from "@/lib/cart-store";
 import type { ShopMenu } from "@/lib/catalog/types";
 import { site } from "@/lib/site";
 import { ShopMegaMenu } from "./ShopMegaMenu";
+import { TranslatePicker } from "./TranslatePicker";
 import { useStoreSettings } from "./StoreSettings";
 import { useUi } from "@/lib/ui-store";
 import { cn } from "@/lib/utils";
@@ -109,6 +110,8 @@ export function Header({ menu }: { menu: ShopMenu }) {
             >
               <DiscordIcon className="size-5" />
             </a>
+            {/* Phones get it in the menu instead: the header row has no room. */}
+            <TranslatePicker className="hidden sm:block" />
             <Link
               href="/account"
               aria-label="Your account"

@@ -5,6 +5,7 @@ import { and, count, eq, gt, gte, inArray, isNull, lt, or, sql } from "drizzle-o
 import { z } from "zod";
 import { categories, customers, discountCodes, getDb, isDbConfigured, messages, orderEvents, orderItems, orders, products, subscribers } from "@/db";
 import { addressSchema, rememberAddress } from "@/lib/address";
+import { shipCountryNames } from "@/lib/countries";
 import { currentPartner, getProgram, partnerByCode, partnerPriceMap, partnerTerms, rememberPartner, type Partner } from "@/lib/affiliates";
 import { getCurrentCustomer } from "@/lib/auth/customer";
 import { getCatalog, getSetupBuilder, getStoreSettings, TAGS } from "@/lib/catalog/server";
@@ -255,6 +256,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   }
   const data = parsed.data;
   const settings = await getStoreSettings();
+  // Only countries the store ships to (Settings > countries we don't ship to; embargoed ones by default).
+  if (!shipCountryNames(settings.shipExcluded).includes(data.country)) {
+    return { ok: false, error: "We can't ship to that country. Please choose another.", fieldErrors: { country: "We don't ship to this country." } };
+  }
   if (data.paymentMethod !== "card" && !settings.manualPayments[data.paymentMethod]) {
     return { ok: false, error: "That payment method isn't available any more. Please choose another." };
   }

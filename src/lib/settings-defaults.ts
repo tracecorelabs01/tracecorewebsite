@@ -1,12 +1,15 @@
 // Store settings shape + defaults (no zod here so client components can import it cheaply).
 // Values come from site.ts until edited in /admin/settings.
 
+import { EMBARGOED } from "./countries";
 import { site } from "./site";
 
 export interface StoreSettings {
   announcements: string[];
   freeShippingThreshold: number;
   flatShipping: number;
+  /** ISO codes of countries not offered at checkout (and left out of the shipping countries in structured data). */
+  shipExcluded: string[];
   supportEmail: string;
   links: { discord: string; x: string; youtube: string; tiktok: string };
   stats: { value: number; suffix: string; label: string; decimals?: number }[];
@@ -24,6 +27,7 @@ export const defaultSettings: StoreSettings = {
   announcements: [...site.announcements],
   freeShippingThreshold: site.freeShippingThreshold,
   flatShipping: site.flatShipping,
+  shipExcluded: [...EMBARGOED],
   supportEmail: site.email,
   links: { ...site.links },
   stats: site.stats.map((s) => ({ ...s })),

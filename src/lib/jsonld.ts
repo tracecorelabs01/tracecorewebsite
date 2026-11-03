@@ -7,7 +7,7 @@
 
 import type { Product, ProductDetail, StockStatus } from "@/lib/catalog/types";
 import { guarded } from "@/lib/content-guard";
-import { COUNTRIES, COUNTRY_CODES } from "@/lib/countries";
+import { EMBARGOED, shipCountryCodes } from "@/lib/countries";
 import type { MarkdownVideo } from "@/lib/markdown";
 import { metaDescription } from "@/lib/seo";
 import type { StoreSettings } from "@/lib/settings-defaults";
@@ -54,8 +54,7 @@ const AVAILABILITY: Record<StockStatus, string> = {
   "sold-out": `${SCHEMA}OutOfStock`,
 };
 
-/** ISO codes of the countries checkout ships to ("Other" isn't one place, so it's left out). */
-const SHIP_TO = COUNTRIES.flatMap((c) => COUNTRY_CODES[c] ?? []);
+
 
 /** Drops every string (at any depth) that the content guard blocks, and undefined values. */
 function clean<T>(value: T, where: string): T | undefined {
@@ -113,6 +112,8 @@ export function organizationLd(settings: Pick<StoreSettings, "supportEmail" | "l
       ...(sameAs.length ? { sameAs } : {}),
       contactPoint: contactPoints(settings),
       knowsAbout: KNOWS_ABOUT,
+      // Ships worldwide (every country at checkout; /shipping lists them by region).
+      areaServed: "Worldwide",
     },
     "Organization",
   );
@@ -129,12 +130,14 @@ export interface ProductLdInput {
   detail?: ProductDetail | null;
   /** Shipping amounts and the values for tokens in the copy: pass getTokenContext(). */
   tokens: TokenContext & { settings: Pick<StoreSettings, "freeShippingThreshold" | "flatShipping" | "supportEmail"> };
+  /** ISO codes the store ships to (shipCountryCodes(settings.shipExcluded)). Default: every country except the embargoed ones. */
+  shipTo?: string[];
   /** First-party reviews only (Product.rating and reviewCount from getCatalog() are). Omit when there are none. */
   rating?: { average: number; count: number } | null;
 }
 
 /** Product with its Offer (USD price, stock, shipping to the checkout countries, warranty). Null if its name is blocked. */
-export function productLd({ product, detail, tokens, rating }: ProductLdInput): JsonLdNode | null {
+export function productLd({ product, detail, tokens, rating, shipTo = shipCountryCodes(EMBARGOED) }: ProductLdInput): JsonLdNode | null {
   const name = guarded(product.name, `Product ${product.slug} name`);
   if (!name) return null;
   const url = abs(`/product/${product.slug}`);
@@ -169,7 +172,7 @@ export function productLd({ product, detail, tokens, rating }: ProductLdInput): 
         shippingDetails: {
           "@type": "OfferShippingDetails",
           shippingRate: { "@type": "MonetaryAmount", value: product.price >= settings.freeShippingThreshold ? 0 : settings.flatShipping, currency: site.currency },
-          shippingDestination: SHIP_TO.map((code) => ({ "@type": "DefinedRegion", addressCountry: code })),
+          shippingDestination: shipTo.map((code) => ({ "@type": "DefinedRegion", addressCountry: code })),
           // As the shipping policy states: dispatched within 1 business day, delivered in 3 to 7 business days.
           deliveryTime: {
             "@type": "ShippingDeliveryTime",

@@ -18,7 +18,8 @@ import {
 } from "@/actions/account";
 import { Pill } from "@/components/account/AccountShell";
 import type { SavedAddress } from "@/lib/address";
-import { COUNTRIES } from "@/lib/countries";
+import { shipCountryNames } from "@/lib/countries";
+import { useStoreSettings } from "@/components/layout/StoreSettings";
 import { cn } from "@/lib/utils";
 
 type Action = (prev: AccountFormState, fd: FormData) => Promise<AccountFormState>;
@@ -339,6 +340,7 @@ function AddressCard({ address: a, onEdit }: { address: SavedAddress; onEdit: ()
 }
 
 function AddressForm({ address: a, onDone }: { address?: SavedAddress; onDone: () => void }) {
+  const countries = shipCountryNames(useStoreSettings().shipExcluded);
   const [state, setState] = useState<AccountFormState>(null);
   const [pending, start] = useTransition();
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -363,11 +365,11 @@ function AddressForm({ address: a, onDone }: { address?: SavedAddress; onDone: (
       <Field label="Postal code" name="postalCode" autoComplete="postal-code" defaultValue={a?.postalCode} maxLength={40} error={errs.postalCode} required />
       <label className="block">
         <span className="type-kicker text-dim">Country</span>
-        <select name="country" required defaultValue={a && COUNTRIES.includes(a.country) ? a.country : ""} className={cn(inputClass, "text-fg", errs.country && "border-ember")}>
+        <select name="country" required defaultValue={a && countries.includes(a.country) ? a.country : ""} className={cn(inputClass, "text-fg", errs.country && "border-ember")}>
           <option value="" disabled>
             Select country
           </option>
-          {COUNTRIES.map((c) => (
+          {countries.map((c) => (
             <option key={c}>{c}</option>
           ))}
         </select>

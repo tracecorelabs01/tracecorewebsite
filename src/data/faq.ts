@@ -42,7 +42,7 @@ export const faqGroups: FaqGroup[] = [
       },
       {
         q: "Do you ship internationally?",
-        a: "We ship to most countries worldwide. Shipping is free on orders over {{freeShippingThreshold}}; below that a flat rate applies and is shown at checkout.",
+        a: "Yes. We ship worldwide by tracked express courier, including the US, Canada, the UK, every EU country and the Gulf states. Shipping is free on orders over {{freeShippingThreshold}}; below that a flat rate applies and is shown at checkout. [Worldwide shipping](/shipping) lists every country, delivery times and what you pay on arrival.",
       },
       {
         q: "How long does delivery take?",

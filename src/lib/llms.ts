@@ -66,6 +66,7 @@ async function sections(full: boolean) {
     "## Help and policies",
     "",
     `- [FAQ](${url("/faq")}): orders, shipping, setup and warranty`,
+    `- [Worldwide shipping](${url("/shipping")}): countries, delivery times, duties and taxes by region`,
     `- [Support](${url("/support")}): contact the team`,
     `- [Pixel clock calculator](${url("/tools/pixel-clock-calculator")}): check whether a display mode fits HDMI or DisplayPort bandwidth`,
     ...Object.entries(LEGAL_DOCS).map(([slug, title]) => `- [${title}](${url(`/legal/${slug}`)})`),

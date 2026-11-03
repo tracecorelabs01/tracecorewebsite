@@ -51,7 +51,7 @@ const columns = [
       { label: "FAQ", href: "/faq" },
       { label: "Track your order", href: "/track" },
       { label: "Contact support", href: "/support" },
-      { label: "Shipping", href: "/faq#shipping" },
+      { label: "Worldwide shipping", href: "/shipping" },
       { label: "Warranty", href: "/legal/warranty" },
       { label: "Partner program", href: "/partners" },
       { label: "About us", href: "/about" },

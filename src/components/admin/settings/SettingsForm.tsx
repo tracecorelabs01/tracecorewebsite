@@ -64,6 +64,14 @@ export function SettingsForm({
             <Field label="Flat shipping rate" name="flatShipping" hint="Charged on orders below the free-shipping amount.">
               <DollarInput name="flatShipping" defaultValue={settings.flatShipping} />
             </Field>
+            <Field
+              label="Countries we don't ship to"
+              name="shipExcluded"
+              hint="Two-letter country codes, separated by commas. Every other country can be chosen at checkout and is listed as a shipping destination for search engines. Default: the embargoed countries BY, CU, IR, KP, RU, SY."
+              className="sm:col-span-2"
+            >
+              <Input name="shipExcluded" defaultValue={settings.shipExcluded.join(", ")} className="font-mono uppercase" />
+            </Field>
           </div>
         </Card>
 

@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const counts = new Map<string, number>();
   for (const p of products) counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
 
-  const pages = ["", "/shop", "/guides", "/tools/pixel-clock-calculator", "/faq", "/support", "/about", "/partners"].map((path) => ({ url: abs(path) }));
+  const pages = ["", "/shop", "/guides", "/tools/pixel-clock-calculator", "/shipping", "/faq", "/support", "/about", "/partners"].map((path) => ({ url: abs(path) }));
   return [
     ...pages,
     ...categories.filter((c) => (counts.get(c.id) ?? 0) >= MIN_INDEXABLE).map((c) => ({ url: abs(`/shop/${c.id}`), lastModified: dates.categories[c.id] })),

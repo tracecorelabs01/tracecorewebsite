@@ -32,6 +32,10 @@ export const viewport: Viewport = {
 
 // Runs before first paint. The storefront intro plays only when a visit starts on the homepage, once per session,
 // and never for reduced-motion users; everywhere else the preloader stays hidden (CSS) so pages paint at once.
+// Browser translation (Google Translate, or the browser's own) swaps text nodes React still holds; these guards turn the
+// resulting "removeChild/insertBefore of a node that isn't a child" errors into no-ops instead of a crashed page.
+const translateGuard = `try{var P=Node.prototype,R=P.removeChild,I=P.insertBefore;P.removeChild=function(c){return c.parentNode!==this?c:R.apply(this,arguments)};P.insertBefore=function(n,r){return r&&r.parentNode!==this?n:I.apply(this,arguments)}}catch(e){}`;
+
 const introScript = `try{if(location.pathname!=='/'||sessionStorage.getItem('tc-intro')||matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.dataset.intro='done'}}catch(e){}`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -39,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" suppressHydrationWarning className={`${anton.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: introScript }} />
+        <script dangerouslySetInnerHTML={{ __html: translateGuard }} />
       </head>
       <body className="min-h-dvh">{children}</body>
     </html>

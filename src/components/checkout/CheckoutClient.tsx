@@ -10,7 +10,7 @@ import { SocialSignIn } from "@/components/account/SocialSignIn";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
 import type { CheckoutDetails } from "@/lib/account";
 import type { Provider } from "@/lib/auth/oauth";
-import { COUNTRIES } from "@/lib/countries";
+import { shipCountryNames } from "@/lib/countries";
 import { ProductVisual } from "@/components/product/ProductVisual";
 import { PaymentLogos, TrustBadges } from "@/components/ui/Badges";
 import { ButtonLink } from "@/components/ui/Button";
@@ -70,6 +70,7 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
   const setQty = useCart((s) => s.setQty);
   const remove = useCart((s) => s.remove);
   const settings = useStoreSettings();
+  const countries = shipCountryNames(settings.shipExcluded);
   const [method, setMethod] = useState<(typeof methods)[number]["id"]>("card");
   const [pending, startTransition] = useTransition();
   const [placed, setPlaced] = useState<PlacedOrder | null>(null);
@@ -320,13 +321,13 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
                 <select
                   name="country"
                   required
-                  defaultValue={place && COUNTRIES.includes(place.country) ? place.country : ""}
+                  defaultValue={place && countries.includes(place.country) ? place.country : ""}
                   className={cn("mt-2 h-12 w-full rounded-xl border bg-ink-900 px-4 text-fg outline-none transition-colors focus:border-blaze", fieldErrors.country ? "border-ember" : "border-line-strong")}
                 >
                   <option value="" disabled>
                     Select country
                   </option>
-                  {COUNTRIES.map((c) => (
+                  {countries.map((c) => (
                     <option key={c}>{c}</option>
                   ))}
                 </select>

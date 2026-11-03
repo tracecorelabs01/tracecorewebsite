@@ -398,3 +398,22 @@ html[data-intro="done"] .tc-preloader {
     scroll-behavior: auto !important;
   }
 }
+
+/* Google Translate (src/components/layout/TranslatePicker.tsx): keep its toolbar, tooltips and highlights out of the
+   design; the header's language picker is the control. */
+.goog-te-banner-frame,
+.skiptranslate > iframe,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-yAWNEb-L7lbkb {
+  display: none !important;
+}
+body {
+  top: 0 !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}

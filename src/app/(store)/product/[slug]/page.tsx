@@ -5,7 +5,8 @@ import { ArrowUpRight, BookOpen } from "lucide-react";
 import { Markdown } from "@/components/content/Markdown";
 import { ProductView } from "@/components/product/ProductView";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { findSlugRedirect, getCatalog, getProductBySlug, getProductDetail, getTokenContext } from "@/lib/catalog/server";
+import { findSlugRedirect, getCatalog, getProductBySlug, getProductDetail, getStoreSettings, getTokenContext } from "@/lib/catalog/server";
+import { shipCountryCodes } from "@/lib/countries";
 import { relatedProducts, type Product } from "@/lib/catalog/types";
 import { guidesForProduct } from "@/lib/guides";
 import { breadcrumbLd, productLd } from "@/lib/jsonld";
@@ -50,14 +51,14 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
     if (renamed) permanentRedirect(`/product/${renamed}`);
     notFound();
   }
-  const [detail, tokens, guides] = await Promise.all([getProductDetail(product.slug), getTokenContext(), guidesForProduct(product.slug)]);
+  const [detail, tokens, guides, settings] = await Promise.all([getProductDetail(product.slug), getTokenContext(), guidesForProduct(product.slug), getStoreSettings()]);
   const description = detail?.description ? fillTokens(detail.description, tokens) : "";
 
   return (
     <>
       <JsonLd
         data={[
-          productLd({ product, detail, tokens, rating: product.reviewCount > 0 ? { average: product.rating, count: product.reviewCount } : null }),
+          productLd({ product, detail, tokens, shipTo: shipCountryCodes(settings.shipExcluded), rating: product.reviewCount > 0 ? { average: product.rating, count: product.reviewCount } : null }),
           breadcrumbLd([
             { name: "Home", path: "/" },
             { name: "Shop", path: "/shop" },

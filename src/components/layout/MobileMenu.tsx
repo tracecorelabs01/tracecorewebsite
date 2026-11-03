@@ -10,6 +10,7 @@ import type { ShopMenu } from "@/lib/catalog/types";
 import { site } from "@/lib/site";
 import { useUi } from "@/lib/ui-store";
 import { useStoreSettings } from "./StoreSettings";
+import { TranslatePicker } from "./TranslatePicker";
 
 const links = [{ label: "Home", href: "/" }, ...site.nav];
 
@@ -88,6 +89,7 @@ export function MobileMenu({ menu }: { menu: ShopMenu }) {
               Shop now
             </ButtonLink>
             <div className="flex items-center gap-1 text-muted">
+              <TranslatePicker up />
               {[
                 { href: social.discord, Icon: DiscordIcon, label: "Discord" },
                 { href: social.x, Icon: XIcon, label: "X" },

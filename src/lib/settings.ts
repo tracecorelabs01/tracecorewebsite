@@ -10,6 +10,7 @@ export const storeSettingsSchema: z.ZodType<StoreSettings> = z.object({
   announcements: z.array(z.string().trim().min(1).max(140)).max(8),
   freeShippingThreshold: z.number().min(0).max(100000),
   flatShipping: z.number().min(0).max(10000),
+  shipExcluded: z.array(z.string().regex(/^[A-Z]{2}$/)).max(250),
   supportEmail: z.string().trim().max(191),
   links: z.object({
     discord: z.string().trim().max(300),

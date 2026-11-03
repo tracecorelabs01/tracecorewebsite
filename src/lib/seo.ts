@@ -47,7 +47,8 @@ export function pageMetadata({ title, description, path, images, type = "website
   return {
     title,
     ...(desc ? { description: desc } : {}),
-    alternates: { canonical: path },
+    // One English version serves every country: hreflang names it for English readers and as the default elsewhere.
+    alternates: { canonical: path, languages: { en: path, "x-default": path } },
     openGraph,
     twitter: { card: "summary_large_image", title: shareTitle, description: desc, images: shareImages },
     ...(noindex ? { robots: { index: false, follow: true } } : {}),

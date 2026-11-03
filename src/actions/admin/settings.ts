@@ -20,6 +20,7 @@ const SECTIONS: Record<keyof StoreSettings, string> = {
   announcements: "announcements",
   freeShippingThreshold: "free-shipping threshold",
   flatShipping: "flat shipping",
+  shipExcluded: "countries we don't ship to",
   supportEmail: "support email",
   links: "links",
   stats: "homepage stats",
@@ -54,6 +55,7 @@ function readForm(fd: FormData): Omit<StoreSettings, "setupDiscountPercent"> {
     announcements: lines(fd.get("announcements")),
     freeShippingThreshold: dollars(fd.get("freeShippingThreshold")),
     flatShipping: dollars(fd.get("flatShipping")),
+    shipExcluded: [...new Set(str(fd.get("shipExcluded")).toUpperCase().split(/[\s,;]+/).filter(Boolean))],
     supportEmail: str(fd.get("supportEmail")),
     links: Object.fromEntries(LINK_KEYS.map((k) => [k, str(fd.get(`links.${k}`))])) as StoreSettings["links"],
     stats: Array.from({ length: STAT_ROWS }, (_, i) => {
@@ -70,6 +72,7 @@ function readForm(fd: FormData): Omit<StoreSettings, "setupDiscountPercent"> {
 /** Turn a zod issue into [form field name, message the admin can act on]. */
 function describeIssue(issue: z.core.$ZodIssue): [string, string] {
   const [top, index] = issue.path;
+  if (top === "shipExcluded") return [top, "Use two-letter country codes (like RU or IR), separated by commas."];
   if (top === "announcements") {
     const noun = LIST_NOUNS[top];
     if (issue.code === "too_big" && issue.origin === "array") return [top, `Add up to ${issue.maximum} ${noun}s, one per line.`];

@@ -183,7 +183,13 @@ export function ProductView({ product, related, details }: { product: Product; r
 
               <div className="mt-8 border-t border-line pt-8">
                 <Price {...price} large />
-                <p className="mt-2 text-xs text-dim">Prices in USD. Ships worldwide.</p>
+                <p className="mt-2 text-xs text-dim">
+                  Prices in USD.{" "}
+                  <Link href="/shipping" className="underline underline-offset-2 hover:text-fg">
+                    Ships worldwide
+                  </Link>
+                  .
+                </p>
                 <p className="mt-6 whitespace-pre-line leading-relaxed text-fg/80">{product.summary}</p>
               </div>
 

@@ -130,7 +130,7 @@ export function Stars({ rating, className, size = 14 }: { rating: number; classN
 export function Price({ price, compareAt, className, large }: { price: number; compareAt?: number; className?: string; large?: boolean }) {
   return (
     <div className={cn("flex items-baseline gap-2.5", className)}>
-      <span className={cn("font-display tracking-wide text-fg", large ? "text-5xl" : "text-[1.7rem]")}>{formatPrice(price)}</span>
+      <span translate="no" className={cn("font-display tracking-wide text-fg", large ? "text-5xl" : "text-[1.7rem]")}>{formatPrice(price)}</span>
       {compareAt && compareAt > price && (
         <>
           <span className={cn("text-dim line-through", large ? "text-xl" : "text-sm")}>{formatPrice(compareAt)}</span>

@@ -49,7 +49,7 @@ export function LogoMark({ className, mono = false, title = "TraceCoreLab" }: { 
 
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={cn("font-display uppercase leading-none tracking-[0.01em]", className)}>
+    <span translate="no" className={cn("font-display uppercase leading-none tracking-[0.01em]", className)}>
       <span className="text-gradient">TraceCore</span>
       <span className="text-silver">Lab</span>
     </span>
