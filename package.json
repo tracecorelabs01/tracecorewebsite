@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "node scripts/predeploy.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "assets": "node scripts/process-assets.mjs",
@@ -14,7 +14,8 @@
     "db:setup": "npm run db:migrate && npm run db:seed",
     "db:add-hardware": "tsx --env-file-if-exists=.env.local scripts/db/add-setup-hardware.ts",
     "admin:create": "tsx --env-file-if-exists=.env.local scripts/admin/create.ts",
-    "db:sql": "tsx scripts/db/export-sql.ts"
+    "db:sql": "tsx scripts/db/export-sql.ts",
+    "self-check": "tsx scripts/self-check.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1157.0",
@@ -22,6 +23,7 @@
     "@react-three/fiber": "^9.8.2",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.4",
+    "github-slugger": "^2.0.0",
     "lenis": "^1.3.27",
     "lucide-react": "^1.62.0",
     "motion": "^14.6.0",
@@ -29,6 +31,9 @@
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "react-markdown": "^10.1.0",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
     "sharp": "^0.35.5",
     "tailwind-merge": "^3.7.0",

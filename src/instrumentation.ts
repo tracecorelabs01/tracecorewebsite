@@ -14,6 +14,15 @@ export async function register() {
   } catch (err) {
     console.error("[db] applying migrations failed; run `npm run db:migrate`", err);
   }
+  // Content patches (content/patches) normally run in scripts/predeploy.mjs before the build. Running them here too
+  // covers a build that had no database; applied patches are recorded, so this is a no-op otherwise.
+  try {
+    const [{ applyContentPatches }, { createPool }] = await Promise.all([import("@/lib/content-patches.mjs"), import("@/db/client")]);
+    const pool = createPool(process.env.DATABASE_URL);
+    await applyContentPatches(pool).finally(() => pool.end());
+  } catch (err) {
+    console.error("[content] applying content patches failed; run `node scripts/predeploy.mjs`", err);
+  }
   const { importDiskUploads } = await import("@/lib/storage");
   await importDiskUploads().catch((err) => console.error("[storage] importing images from disk failed", err));
 

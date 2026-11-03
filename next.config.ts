@@ -10,8 +10,9 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://cdn.razorpay.com${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://cdn.razorpay.com${s3 ? ` ${s3.origin}` : ""}`,
-  "frame-src https://api.razorpay.com https://checkout.razorpay.com",
+  // i.ytimg.com and youtube-nocookie.com: video thumbnails and click-to-load embeds in guides (```youtube blocks).
+  `img-src 'self' data: blob: https://cdn.razorpay.com https://i.ytimg.com${s3 ? ` ${s3.origin}` : ""}`,
+  "frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.youtube-nocookie.com",
   "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com",
   "font-src 'self'",
   "object-src 'none'",
@@ -43,15 +44,21 @@ const nextConfig: NextConfig = {
       // Customers sign in with an emailed code now, so the old password pages go to the login (with ?email= kept).
       { source: "/account/:page(activate|forgot|reset)", destination: "/account/login", permanent: true },
       { source: "/account/password", destination: "/account", permanent: true },
+      // One host: www.tracecorelab.com duplicates every page, so it goes to the bare domain (path and query kept).
+      { source: "/:path*", has: [{ type: "host", value: "www.tracecorelab.com" }], destination: "https://tracecorelab.com/:path*", permanent: true },
+      // Categories have their own pages now; the old filtered shop URLs point there (other query params are kept).
+      { source: "/shop", has: [{ type: "query", key: "category", value: "(?<cat>[a-z0-9-]+)" }], destination: "/shop/:cat", permanent: true },
     ];
   },
   cacheComponents: true,
   partialPrefetching: true,
   // Hostinger deploys the standalone server output, which only holds files the code is traced to use. The
-  // migrations applied at startup (src/instrumentation.ts) are read from disk by path, so copy them in.
-  outputFileTracingIncludes: { "/*": ["./drizzle/**/*"] },
+  // migrations and content patches applied at startup (src/instrumentation.ts) are read from disk by path, so copy them in.
+  outputFileTracingIncludes: { "/*": ["./drizzle/**/*", "./content/**/*"] },
   images: {
     formats: ["image/avif", "image/webp"],
+    // Optimized images are keyed by URL and upload keys are unique, so they can be cached for 30 days.
+    minimumCacheTTL: 2_592_000,
     remotePatterns: s3
       ? [{ protocol: s3.protocol === "http:" ? "http" : "https", hostname: s3.hostname, pathname: `${s3.pathname.replace(/\/$/, "")}/**` }]
       : [],

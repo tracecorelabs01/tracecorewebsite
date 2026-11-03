@@ -1,9 +1,53 @@
 "use client";
 
+import { useId, useState } from "react";
+import dynamic from "next/dynamic";
 import { ART_KEYS } from "@/lib/catalog/types";
 import { centsToInput } from "@/lib/admin/format";
-import { ActionForm, Field, FormStatus, Input, Select, SubmitButton, Textarea, Toggle, type ActionState } from "./forms";
+import { plainText } from "@/lib/markdown";
+import { metaDescription } from "@/lib/seo";
+import { cn } from "@/lib/utils";
+import { ActionForm, Field, FormStatus, Input, Select, SubmitButton, Textarea, Toggle, useActionForm, type ActionState } from "./forms";
+import { SeoFields } from "./SeoFields";
 import { Card } from "./ui";
+
+// The storefront's Markdown renderer, downloaded only when someone opens a preview.
+const Markdown = dynamic(() => import("@/components/content/Markdown").then((m) => m.Markdown));
+
+/**
+ * A Markdown textarea with a live word count and a preview drawn by the storefront renderer (tokens such as
+ * {{price:<slug>}} show as written). Used for product descriptions here and category intros on the categories page.
+ */
+export function MarkdownTextarea({ name, label, defaultValue, hint, minWords, rows = 14 }: { name: string; label: string; defaultValue?: string | null; hint?: string; minWords?: number; rows?: number }) {
+  const id = useId();
+  const { state } = useActionForm();
+  const error = state?.fieldErrors?.[name];
+  const [value, setValue] = useState(defaultValue ?? "");
+  const [preview, setPreview] = useState(false);
+  const words = plainText(value).split(" ").filter(Boolean).length;
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
+        <label htmlFor={id} className="font-medium text-muted">
+          {label}
+        </label>
+        <span className="flex items-center gap-3">
+          <span className={cn("tabular-nums", minWords && words < minWords ? "text-amber-400" : "text-dim")}>
+            {words} word{words === 1 ? "" : "s"}
+            {minWords ? ` / ${minWords}+` : ""}
+          </span>
+          <button type="button" onClick={() => setPreview((p) => !p)} className="text-muted underline-offset-4 hover:text-fg hover:underline">
+            {preview ? "Edit" : "Preview"}
+          </button>
+        </span>
+      </div>
+      {/* Hidden, not removed, while previewing: the form still submits it. */}
+      <Textarea id={id} name={name} value={value} onChange={(e) => setValue(e.target.value)} rows={rows} hidden={preview} className="font-mono text-[13px]" />
+      {preview && <div className="min-h-24 rounded-xl border border-line bg-ink-950 p-5 text-sm leading-relaxed text-muted">{value.trim() ? <Markdown source={value} /> : <p className="text-dim">Nothing to preview yet.</p>}</div>}
+      {error ? <span className="mt-1 block text-xs text-[#ff6b5e]">{error}</span> : hint ? <span className="mt-1 block text-xs text-dim">{hint}</span> : null}
+    </div>
+  );
+}
 
 type ProductRow = {
   name: string;
@@ -27,6 +71,10 @@ type ProductRow = {
   optionName: string | null;
   optionValues: string[] | null;
   artKey: string | null;
+  brand: string | null;
+  mpn: string | null;
+  gtin: string | null;
+  description: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
 };
@@ -60,7 +108,7 @@ export function ProductForm({
             <Field label="Name" name="name" className="sm:col-span-2">
               <Input name="name" defaultValue={p?.name} required maxLength={160} placeholder="TraceCore 75T" />
             </Field>
-            <Field label="URL slug" name="slug" hint="Leave blank to generate from the name.">
+            <Field label="URL slug" name="slug" hint={p ? "Changing the slug creates a permanent redirect from the old URL." : "Leave blank to generate from the name."}>
               <Input name="slug" defaultValue={p?.slug} placeholder="tracecore-75t" className="font-mono" />
             </Field>
             <Field label="Tagline" name="tagline">
@@ -110,6 +158,16 @@ export function ProductForm({
               <Textarea name="specs" defaultValue={(p?.specs ?? []).map((s) => `${s.label}: ${s.value}`).join("\n")} rows={6} placeholder={"FPGA: Xilinx Artix-7 XC7A75T\nWarranty: 3 months"} className="font-mono text-[13px]" />
             </Field>
           </div>
+        </Card>
+
+        <Card title="Long description" description="The main text of the product page, in Markdown: ## headings, lists, **bold** and [links](/guides/...).">
+          <MarkdownTextarea
+            name="description"
+            label="Description"
+            defaultValue={p?.description}
+            minWords={300}
+            hint="300 to 600 words: what it is, what it needs, compatibility as tested, setup links and common questions. Write prices as {{price:<product-slug>}}."
+          />
         </Card>
 
         <Card title="Options" description="E.g. Bracket: Full height / Low profile. Leave empty for no options.">
@@ -173,12 +231,26 @@ export function ProductForm({
         </Card>
 
         <Card title="Search engines">
+          <SeoFields
+            title={p?.seoTitle}
+            description={p?.seoDescription}
+            titleFallback={p?.name || "the product name"}
+            // What the product page uses: the summary (or tagline) as one line, cut to fit.
+            descriptionFallback={metaDescription(p?.summary || p?.tagline || "") || "the summary"}
+            path={`/product/${p?.slug || "your-product"}`}
+          />
+        </Card>
+
+        <Card title="Product identity" description="For search results and product feeds. For resold items, use the maker's brand and part number.">
           <div className="space-y-4">
-            <Field label="SEO title" name="seoTitle" hint="Defaults to the product name.">
-              <Input name="seoTitle" defaultValue={p?.seoTitle ?? ""} maxLength={160} />
+            <Field label="Brand" name="brand">
+              <Input name="brand" defaultValue={p?.brand ?? ""} maxLength={80} />
             </Field>
-            <Field label="SEO description" name="seoDescription" hint="Defaults to the summary.">
-              <Textarea name="seoDescription" defaultValue={p?.seoDescription ?? ""} rows={3} maxLength={320} />
+            <Field label="MPN" name="mpn" hint="The maker's part number.">
+              <Input name="mpn" defaultValue={p?.mpn ?? ""} maxLength={80} className="font-mono" />
+            </Field>
+            <Field label="GTIN" name="gtin" hint="The barcode number (UPC or EAN): 8, 12, 13 or 14 digits. Leave blank if there is none.">
+              <Input name="gtin" defaultValue={p?.gtin ?? ""} inputMode="numeric" maxLength={20} className="font-mono" />
             </Field>
           </div>
         </Card>

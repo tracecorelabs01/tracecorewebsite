@@ -21,7 +21,9 @@ export function Kicker({ children, index, className }: { children: ReactNode; in
 /* ── Hover text-scramble (mono fonts keep width stable) ── */
 const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&*+=<>/";
 export function ScrambleText({ text, className }: { text: string; className?: string }) {
-  const [out, setOut] = useState(text);
+  // null when idle: the label renders once as plain text (the two-copy form below is only used while scrambling,
+  // so text extractors and crawlers read "Shop", not "ShopShop").
+  const [out, setOut] = useState<string | null>(null);
   const raf = useRef(0);
 
   const run = useCallback(() => {
@@ -35,7 +37,7 @@ export function ScrambleText({ text, className }: { text: string; className?: st
       for (let i = 0; i < text.length; i++) {
         s += i < solved || text[i] === " " ? text[i] : GLYPHS[(Math.random() * GLYPHS.length) | 0];
       }
-      setOut(s);
+      setOut(p < 1 ? s : null);
       if (p < 1) raf.current = requestAnimationFrame(tick);
     };
     raf.current = requestAnimationFrame(tick);
@@ -45,8 +47,14 @@ export function ScrambleText({ text, className }: { text: string; className?: st
 
   return (
     <span className={className} onPointerEnter={run} onFocus={run}>
-      <span aria-hidden>{out}</span>
-      <span className="sr-only">{text}</span>
+      {out === null ? (
+        text
+      ) : (
+        <>
+          <span aria-hidden>{out}</span>
+          <span className="sr-only">{text}</span>
+        </>
+      )}
     </span>
   );
 }
@@ -222,22 +230,19 @@ export function Accordion({ items, defaultOpen = 0, className }: { items: { q: s
                 </span>
               </button>
             </h3>
-            <AnimatePresence initial={false}>
-              {isOpen && (
-                <motion.div
-                  id={`${base}-p${i}`}
-                  role="region"
-                  aria-labelledby={`${base}-b${i}`}
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.5, ease: EASE_EXPO }}
-                  className="overflow-hidden"
-                >
-                  <div className="pb-6 pr-12 leading-relaxed text-muted">{it.a}</div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Closed panels stay in the HTML (collapsed and inert), so search engines read every answer and spec. */}
+            <motion.div
+              id={`${base}-p${i}`}
+              role="region"
+              aria-labelledby={`${base}-b${i}`}
+              inert={!isOpen}
+              initial={false}
+              animate={isOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
+              transition={{ duration: 0.5, ease: EASE_EXPO }}
+              className="overflow-hidden"
+            >
+              <div className="pb-6 pr-12 leading-relaxed text-muted">{it.a}</div>
+            </motion.div>
           </div>
         );
       })}

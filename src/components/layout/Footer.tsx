@@ -22,26 +22,39 @@ function paymentNote({ payments, manualPayments }: PublicSettings) {
     .join(" ");
 }
 
+/** A link to an actual profile, not a placeholder like "https://x.com/" (those stay hidden). */
+function isProfile(href: string) {
+  try {
+    return new URL(href).pathname.replace(/\/+$/, "") !== "";
+  } catch {
+    return false;
+  }
+}
+
 const columns = [
   {
     title: "Shop",
     links: [
       { label: "All products", href: "/shop" },
-      { label: "DMA cards", href: "/shop?category=dma" },
-      { label: "Input devices", href: "/shop?category=input" },
-      { label: "Bundles", href: "/shop?category=bundle" },
-      { label: "Accessories", href: "/shop?category=accessory" },
+      { label: "DMA cards", href: "/shop/dma" },
+      { label: "Video fusers", href: "/shop/fuser" },
+      { label: "Input devices", href: "/shop/input" },
+      { label: "Accessories", href: "/shop/accessory" },
+      { label: "Bundles", href: "/shop/bundle" },
     ],
   },
   {
     title: "Help",
     links: [
+      { label: "Setup guides", href: "/guides" },
+      { label: "Pixel clock calculator", href: "/tools/pixel-clock-calculator" },
       { label: "FAQ", href: "/faq" },
       { label: "Track your order", href: "/track" },
       { label: "Contact support", href: "/support" },
       { label: "Shipping", href: "/faq#shipping" },
-      { label: "Warranty", href: "/faq#warranty" },
+      { label: "Warranty", href: "/legal/warranty" },
       { label: "Partner program", href: "/partners" },
+      { label: "About us", href: "/about" },
     ],
   },
   {
@@ -51,6 +64,7 @@ const columns = [
       { label: "Privacy policy", href: "/legal/privacy" },
       { label: "Refund policy", href: "/legal/refunds" },
       { label: "Shipping policy", href: "/legal/shipping" },
+      { label: "Partner terms", href: "/legal/affiliate" },
     ],
   },
 ];
@@ -62,7 +76,7 @@ export function Footer() {
     { href: settings.links.x, Icon: XIcon, label: "X" },
     { href: settings.links.youtube, Icon: YouTubeIcon, label: "YouTube" },
     { href: settings.links.tiktok, Icon: TikTokIcon, label: "TikTok" },
-  ];
+  ].filter((s) => isProfile(s.href));
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end end"] });
   const wordY = useTransform(scrollYProgress, [0.3, 1], ["40%", "0%"]);
@@ -109,6 +123,7 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-5 max-w-sm text-muted">{site.description}</p>
+            <p className="mt-3 max-w-sm text-xs text-dim">{site.scopeNote}</p>
             <Newsletter />
           </div>
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:col-span-7 lg:justify-items-end">

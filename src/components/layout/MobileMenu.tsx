@@ -19,7 +19,7 @@ export function MobileMenu({ menu }: { menu: ShopMenu }) {
   const { links: social } = useStoreSettings();
   const shopLinks = [
     { label: "Setup Builder", href: "/shop#build" },
-    ...menu.categories.map((c) => ({ label: c.label, href: `/shop?category=${c.id}` })),
+    ...menu.categories.map((c) => ({ label: c.label, href: `/shop/${c.id}` })),
     ...(menu.featured ? [{ label: menu.featured.name, href: `/product/${menu.featured.slug}` }] : []),
   ];
 

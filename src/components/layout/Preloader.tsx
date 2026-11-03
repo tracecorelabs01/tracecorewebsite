@@ -6,16 +6,16 @@ import { MARK_PATHS, MARK_VIEWBOX, MarkGradients } from "@/components/brand/Logo
 import { EASE_EXPO } from "@/components/ui/motion";
 import { useUi } from "@/lib/ui-store";
 
-const MIN_DURATION = 1700;
-const MAX_DURATION = 2600;
+// Short on purpose: the intro covers the homepage on a visitor's first load only, and the page is already rendered underneath.
+const MIN_DURATION = 600;
+const MAX_DURATION = 800;
 // Taller than the viewport so the slanted bottom edge stays off-screen until the curtain lifts.
 const CURTAIN = "polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - 10vw))";
 
 /**
- * First-visit intro: the TC mark assembles from its three pieces while assets
- * load, then a two-layer slanted curtain lifts away. Skipped for the rest of
- * the session (and for reduced-motion users) via an inline <head> script that
- * sets html[data-intro="done"] before first paint.
+ * First-visit intro on the homepage: the TC mark assembles from its three pieces, then a two-layer slanted curtain
+ * lifts away, all in under a second. Every other landing page, the rest of the session and reduced-motion users skip
+ * it via an inline <head> script that sets html[data-intro="done"] before first paint.
  */
 export function Preloader() {
   const finishIntro = useUi((s) => s.finishIntro);
@@ -54,12 +54,12 @@ export function Preloader() {
           sessionStorage.setItem("tc-intro", "1");
         } catch {}
         setPhase("exit");
-        timers.push(window.setTimeout(finishIntro, 280));
+        timers.push(window.setTimeout(finishIntro, 120));
         timers.push(
           window.setTimeout(() => {
             html.dataset.intro = "done";
             setPhase("gone");
-          }, 1500),
+          }, 700),
         );
         return;
       }
@@ -90,7 +90,7 @@ export function Preloader() {
         style={{ clipPath: CURTAIN }}
         initial={{ y: "0%" }}
         animate={{ y: exiting ? "-105%" : "0%" }}
-        transition={{ duration: 1.05, ease: EASE_EXPO, delay: exiting ? 0.16 : 0 }}
+        transition={{ duration: 0.6, ease: EASE_EXPO, delay: exiting ? 0.08 : 0 }}
       />
       {/* main ink layer */}
       <motion.div
@@ -98,7 +98,7 @@ export function Preloader() {
         style={{ clipPath: CURTAIN }}
         initial={{ y: "0%" }}
         animate={{ y: exiting ? "-105%" : "0%" }}
-        transition={{ duration: 1.05, ease: EASE_EXPO }}
+        transition={{ duration: 0.6, ease: EASE_EXPO }}
       >
         <div className="absolute inset-x-0 top-0 h-dvh bg-grid opacity-60 mask-radial" />
         <div className="absolute left-1/2 top-[50dvh] size-[60vmin] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgb(255_61_0/0.22),transparent_65%)]" />
@@ -111,21 +111,21 @@ export function Preloader() {
               fill="url(#pre-wing)"
               initial={{ x: -900, y: -500, opacity: 0 }}
               animate={{ x: 0, y: 0, opacity: 1 }}
-              transition={{ duration: 1, ease: EASE_EXPO, delay: 0.1 }}
+              transition={{ duration: 0.5, ease: EASE_EXPO, delay: 0.05 }}
             />
             <motion.path
               d={MARK_PATHS.stem}
               fill="url(#pre-stem)"
               initial={{ x: 900, y: -700, opacity: 0 }}
               animate={{ x: 0, y: 0, opacity: 1 }}
-              transition={{ duration: 1.1, ease: EASE_EXPO, delay: 0.22 }}
+              transition={{ duration: 0.5, ease: EASE_EXPO, delay: 0.1 }}
             />
             <motion.path
               d={MARK_PATHS.plate}
               fill="url(#pre-plate)"
               initial={{ x: 500, y: 900, opacity: 0 }}
               animate={{ x: 0, y: 0, opacity: 1 }}
-              transition={{ duration: 1.1, ease: EASE_EXPO, delay: 0.38 }}
+              transition={{ duration: 0.5, ease: EASE_EXPO, delay: 0.15 }}
             />
           </svg>
 
@@ -134,7 +134,7 @@ export function Preloader() {
               className="font-display text-4xl uppercase tracking-[0.04em] md:text-5xl"
               initial={{ y: "110%" }}
               animate={{ y: "0%" }}
-              transition={{ duration: 1, ease: EASE_EXPO, delay: 0.55 }}
+              transition={{ duration: 0.5, ease: EASE_EXPO, delay: 0.2 }}
             >
               <span className="text-gradient">TraceCore</span>
               <span className="text-silver">Lab</span>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  BookOpen,
   Boxes,
   ExternalLink,
   FileText,
@@ -18,6 +19,7 @@ import {
   Menu,
   Package,
   Receipt,
+  SearchCheck,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -57,6 +59,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: typeof P
       { href: "/admin/categories", label: "Categories", icon: FolderTree, min: "admin" },
       { href: "/admin/setup-builder", label: "Setup builder", icon: SlidersHorizontal, min: "admin" },
       { href: "/admin/inventory", label: "Inventory", icon: Boxes, badge: "lowStock" },
+      { href: "/admin/seo", label: "SEO", icon: SearchCheck, min: "admin" },
     ],
   },
   {
@@ -72,6 +75,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: typeof P
     items: [
       { href: "/admin/settings", label: "Settings", icon: Settings, min: "admin" },
       { href: "/admin/legal", label: "Legal pages", icon: FileText, min: "admin" },
+      { href: "/admin/guides", label: "Guides", icon: BookOpen, min: "admin" },
       { href: "/admin/staff", label: "Staff", icon: ShieldCheck, min: "owner" },
       { href: "/admin/activity", label: "Activity", icon: History, min: "admin" },
     ],

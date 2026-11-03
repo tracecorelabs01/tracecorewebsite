@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { PageHero } from "@/components/ui/PageHero";
 import { FaqBrowser } from "@/components/support/FaqBrowser";
 import { SupportCta } from "@/components/support/SupportCta";
 
-export const metadata: Metadata = {
-  title: "FAQ",
-  description: "Answers about ordering, shipping, setup, warranty and support at TraceCoreLab.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "FAQ: Orders, Shipping, Hardware Setup and Warranty",
+  description: "Answers about ordering, worldwide shipping, DMA card, video fuser and USB passthrough setup, the 3-month warranty and support at TraceCoreLab.",
+  path: "/faq",
+});
 
 export default function FaqPage() {
   return (

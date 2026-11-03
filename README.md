@@ -106,6 +106,13 @@ Partners (`/partners`) are customer accounts the team approves. Sign-up is throu
 - **Payouts:** a partner takes their whole available balance as store credit (a single-use `AFF-` code worth that amount on an order of at least that value) straight away, or asks for PayPal once it reaches the minimum ($50 by default); the team sends it and marks it paid under **Payouts**, which emails the partner. Admins can also add bonuses or deductions.
 - The partner terms are a Legal page (`/legal/affiliate`), editable like the other policies.
 
+### SEO, guides and content patches
+
+- **Pages and markup.** Every store page sets complete metadata with a self-canonical URL (`src/lib/seo.ts`) and JSON-LD (`src/lib/jsonld.ts`): Organization and WebSite on every page, Product + Offer + BreadcrumbList on products, CollectionPage + ItemList on the shop and category pages (`/shop/<slug>`), TechArticle on guides, AboutPage and ContactPage. `/sitemap.xml`, `/robots.txt`, `/llms.txt` and `/llms-full.txt` are generated from the same data.
+- **Guides** live in the database and are edited under **Guides** in the admin (Markdown with tables, callouts, images and video blocks). The first set ships as files in `content/guides/` and is inserted once by a content patch.
+- **Content patches** (`content/patches/`) are reviewed, one-off changes to database content (product copy, category intros, announcements). `npm run build` applies pending ones before the build reads the database; they never overwrite a field an admin has changed since the patch was written.
+- **Search Console and Bing.** Set `GOOGLE_SITE_VERIFICATION` and `BING_SITE_VERIFICATION` in the host's environment variables to publish the ownership tags, then submit `https://tracecorelab.com/sitemap.xml` in both tools.
+
 ### Email (Resend)
 
 Set `RESEND_API_KEY` (a sending-only key for your domain), `EMAIL_FROM` and `ORDER_ALERT_EMAIL`. Without them the store still takes orders, but sends no email and customers can't sign in to their accounts. Every email shares one themed layout (`src/lib/email.ts`) headed by the store logo (`public/brand/email-logo.png`, the site header's logo as a PNG at 4x, since email clients don't show SVG or web fonts), has a plain-text version, replies to `EMAIL_REPLY_TO` (or `ORDER_ALERT_EMAIL`), links to the Discord from Settings, and carries an idempotency key so a retry never sends it twice.

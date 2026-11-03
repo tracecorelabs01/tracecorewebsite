@@ -42,8 +42,17 @@ export function SettingsForm({
     <ActionForm action={action} className="grid gap-4 xl:grid-cols-3" showStatus={false}>
       <div className="space-y-4 xl:col-span-2">
         <Card title="Announcement bar" description="Scrolls across the top of every page.">
-          <Field label="Messages" name="announcements" hint="One per line, up to 8 (140 characters each). Leave empty to hide the bar.">
-            <Textarea name="announcements" defaultValue={settings.announcements.join("\n")} rows={5} placeholder={"Free worldwide shipping on orders over $250\nEvery unit is tested in our lab before dispatch"} />
+          <Field
+            label="Messages"
+            name="announcements"
+            hint="One per line, up to 8 (140 characters each). Write {{freeShippingThreshold}}, {{flatShipping}} or {{supportEmail}} to show the values below, so the bar always matches them. Leave empty to hide the bar."
+          >
+            <Textarea
+              name="announcements"
+              defaultValue={settings.announcements.join("\n")}
+              rows={5}
+              placeholder={"Free worldwide shipping on orders over {{freeShippingThreshold}}\nEvery unit is tested in our lab before dispatch"}
+            />
           </Field>
         </Card>
 

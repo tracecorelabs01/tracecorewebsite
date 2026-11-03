@@ -6,9 +6,12 @@ import { ButtonLink } from "@/components/ui/Button";
 import { DiscordIcon } from "@/components/ui/icons";
 import { Reveal, RevealLines } from "@/components/ui/motion";
 import { useStoreSettings } from "@/components/layout/StoreSettings";
+import { fillTokens } from "@/lib/tokens";
+import { withLinks } from "@/components/ui/InlineLinks";
 
 export function FaqPreview() {
-  const { links } = useStoreSettings();
+  const settings = useStoreSettings();
+  const { links } = settings;
   return (
     <section className="relative py-28 md:py-36" aria-labelledby="faq-heading">
       <div className="container-x grid gap-14 lg:grid-cols-12">
@@ -39,7 +42,7 @@ export function FaqPreview() {
           </Reveal>
         </div>
         <Reveal className="lg:col-span-7" delay={0.15}>
-          <Accordion items={quickFaq} />
+          <Accordion items={quickFaq.map((i) => ({ q: i.q, a: withLinks(fillTokens(i.a, { settings })) }))} />
         </Reveal>
       </div>
     </section>

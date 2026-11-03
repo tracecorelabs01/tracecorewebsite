@@ -4,17 +4,23 @@ import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import { faqGroups } from "@/data/faq";
 import { Accordion } from "@/components/ui/bits";
+import { withLinks } from "@/components/ui/InlineLinks";
 import { Reveal } from "@/components/ui/motion";
+import { useStoreSettings } from "@/components/layout/StoreSettings";
+import { fillTokens } from "@/lib/tokens";
 
 export function FaqBrowser() {
+  const settings = useStoreSettings();
   const [query, setQuery] = useState("");
+  // Answers with their amounts filled in from Settings, so searching finds what's shown.
+  const answered = useMemo(() => faqGroups.map((g) => ({ ...g, items: g.items.map((i) => ({ q: i.q, a: fillTokens(i.a, { settings }) })) })), [settings]);
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return faqGroups;
-    return faqGroups
+    if (!q) return answered;
+    return answered
       .map((g) => ({ ...g, items: g.items.filter((i) => i.q.toLowerCase().includes(q) || i.a.toLowerCase().includes(q)) }))
       .filter((g) => g.items.length > 0);
-  }, [query]);
+  }, [query, answered]);
 
   return (
     <section className="container-x pb-28">
@@ -46,7 +52,7 @@ export function FaqBrowser() {
             <Reveal key={g.id}>
               <div id={g.id} className="scroll-mt-32">
                 <h2 className="font-display text-4xl uppercase">{g.label}</h2>
-                <Accordion className="mt-6" items={g.items} defaultOpen={query ? 0 : null} key={query ? `q-${query}` : "all"} />
+                <Accordion className="mt-6" items={g.items.map((i) => ({ q: i.q, a: withLinks(i.a) }))} defaultOpen={query ? 0 : null} key={query ? `q-${query}` : "all"} />
               </div>
             </Reveal>
           ))}

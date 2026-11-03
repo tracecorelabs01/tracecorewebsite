@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { Check, Headphones, RotateCcw, ShieldCheck, ShoppingBag, Truck, Zap } from "lucide-react";
 import { MAX_QTY, type Product } from "@/lib/catalog/types";
@@ -17,7 +17,8 @@ import { WARRANTY_MONTHS } from "@/lib/warranty";
 import { ProductCard } from "./ProductCard";
 import { ProductVisual } from "./ProductVisual";
 
-export function ProductView({ product, related }: { product: Product; related: Product[] }) {
+/** `details` is server-rendered (the long description and guides), passed in so it reaches the HTML without client code. */
+export function ProductView({ product, related, details }: { product: Product; related: Product[]; details?: ReactNode }) {
   const router = useRouter();
   const add = useCart((s) => s.add);
   const price = usePrice(product);
@@ -89,7 +90,7 @@ export function ProductView({ product, related }: { product: Product; related: P
               Shop
             </Link>
             <span className="text-blaze">/</span>
-            <Link href={`/shop?category=${product.category}`} className="hover:text-fg">
+            <Link href={`/shop/${product.category}`} className="hover:text-fg">
               {product.categoryLabel}
             </Link>
             <span className="text-blaze">/</span>
@@ -100,13 +101,14 @@ export function ProductView({ product, related }: { product: Product; related: P
             {/* Gallery */}
             <div className="lg:col-span-7">
               <div className="lg:sticky lg:top-28">
-                <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={play ? { opacity: 1, scale: 1 } : {}} transition={{ duration: 1.1, ease: EASE_EXPO }}>
+                {/* No entrance fade: the product photo is the page's largest paint, so it shows from the first HTML. */}
+                <div>
                   <Tilt className="group rounded-[32px]" max={4}>
                     <div className="relative aspect-video overflow-hidden rounded-[32px] border border-line bg-ink-900">
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_58%,rgb(255_61_0/0.2),transparent_60%)]" />
                       <div className="absolute inset-0 bg-grid opacity-60 mask-radial" />
                       <div className="absolute left-1/2 top-1/2 aspect-square w-[78%] -translate-x-1/2 -translate-y-1/2 animate-spin-slower rounded-full border border-dashed border-white/[0.07]" />
-                      <AnimatePresence mode="wait">
+                      <AnimatePresence mode="wait" initial={false}>
                         <motion.div
                           key={view}
                           className="absolute inset-0"
@@ -129,7 +131,7 @@ export function ProductView({ product, related }: { product: Product; related: P
                       )}
                     </div>
                   </Tilt>
-                </motion.div>
+                </div>
 
                 {gallery.length > 1 && (
                   <div className="mt-4 flex gap-3">
@@ -181,7 +183,8 @@ export function ProductView({ product, related }: { product: Product; related: P
 
               <div className="mt-8 border-t border-line pt-8">
                 <Price {...price} large />
-                <p className="mt-6 leading-relaxed text-fg/80">{product.summary}</p>
+                <p className="mt-2 text-xs text-dim">Prices in USD. Ships worldwide.</p>
+                <p className="mt-6 whitespace-pre-line leading-relaxed text-fg/80">{product.summary}</p>
               </div>
 
               {product.option && (
@@ -312,20 +315,28 @@ export function ProductView({ product, related }: { product: Product; related: P
         </div>
       </section>
 
-      {/* Related */}
-      <section className="py-28 md:py-36">
-        <div className="container-x">
-          <Kicker>Complete your setup</Kicker>
-          <RevealLines as="h2" className="type-h2 mt-5" lines={["You might", <span key="b" className="text-gradient">also need</span>]} />
-          <ul className="mt-12 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {related.map((p, i) => (
-              <Reveal as="li" key={p.slug} delay={i * 0.07} y={40}>
-                <ProductCard product={p} />
-              </Reveal>
-            ))}
-          </ul>
-        </div>
-      </section>
+      {details && (
+        <section className="container-x pt-24 md:pt-32" aria-label={`${product.name} details`}>
+          {details}
+        </section>
+      )}
+
+      {/* Related: same product family only (relatedProducts). */}
+      {related.length > 0 && (
+        <section className="py-28 md:py-36">
+          <div className="container-x">
+            <Kicker>Related hardware</Kicker>
+            <RevealLines as="h2" className="type-h2 mt-5" lines={["More from", <span key="b" className="text-gradient">{product.categoryLabel}</span>]} />
+            <ul className="mt-12 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              {related.map((p, i) => (
+                <Reveal as="li" key={p.slug} delay={i * 0.07} y={40}>
+                  <ProductCard product={p} />
+                </Reveal>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* Sticky buy bar */}
       <AnimatePresence>

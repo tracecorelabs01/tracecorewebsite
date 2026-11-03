@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { ChevronDown, Search, X } from "lucide-react";
 import type { CategoryInfo, Product } from "@/lib/catalog/types";
@@ -19,25 +19,17 @@ const sorts = {
 } as const;
 type Sort = keyof typeof sorts;
 
-export function ShopClient({ products, categories }: { products: Product[]; categories: CategoryInfo[] }) {
-  const params = useSearchParams();
+/**
+ * The product grid with category tabs, search and sort. The category comes from the page (/shop or /shop/<slug>),
+ * not the URL query, so the grid is server-rendered; each tab is a link to its own category page.
+ */
+export function ShopClient({ products, categories, category = "all" }: { products: Product[]; categories: CategoryInfo[]; category?: string }) {
   const priceOf = usePriceOf();
-  const router = useRouter();
-  const pathname = usePathname();
   const headerHidden = useUi((s) => s.headerHidden);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("featured");
 
-  const raw = params.get("category");
-  const active: string = raw && categories.some((c) => c.id === raw) ? raw : "all";
-
-  function setCategory(c: string) {
-    const next = new URLSearchParams(params.toString());
-    if (c === "all") next.delete("category");
-    else next.set("category", c);
-    const qs = next.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }
+  const active: string = categories.some((c) => c.id === category) ? category : "all";
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -70,13 +62,13 @@ export function ShopClient({ products, categories }: { products: Product[]; cate
       >
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
           <LayoutGroup id="shop-cats">
-            <div role="tablist" aria-label="Categories" className="no-scrollbar flex gap-1 overflow-x-auto">
+            <nav aria-label="Categories" className="no-scrollbar flex gap-1 overflow-x-auto">
               {[{ id: "all", label: "All" }, ...categories].map((c) => (
-                <button
+                <Link
                   key={c.id}
-                  role="tab"
-                  aria-selected={active === c.id}
-                  onClick={() => setCategory(c.id)}
+                  href={c.id === "all" ? "/shop" : `/shop/${c.id}`}
+                  scroll={false}
+                  aria-current={active === c.id ? "page" : undefined}
                   className={cn(
                     "relative flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors",
                     active === c.id ? "text-white" : "text-muted hover:text-fg",
@@ -85,9 +77,9 @@ export function ShopClient({ products, categories }: { products: Product[]; cate
                   {active === c.id && <motion.span layoutId="shop-pill" className="absolute inset-0 rounded-full bg-brand" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
                   <span className="relative">{c.label}</span>
                   <span className={cn("relative tabular-nums", active === c.id ? "text-white/70" : "text-dim")}>{counts[c.id] ?? 0}</span>
-                </button>
+                </Link>
               ))}
-            </div>
+            </nav>
           </LayoutGroup>
 
           <div className="flex gap-2">
@@ -132,7 +124,7 @@ export function ShopClient({ products, categories }: { products: Product[]; cate
       </div>
 
       <div className="mb-8 flex items-end justify-between gap-6">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div key={active} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.4, ease: EASE_EXPO }}>
             <h2 className="font-display text-4xl uppercase">{activeMeta?.label ?? "Everything"}</h2>
             <p className="mt-1 text-sm text-muted">{activeMeta?.blurb ?? "The full TraceCoreLab catalogue."}</p>
@@ -144,7 +136,8 @@ export function ShopClient({ products, categories }: { products: Product[]; cate
       </div>
 
       <motion.ul layout className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        <AnimatePresence mode="popLayout">
+        {/* initial={false}: the first, server-rendered grid shows at once; later filter changes animate. */}
+        <AnimatePresence mode="popLayout" initial={false}>
           {list.map((p, i) => (
             <motion.li
               key={p.slug}
@@ -164,16 +157,14 @@ export function ShopClient({ products, categories }: { products: Product[]; cate
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-3xl border border-dashed border-line-strong py-24 text-center">
           <p className="font-display text-4xl uppercase">No matches</p>
           <p className="mt-2 text-muted">Try a different search or category.</p>
-          <button
-            type="button"
-            onClick={() => {
-              setQuery("");
-              setCategory("all");
-            }}
-            className="mt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-blaze hover:text-fg"
+          <Link
+            href="/shop"
+            scroll={false}
+            onClick={() => setQuery("")}
+            className="mt-6 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-blaze hover:text-fg"
           >
             Reset filters
-          </button>
+          </Link>
         </motion.div>
       )}
     </section>

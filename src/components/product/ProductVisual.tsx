@@ -31,7 +31,7 @@ export function ProductVisual({
         alt={visual.alt}
         fill
         preload={eager}
-        loading={eager ? "eager" : undefined}
+        fetchPriority={eager ? "high" : undefined}
         sizes={sizes ?? (variant === "thumb" ? "96px" : variant === "stage" ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw")}
         className={cn(
           "object-cover",

@@ -7,6 +7,7 @@ import { authorizedBot } from "@/lib/bot-api";
 import { getCatalog, getPublicSettings } from "@/lib/catalog/server";
 import { MAX_QTY, STOCK_LABEL } from "@/lib/catalog/types";
 import { site } from "@/lib/site";
+import { fillTokens } from "@/lib/tokens";
 import { WARRANTY_MONTHS } from "@/lib/warranty";
 
 export async function GET(req: Request) {
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
       specs: p.specs,
       inTheBox: p.inTheBox,
     })),
-    faq: faqGroups.flatMap((g) => g.items.map((i) => ({ topic: g.label, q: i.q, a: i.a }))),
+    faq: faqGroups.flatMap((g) => g.items.map((i) => ({ topic: g.label, q: i.q, a: fillTokens(i.a, { settings }) }))),
     pages: {
       shop: `${site.url}/shop`,
       setupBuilder: `${site.url}/shop#build`,

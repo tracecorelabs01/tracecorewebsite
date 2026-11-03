@@ -52,8 +52,12 @@ export function Hero({ rating, ferrumPrice, cardPrice }: { rating: ReviewSummary
             </Link>
           </motion.div>
 
+          {/* The page's H1 names what the store sells; the big tagline below is styled display text. */}
+          <motion.h1 {...fade(0.08)} className="type-kicker mb-5 text-muted">
+            FPGA DMA cards, video fusers and USB passthrough devices
+          </motion.h1>
           <RevealLines
-            as="h1"
+            as="p"
             play={play}
             delay={0.1}
             className="type-hero"
@@ -70,8 +74,8 @@ export function Hero({ rating, ferrumPrice, cardPrice }: { rating: ReviewSummary
           />
 
           <motion.p {...fade(0.55)} className="mt-7 max-w-xl text-lg leading-relaxed text-muted">
-            FPGA-powered DMA cards, precision input devices and the accessories that tie them together — quality-checked by hand, shipped worldwide and backed by
-            24/7 support.
+            FPGA-powered PCIe DMA cards, video fusers, USB input passthrough devices and accessories. Quality-checked by hand, shipped worldwide and backed by 24/7
+            support.
           </motion.p>
 
           <motion.div {...fade(0.68)} className="mt-9 flex flex-wrap items-center gap-3">

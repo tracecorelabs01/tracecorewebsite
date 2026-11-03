@@ -3,13 +3,15 @@ import { cacheLife, cacheTag } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getDb, isDbConfigured, settings } from "@/db";
 import { TAGS } from "@/lib/catalog/server";
+import { findPlaceholders } from "@/lib/markdown";
 
 // The store's policies (/legal/[slug]), edited in the admin under Legal pages. Each is a plain-text document saved
 // in `settings` as legal:<slug>; until it's saved, the draft below is shown. Payment providers (Razorpay) ask for
 // terms, a refund and cancellation policy, a privacy policy and a shipping policy before approving a site.
 //
-// Format: "## " starts a section, "- " a bullet, a blank line a new paragraph, **bold**, [text](https://link).
-// {{supportEmail}}, {{freeShippingThreshold}} and {{flatShipping}} are filled in from Settings.
+// Format: GitHub-flavoured Markdown (src/components/content/Markdown.tsx): "## " starts a section, "- " a bullet,
+// a blank line a new paragraph, **bold**, [text](https://link), tables and > [!NOTE] callouts. Tokens such as
+// {{supportEmail}}, {{freeShippingThreshold}} and {{flatShipping}} are filled in from Settings (src/lib/tokens.ts).
 
 export const LEGAL_DOCS = {
   terms: "Terms of service",
@@ -17,13 +19,18 @@ export const LEGAL_DOCS = {
   shipping: "Shipping & delivery policy",
   privacy: "Privacy policy",
   affiliate: "Partner program terms",
+  warranty: "Warranty policy",
 } as const;
 export type LegalSlug = keyof typeof LEGAL_DOCS;
 export const isLegalSlug = (s: string): s is LegalSlug => Object.hasOwn(LEGAL_DOCS, s);
 export const legalKey = (slug: LegalSlug) => `legal:${slug}`;
 
-/** Bracketed text the owner must replace, e.g. "[Registered business name]" (links like [text](url) don't count). */
-export const placeholdersIn = (body: string) => [...new Set(body.match(/\[[A-Z][^\]\n]*\](?!\()/g) ?? [])];
+/**
+ * Bracketed text the owner must replace, e.g. "[Registered business name]" or "[your address]", and ___ blanks.
+ * Markdown's own brackets (links, [!NOTE] alerts, [ ] task items, [^1] footnotes) don't count. The check itself is
+ * findPlaceholders (src/lib/markdown.ts), shared with guides and tested by scripts/self-check.ts.
+ */
+export const placeholdersIn = findPlaceholders;
 
 const CONTACT = `## Contact
 
@@ -76,6 +83,37 @@ ${CONTACT}`;
 
 export const LEGAL_DRAFTS: Record<LegalSlug, string> = {
   affiliate: AFFILIATE_DRAFT,
+  // The same warranty terms as the refund policy, on their own page so product pages and guides can link them.
+  warranty: `## How long the warranty lasts
+
+Every product from TraceCoreLab has a 3-month warranty, counted from the purchase date on your order.
+
+## What it covers
+
+The warranty covers products that arrive defective or develop a fault in normal use within those 3 months. If a product is defective or damaged, we replace it. We only accept replacement requests for defective or damaged items, not refund requests.
+
+If we sent you the wrong item, tell us within 7 days of delivery and we'll send the right one at our cost.
+
+## How to make a claim
+
+1. Contact us within 3 months of the purchase date with your order number and a photo or short description of the problem.
+2. We'll help you troubleshoot first. Many problems are a cable, a port or a setting, and our [setup guides](/guides) cover the common ones.
+3. If the item is defective or damaged, we'll tell you how to return it. Contact us before sending anything back: parcels sent without asking us may not be accepted.
+4. For a confirmed defect or damage, we cover the shipping of the replacement.
+
+## What the warranty doesn't cover
+
+- Damage from accidents, liquid, misuse or physical modification after delivery.
+- Claims made more than 3 months after the purchase date.
+- Digital items, such as licence keys, once delivered. If one doesn't work as described, we replace it.
+
+Damage that happened in transit is a claim with the courier, which we'll help you file (see our [shipping policy](/legal/shipping) and [terms](/legal/terms)).
+
+## Returns
+
+Returns are warranty claims: we don't accept returns because you changed your mind. Orders can be cancelled for a full refund before they ship, as our [refund policy](/legal/refunds) explains.
+
+${CONTACT}`,
   terms: `## About us
 
 TraceCoreLab ("we", "us") runs the online store at tracecorelab.com. The store is operated by [Registered business name], [Registered business address]. By placing an order or using this site, you agree to these terms.

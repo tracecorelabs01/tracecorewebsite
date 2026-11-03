@@ -27,6 +27,11 @@ export function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
 }
 
+/** A copy of `obj` without `keys` (e.g. a table's columns minus the long ones). */
+export function omit<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Omit<T, K> {
+  return Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k as K))) as Omit<T, K>;
+}
+
 /** Small deterministic PRNG so decorative "random" layouts match between server and client. */
 export function seeded(seed: number) {
   let s = seed >>> 0;

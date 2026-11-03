@@ -109,6 +109,7 @@ export function RevealLines({
             <motion.span className={cn("block origin-bottom-left will-change-transform", lineClassName)} variants={lineVariants} custom={{ delay: delay + i * stagger, reduce }}>
               {line}
             </motion.span>
+            {/* A space between lines, so the heading's text reads as words when extracted ("Built in the lab"). */}{" "}
           </span>
         ))}
       </motion.span>

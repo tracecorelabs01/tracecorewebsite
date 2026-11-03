@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { BadgePercent, Handshake, Wallet } from "lucide-react";
@@ -17,10 +18,11 @@ import { oauthEnabled } from "@/lib/auth/oauth";
 import { site } from "@/lib/site";
 import { cn, formatPrice } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: "Partner program",
-  description: "Earn commission promoting TraceCore Lab hardware, with partner prices for your audience and payouts by PayPal or store credit.",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Partner Program: Earn Commission Sharing TraceCoreLab Hardware",
+  description: "Join the TraceCoreLab partner program: sign up with Discord, give your audience partner prices and earn commission, paid by PayPal or store credit.",
+  path: "/partners",
+});
 // Reads the session on every request.
 export const instant = false;
 
@@ -29,7 +31,7 @@ const usd = (cents: number) => formatPrice(cents / 100);
 // How signing in with or connecting Discord went (/api/auth/discord/callback sends people back here).
 const NOTICES: Record<string, { ok: boolean; text: string }> = {
   discord: { ok: true, text: "Discord connected. You can apply now." },
-  taken: { ok: false, text: "That Discord account is linked to another TraceCore Lab account. Sign out, then continue with Discord to use that one." },
+  taken: { ok: false, text: "That Discord account is linked to another TraceCoreLab account. Sign out, then continue with Discord to use that one." },
   oauth: { ok: false, text: "Signing in with Discord didn't work. Please try again." },
   cancelled: { ok: false, text: "Discord sign-in was cancelled." },
   unverified: { ok: false, text: "Your Discord account's email isn't verified yet. Verify it in Discord, then try again." },
@@ -56,7 +58,7 @@ export default async function PartnersPage({ searchParams }: PageProps<"/partner
             Partner <span className="text-gradient">with us.</span>
           </span>,
         ]}
-        description="Share TraceCore Lab with your audience. They get partner prices; you earn on every order they place."
+        description="Share TraceCoreLab with your audience. They get partner prices; you earn on every order they place."
       />
       <section className="container-x grid gap-4 pb-28 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <div className="grid content-start gap-4">

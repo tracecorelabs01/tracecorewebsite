@@ -29,7 +29,7 @@ export function ShopMegaMenu({ open, menu, onNavigate }: { open: boolean; menu: 
               <ul className="mt-3 grid gap-1">
                 {menu.categories.map((c) => (
                   <li key={c.id}>
-                    <Link href={`/shop?category=${c.id}`} onClick={onNavigate} className="group flex items-center justify-between gap-4 rounded-2xl px-4 py-3 transition-colors hover:bg-white/[0.04]">
+                    <Link href={`/shop/${c.id}`} onClick={onNavigate} className="group flex items-center justify-between gap-4 rounded-2xl px-4 py-3 transition-colors hover:bg-white/[0.04]">
                       <span className="min-w-0">
                         <span className="block font-display text-xl uppercase transition-colors group-hover:text-blaze">{c.label}</span>
                         <span className="block truncate text-sm text-muted">{c.blurb}</span>

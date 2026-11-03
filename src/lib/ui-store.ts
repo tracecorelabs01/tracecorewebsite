@@ -5,7 +5,7 @@ import { create } from "zustand";
 interface UiState {
   cartOpen: boolean;
   menuOpen: boolean;
-  /** Flips true once the preloader has finished (or was skipped) so hero animations can start. */
+  /** Whether page animations may play. True from the start: the homepage intro plays over an already-rendered page and never holds content back. */
   introDone: boolean;
   /** Incremented on every add-to-cart so the cart badge can play a bump animation. */
   cartPulse: number;
@@ -23,7 +23,7 @@ interface UiState {
 export const useUi = create<UiState>()((set) => ({
   cartOpen: false,
   menuOpen: false,
-  introDone: false,
+  introDone: true,
   cartPulse: 0,
   hydrated: false,
   headerHidden: false,

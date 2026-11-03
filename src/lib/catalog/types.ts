@@ -45,6 +45,32 @@ export interface Product {
   seoDescription?: string;
 }
 
+/**
+ * One product page's long and identity fields (getProductDetail). Loaded on their own, never on Product, so the
+ * shop grid, the menu and related-product cards don't carry them to the browser.
+ */
+export interface ProductDetail {
+  /** Long description in Markdown, tokens not yet filled. Empty when none is written. */
+  description: string;
+  brand?: string;
+  mpn?: string;
+  gtin?: string;
+  /** ISO time of the last change to the product's copy or images: sitemap lastmod, JSON-LD dateModified. */
+  contentUpdatedAt?: string;
+  /** Offer.priceValidUntil (YYYY-MM-DD, the end of next year), worked out in the cache: pages can't read the clock while prerendering. */
+  priceValidUntil: string;
+}
+
+/** A category page's own copy (getCategoryPage). */
+export interface CategoryPage extends CategoryInfo {
+  /** Markdown, tokens not yet filled. Empty when none is written. */
+  intro: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  /** ISO time of the last change to the category's copy. */
+  contentUpdatedAt?: string;
+}
+
 /** The header's Shop menu: the categories that have products, and Ferrum to feature. */
 export interface ShopMenu {
   categories: (CategoryInfo & { count: number })[];
@@ -65,7 +91,14 @@ export interface ReviewSummary {
   count: number;
 }
 
+/**
+ * Categories a product may suggest after its own: DMA cards and their accessories go together; fusers, input
+ * devices and bundles stay within their own category. Related blocks never mix product families.
+ */
+const RELATED_CATEGORIES: Record<string, string[]> = { dma: ["accessory"], accessory: ["dma"] };
+
 export function relatedProducts(all: Product[], product: Product, count = 4) {
   const others = all.filter((p) => p.slug !== product.slug);
-  return [...others.filter((p) => p.category === product.category), ...others.filter((p) => p.category !== product.category)].slice(0, count);
+  const extra = RELATED_CATEGORIES[product.category] ?? [];
+  return [...others.filter((p) => p.category === product.category), ...others.filter((p) => extra.includes(p.category))].slice(0, count);
 }

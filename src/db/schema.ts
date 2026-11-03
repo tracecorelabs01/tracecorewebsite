@@ -10,6 +10,7 @@ import {
   datetime,
   index,
   int,
+  mediumtext,
   mysqlEnum,
   mysqlTable,
   text,
@@ -87,6 +88,12 @@ export const categories = mysqlTable(
     name: varchar("name", { length: 120 }).notNull(),
     blurb: varchar("blurb", { length: 255 }).notNull().default(""),
     sortOrder: int("sort_order").notNull().default(0),
+    /** Markdown shown on the category page (/shop/<slug>), loaded on its own so it never reaches the shop menu. */
+    intro: text("intro"),
+    seoTitle: varchar("seo_title", { length: 160 }),
+    seoDescription: varchar("seo_description", { length: 320 }),
+    /** Last change to what visitors read (name, blurb, intro, SEO fields): sitemap lastmod and JSON-LD dateModified. */
+    contentUpdatedAt: datetime("content_updated_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -122,6 +129,17 @@ export const products = mysqlTable(
     artKey: varchar("art_key", { length: 40 }),
     seoTitle: varchar("seo_title", { length: 160 }),
     seoDescription: varchar("seo_description", { length: 320 }),
+    /** The maker's brand, part number and barcode, for structured data and product feeds. */
+    brand: varchar("brand", { length: 80 }),
+    mpn: varchar("mpn", { length: 80 }),
+    gtin: varchar("gtin", { length: 14 }),
+    /** Long Markdown description for the product page. Loaded per page (getProductDetail), never with the catalogue. */
+    description: mediumtext("description"),
+    /**
+     * Last change to what visitors read (copy, specs, SEO fields, images). Unlike updated_at it doesn't move when
+     * stock changes, so it can be the sitemap lastmod and JSON-LD dateModified.
+     */
+    contentUpdatedAt: datetime("content_updated_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -645,3 +663,84 @@ export const affiliateCommissions = mysqlTable(
     index("affiliate_commissions_payout_idx").on(t.payoutId),
   ],
 );
+
+/* ───────────── Guides, redirects & content patches ───────────── */
+
+export const GUIDE_SECTIONS = ["dma", "fuser", "input", "reference"] as const;
+export const GUIDE_KINDS = ["guide", "comparison", "glossary"] as const;
+
+/** Setup and reference guides at /guides/<slug> (src/lib/guides.ts). The body is GitHub-flavoured Markdown. */
+export const guides = mysqlTable(
+  "guides",
+  {
+    id: id(),
+    slug: varchar("slug", { length: 160 }).notNull(),
+    title: varchar("title", { length: 200 }).notNull(),
+    seoTitle: varchar("seo_title", { length: 160 }),
+    /** Meta description and the summary on guide cards. */
+    description: varchar("description", { length: 320 }).notNull().default(""),
+    section: mysqlEnum("section", GUIDE_SECTIONS).notNull(),
+    kind: mysqlEnum("kind", GUIDE_KINDS).notNull().default("guide"),
+    body: mediumtext("body").notNull(),
+    coverUrl: varchar("cover_url", { length: 500 }),
+    coverAlt: varchar("cover_alt", { length: 255 }).notNull().default(""),
+    /** Product slugs the guide is about, all from one product family. */
+    relatedProducts: jsonCol<string[]>("related_products"),
+    status: mysqlEnum("status", ["draft", "published"]).notNull().default("draft"),
+    /** Who last checked the guide against the hardware, and when ("Last reviewed"). */
+    reviewedBy: varchar("reviewed_by", { length: 120 }),
+    reviewedAt: datetime("reviewed_at"),
+    /** When the guide is due for its next review: 6 months after publishing or the last review. */
+    reviewDue: datetime("review_due"),
+    publishedAt: datetime("published_at"),
+    /** Last change to the title, description or body: sitemap lastmod and JSON-LD dateModified. */
+    contentUpdatedAt: datetime("content_updated_at"),
+    sortOrder: int("sort_order").notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("guides_slug_uq").on(t.slug), index("guides_status_idx").on(t.status, t.section)],
+);
+
+/** Earlier versions of a guide, one per save that changed its title or body. The newest 20 are kept. */
+export const guideRevisions = mysqlTable(
+  "guide_revisions",
+  {
+    id: id(),
+    guideId: int("guide_id")
+      .notNull()
+      .references(() => guides.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 200 }).notNull(),
+    body: mediumtext("body").notNull(),
+    /** Null when a content patch wrote it. */
+    savedBy: int("saved_by").references(() => adminUsers.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("guide_revisions_guide_idx").on(t.guideId, t.createdAt)],
+);
+
+/** Old URLs of renamed products, categories and guides; their pages redirect (308) to the new slug. */
+export const slugRedirects = mysqlTable(
+  "slug_redirects",
+  {
+    id: id(),
+    kind: mysqlEnum("kind", ["product", "category", "guide"]).notNull(),
+    oldSlug: varchar("old_slug", { length: 160 }).notNull(),
+    newSlug: varchar("new_slug", { length: 160 }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("slug_redirects_old_uq").on(t.kind, t.oldSlug)],
+);
+
+export interface ContentPatchLog {
+  applied: string[];
+  skipped: string[];
+}
+
+/** Content patches (content/patches/*.json) already applied to this database, with what each one changed. */
+export const contentPatches = mysqlTable("content_patches", {
+  id: varchar("id", { length: 120 }).primaryKey(),
+  description: varchar("description", { length: 255 }).notNull().default(""),
+  log: jsonCol<ContentPatchLog>("log"),
+  appliedAt: timestamp("applied_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
