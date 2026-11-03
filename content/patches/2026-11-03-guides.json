@@ -1,0 +1,98 @@
+{
+  "id": "2026-11-03-guides",
+  "description": "The first setup guides and hardware explainers.",
+  "operations": [
+    {
+      "op": "guide.insert",
+      "slug": "artix-7-35t-vs-75t-vs-100t"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "choosing-a-video-fuser"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "choosing-an-analysis-pc"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "displayport-and-hdmi-2-1-fuser-setup"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "dma-card-compatibility"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "dma-card-connection-and-speed-test"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "dma-card-troubleshooting"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "ferrum-setup"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "ft601-driver-and-pcileech-setup"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "glossary"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "hdmi-video-fuser-setup"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "install-a-pcie-dma-card"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "install-dma-card-thermal-kit"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "makcu-setup"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "makcu-vs-ferrum"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "memprocfs-live-memory-forensics"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "pcileech-compatible-hardware"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "pixel-clock-and-fuser-bandwidth"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "usb-polling-rate-1000hz-vs-8000hz"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "video-fuser-resolution-and-refresh"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "video-fuser-troubleshooting"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "what-is-a-pcie-dma-card"
+    },
+    {
+      "op": "guide.insert",
+      "slug": "what-is-a-video-fuser"
+    }
+  ]
+}

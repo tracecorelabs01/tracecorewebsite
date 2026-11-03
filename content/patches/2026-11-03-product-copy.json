@@ -1,0 +1,2454 @@
+{
+  "id": "2026-11-03-product-copy",
+  "description": "SEO product copy, specs cleanup and category intros (owner-requested SEO work).",
+  "operations": [
+    {
+      "op": "product.update",
+      "slug": "usb-c-data-cable",
+      "fields": {
+        "tagline": {
+          "from": "2 m braided, 10 Gbps",
+          "to": "Braided USB-C to USB-C, 2 m or 3 m"
+        },
+        "summary": {
+          "from": "A braided, shielded USB-C 3.2 cable with the length to reach a second machine on your desk.",
+          "to": "A braided USB-C to USB-C cable rated for USB 3.2 Gen 2 (10 Gbps), in 2 m or 3 m lengths. It connects the USB-C data port of a TraceCore DMA card to a USB-C port on your analysis workstation when you need more reach than the cable supplied with the card, or a spare. The connectors have aluminium shells and the jacket is braided nylon."
+        },
+        "highlights": {
+          "from": [
+            "USB 3.2 Gen 2 (10 Gbps)",
+            "Braided nylon jacket",
+            "Aluminium connector shells"
+          ],
+          "to": [
+            "USB-C to USB-C, for the data port on TraceCore DMA cards",
+            "Rated USB 3.2 Gen 2 (10 Gbps), also carries 5 Gbps USB 3 links",
+            "2 m or 3 m length",
+            "Braided nylon jacket and aluminium connector shells",
+            "3-month warranty"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Standard",
+              "value": "USB 3.2 Gen 2"
+            },
+            {
+              "label": "Length",
+              "value": "2 m"
+            },
+            {
+              "label": "Connectors",
+              "value": "USB-C ↔ USB-C"
+            }
+          ],
+          "to": [
+            {
+              "label": "Standard",
+              "value": "USB 3.2 Gen 2 (10 Gbps)"
+            },
+            {
+              "label": "Connectors",
+              "value": "USB-C plug to USB-C plug"
+            },
+            {
+              "label": "Length",
+              "value": "2 m or 3 m (selectable)"
+            },
+            {
+              "label": "Jacket",
+              "value": "Braided nylon"
+            },
+            {
+              "label": "Connector shells",
+              "value": "Aluminium"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "USB-C 3.2 cable (2 m)",
+            "Velcro tie"
+          ],
+          "to": [
+            "USB-C to USB-C data cable (2 m or 3 m, as ordered)",
+            "Hook-and-loop cable tie"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "USB-C 3.2 Gen 2 Data Cable for DMA Cards: Braided, 2 m or 3 m"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "Braided USB-C to USB-C cable rated USB 3.2 Gen 2 (10 Gbps), 2 m or 3 m, for the data link between a TraceCore DMA card and your analysis workstation."
+        },
+        "description": {
+          "from": null,
+          "to": "The USB-C 3.2 Data Cable is a braided USB-C to USB-C cable for the USB 3 data link between a TraceCore DMA card and the analysis workstation that runs PCILeech or MemProcFS. Choose it when the cable that came with your card does not reach, when your workstation has USB-C ports, or when you want a spare on the bench.\n\n## Key specifications\n\n- **USB 3.2 Gen 2 rating (10 Gbps).** A Gen 2 cable also carries 5 Gbps (Gen 1) links, so it suits every USB 3 port the card works in. The TraceCore 75T's data link works in USB 3.1 and USB 3.2 ports, Gen 1 and Gen 2.\n- **USB-C plug on both ends,** each in an aluminium shell.\n- **2 m or 3 m long.** Pick the length before you add it to the cart.\n- **Braided nylon jacket** over shielded conductors.\n\n## Requirements and compatibility\n\n- One end goes into the card's USB-C data port. The other needs a USB-C port on the workstation that carries USB 3 data: a charge-only or USB 2 port will not give you a USB 3 link. If your workstation has only USB-A ports, use a USB-C to USB-A cable instead.\n- Plug straight into a USB 3 port on the motherboard's rear panel. Hubs, docks and front-panel connectors can drop the link to a lower speed.\n- Use the shortest length that reaches. Signal margin at USB 3 speeds shrinks as a cable gets longer, so choose 2 m unless you need the extra metre.\n\n## In the box\n\n- USB-C to USB-C data cable, 2 m or 3 m as ordered\n- Hook-and-loop cable tie\n\n## Setup\n\nConnect the card's data port as shown in [How to Install a PCIe DMA Card](/guides/install-a-pcie-dma-card), then confirm the link with the connection test and speed test in [Test a DMA Card: pcileech probe and benchmark Explained](/guides/dma-card-connection-and-speed-test).\n\n## Questions\n\n### Do I need this cable to use a TraceCore DMA card?\n\nNo. Each TraceCore card comes with its own cable, listed under In the box on the card's product page. This cable adds length or a USB-C to USB-C connection.\n\n### How do I check that the link runs at USB 3 speed?\n\nRun `pcileech benchmark` on the analysis workstation. If 16 MB reads come in below 45 MB/s, PCILeech warns that the connection is most likely running at USB 2 speed. Move the cable to a rear-panel USB 3 port, remove any hub or dock and test again. If it stays slow, work through [DMA card troubleshooting](/guides/dma-card-troubleshooting).\n\n### Does it work with USB 3.1 and USB 3.2 ports?\n\nYes. USB 3.1 and USB 3.2 Gen 1 and Gen 2 are the same 5 Gbps and 10 Gbps signalling under different names, and a Gen 2 rated cable carries both.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "TraceCoreLab"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/usb-c-data-cable.webp",
+          "alt": {
+            "from": "USB-C 3.2 Data Cable",
+            "to": "Both ends of the TraceCoreLab USB-C 3.2 data cable: USB-C plugs in silver aluminium shells, one printed TRACECORELAB, on a braided black jacket"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "thermal-kit",
+      "fields": {
+        "tagline": {
+          "from": "Heatsink + pads for 35T/75T",
+          "to": "FPGA heatsink and pads for the TraceCore 75T"
+        },
+        "summary": {
+          "from": "A clip-on aluminium heatsink and pre-cut thermal pads for the 35T and 75T. Keeps temperatures down in cramped cases.",
+          "to": "A clip-on anodised aluminium heatsink with pre-cut 1.5 mm thermal pads for the TraceCore 75T DMA card. It adds cooling for sustained workloads, such as long memory acquisitions, and for cases with little airflow. Retention clips hold it in place, so fitting needs no tools."
+        },
+        "highlights": {
+          "from": [
+            "Anodised aluminium fins",
+            "Pre-cut 1.5 mm pads",
+            "Tool-free clip mount"
+          ],
+          "to": [
+            "Fits the TraceCore 75T DMA card",
+            "Finned, anodised aluminium FPGA heatsink",
+            "Pre-cut 1.5 mm thermal pads, 6 W/mK",
+            "Tool-free clip mount",
+            "3-month warranty"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Fits",
+              "value": "TraceCore 35T / 75T"
+            },
+            {
+              "label": "Material",
+              "value": "Anodised aluminium"
+            },
+            {
+              "label": "Pads",
+              "value": "1.5 mm, 6 W/mK"
+            }
+          ],
+          "to": [
+            {
+              "label": "Fits",
+              "value": "TraceCore 75T"
+            },
+            {
+              "label": "Heatsink",
+              "value": "Finned, anodised aluminium"
+            },
+            {
+              "label": "Thermal pads",
+              "value": "1.5 mm thick, 6 W/mK, pre-cut"
+            },
+            {
+              "label": "Mounting",
+              "value": "Retention clips, no tools needed"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "Heatsink",
+            "Thermal pads (×2)",
+            "Retention clips"
+          ],
+          "to": [
+            "Finned aluminium heatsink",
+            "Pre-cut thermal pads (×2)",
+            "Retention clips"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "Thermal Kit for TraceCore 75T DMA Card: Heatsink, 1.5 mm Pads"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "Clip-on anodised aluminium FPGA heatsink with pre-cut 1.5 mm, 6 W/mK thermal pads for the TraceCore 75T DMA card, for sustained workloads and tight cases."
+        },
+        "description": {
+          "from": null,
+          "to": "The Thermal Kit is an optional cooling upgrade for the TraceCore 75T DMA card: a finned, anodised aluminium FPGA heatsink, pre-cut thermal pads and retention clips. It is meant for cards that run sustained workloads, such as long live memory acquisitions or hours of continuous reads during research and FPGA development, and for cards fitted in cases with little airflow around the PCIe slots.\n\n## What each part does\n\n- **Heatsink.** The fins carry heat away from the Xilinx Artix-7 FPGA into the air moving through the case. Anodising is a hard oxide layer that protects the aluminium surface.\n- **Thermal pads, 1.5 mm, 6 W/mK.** The pads fill the gap between the chip and the heatsink base. W/mK is thermal conductivity: the higher the figure, the more easily heat crosses the pad. They come pre-cut, so there is nothing to trim.\n- **Retention clips.** The clips hold the heatsink in place, so fitting needs no tools and no screws.\n\n## Requirements and compatibility\n\n- Listed for the TraceCore 75T. Before fitting it to any other board, ask us on Discord or at {{supportEmail}}.\n- A heatsink only works when air moves through the case. Check that the case fans move air past the expansion slots.\n- The fins add height on the component side of the card, so check the clearance to the card in the neighbouring slot.\n- Work with the computer shut down and unplugged, and handle the card by its edges after touching a grounded metal part of the case.\n\n## In the box\n\n- Finned aluminium heatsink\n- Pre-cut thermal pads (×2)\n- Retention clips\n\n## Setup\n\nThe fitting order is: power down and remove the card, clean the chip surface, fit the pads, clip on the heatsink, then reinstall the card and run the connection test again. Step-by-step instructions are in [Install a DMA Card Heatsink and Thermal Pads](/guides/install-dma-card-thermal-kit). For removing and refitting the card itself, see [How to Install a PCIe DMA Card](/guides/install-a-pcie-dma-card).\n\n## Questions\n\n### Does my 75T need the Thermal Kit?\n\nNo, it is an optional upgrade. Consider it if the card runs for long periods or sits in a cramped case with little airflow.\n\n### Do I need thermal paste as well?\n\nNo. The pre-cut pads are the thermal interface between the chip and the heatsink, so no paste is needed.\n\n### Will it fit the TraceCore 100T Pro or other boards?\n\nThe kit is listed for the 75T only. Contact us before ordering it for another board.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "TraceCoreLab"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/thermal-kit.webp",
+          "alt": {
+            "from": "Thermal Kit",
+            "to": "Thermal Kit parts: a finned aluminium FPGA heatsink beside a stack of grey pre-cut thermal pads"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "dma-mini-pc",
+      "fields": {
+        "tagline": {
+          "from": "A compact second PC",
+          "to": "Ryzen 5 analysis workstation"
+        },
+        "summary": {
+          "from": "A palm-sized second PC with enough headroom for your DMA card's host software and tools, so your main machine stays free.",
+          "to": "A compact desktop computer to use as the analysis workstation with a TraceCore DMA card. It gives PCILeech, MemProcFS and your other tools their own hardware, so acquisition and analysis stay off the computer being examined. Inside are an AMD Ryzen 5 3500U, 8 GB of RAM and a 128 GB M.2 SSD, with three USB 3.2 ports for the card's USB 3 data link."
+        },
+        "highlights": {
+          "from": [
+            "AMD Ryzen 5 3500U",
+            "8 GB RAM, 128 GB M.2 SSD",
+            "Wi-Fi 5",
+            "3 × USB 3.2, 2 × HDMI"
+          ],
+          "to": [
+            "AMD Ryzen 5 3500U: 4 cores, 8 threads, up to 3.7 GHz",
+            "8 GB RAM and 128 GB M.2 SSD",
+            "3 × USB 3.2 ports for the DMA card's data link",
+            "Wi-Fi 5 (802.11ac)",
+            "2 × HDMI display outputs",
+            "3-month warranty"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "CPU",
+              "value": "AMD Ryzen 5 3500U"
+            },
+            {
+              "label": "Memory",
+              "value": "8 GB"
+            },
+            {
+              "label": "Storage",
+              "value": "128 GB M.2 SSD"
+            },
+            {
+              "label": "Wireless",
+              "value": "Wi-Fi 5"
+            },
+            {
+              "label": "Ports",
+              "value": "3 × USB 3.2 · 2 × HDMI"
+            }
+          ],
+          "to": [
+            {
+              "label": "CPU",
+              "value": "AMD Ryzen 5 3500U (4 cores, 8 threads, 2.1 GHz base, up to 3.7 GHz boost)"
+            },
+            {
+              "label": "Graphics",
+              "value": "AMD Radeon Vega 8 (integrated)"
+            },
+            {
+              "label": "Memory",
+              "value": "8 GB"
+            },
+            {
+              "label": "Storage",
+              "value": "128 GB M.2 SSD"
+            },
+            {
+              "label": "USB",
+              "value": "3 × USB 3.2"
+            },
+            {
+              "label": "Display outputs",
+              "value": "2 × HDMI"
+            },
+            {
+              "label": "Wireless",
+              "value": "Wi-Fi 5 (802.11ac)"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "DMA Mini PC"
+          ],
+          "to": [
+            "DMA Mini PC"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "DMA Mini PC: Ryzen 5 3500U Workstation for PCILeech, MemProcFS"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "Compact analysis workstation for TraceCore DMA cards: AMD Ryzen 5 3500U, 8 GB RAM, 128 GB M.2 SSD, three USB 3.2 ports. For PCILeech and MemProcFS."
+        },
+        "description": {
+          "from": null,
+          "to": "The DMA Mini PC is a compact desktop computer for use as the analysis workstation with a TraceCore DMA card. In a PCILeech setup, the DMA card sits in a PCIe slot of the target computer and passes memory reads over its USB 3 data link to a separate machine that runs PCILeech, MemProcFS and the rest of your tools. Keeping that machine separate means your tools, logs and memory images stay off the system you are examining, which is standard practice in memory forensics and incident response.\n\n## Key specifications\n\n- **AMD Ryzen 5 3500U.** A 4-core, 8-thread processor running at 2.1 GHz base and up to 3.7 GHz boost, with AMD Radeon Vega 8 integrated graphics (AMD specifications).\n- **8 GB RAM and a 128 GB M.2 SSD.** The SSD holds the operating system, your tools and any images you save locally.\n- **3 × USB 3.2 ports.** One carries the DMA card's data link; the other two are free for an external drive or other peripherals.\n- **2 × HDMI display outputs** for your monitor.\n- **Wi-Fi 5 (802.11ac)** for network access, updates and moving results to network storage.\n\n## Requirements and compatibility\n\n- Connect the DMA card's data cable directly to one of the USB 3.2 ports, not through a hub or dock. A USB 2 connection still works but is far slower, and PCILeech warns when 16 MB reads fall below 45 MB/s.\n- PCILeech and MemProcFS run on Windows and Linux. The PCILeech documentation reports higher FPGA throughput on Windows than on Linux.\n- Use PCILeech and MemProcFS only on computers you own or are authorized to examine. Treat memory images as evidence: encrypt them, limit who can open them and record every copy to keep the chain of custody.\n\n## In the box\n\n- DMA Mini PC\n\n## Setup\n\nStart with first boot and updates in [Choosing a Forensic Analysis Workstation for an FPGA Card](/guides/choosing-an-analysis-pc). Then install the driver and software with [FT601 Driver and PCILeech Setup](/guides/ft601-driver-and-pcileech-setup), and confirm the card's link with the connection test and speed test in [Test a DMA Card: pcileech probe and benchmark Explained](/guides/dma-card-connection-and-speed-test).\n\n## Questions\n\n### Do I need the DMA Mini PC to use a TraceCore DMA card?\n\nNo. Any Windows or Linux computer with a free USB 3 port can be the analysis workstation. The Mini PC is a small, dedicated option that keeps analysis off your everyday computer.\n\n### Is a DMA card included?\n\nNo. The DMA Mini PC is sold on its own, and TraceCore DMA cards are listed separately in the shop.\n\n### Is 128 GB enough for memory images?\n\nFor small targets, yes. A full memory image is as large as the target's RAM, and the SSD also holds the operating system and tools, so plan an external drive or network storage for 32 GB or 64 GB targets.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "TraceCoreLab"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/dma-mini-pc.webp",
+          "alt": {
+            "from": "DMA Mini PC",
+            "to": "DMA Mini PC: a compact black desktop computer with a ribbed lid, front USB-A and USB-C ports, an audio jack and a power button"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "lab-bundle",
+      "fields": {
+        "tagline": {
+          "from": "75T + Ferrum + cable kit",
+          "to": "TraceCore 75T, Ferrum and a 2 m USB-C cable"
+        },
+        "summary": {
+          "from": "Our flagship card and Ferrum in one box, with the cables to connect everything. The easiest way to get a complete setup in one order.",
+          "to": "The Lab Bundle contains three products at one price: the TraceCore 75T FPGA DMA card, the Ferrum USB passthrough device and the 2 m USB-C 3.2 Data Cable. Each item works on its own, has its own setup guide where one is needed, and carries the 3-month warranty."
+        },
+        "highlights": {
+          "from": [
+            "TraceCore 75T DMA card",
+            "Ferrum input device",
+            "2 m USB-C 3.2 data cable",
+            "Bundle pricing: save $53"
+          ],
+          "to": [
+            "TraceCore 75T DMA card: Xilinx Artix-7 XC7A75T, PCIe x1",
+            "Ferrum USB passthrough for mouse and keyboard",
+            "USB-C 3.2 Data Cable, 2 m, braided",
+            "Full-height and low-profile brackets for the 75T",
+            "3-month warranty on each item"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Includes",
+              "value": "75T · Ferrum · 2 m data cable"
+            },
+            {
+              "label": "FPGA",
+              "value": "Xilinx Artix-7 XC7A75T"
+            },
+            {
+              "label": "Data link",
+              "value": "USB-C 3.0"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months on every item"
+            }
+          ],
+          "to": [
+            {
+              "label": "Includes",
+              "value": "TraceCore 75T DMA card · Ferrum USB passthrough device · USB-C 3.2 Data Cable (2 m)"
+            },
+            {
+              "label": "75T FPGA",
+              "value": "Xilinx Artix-7 XC7A75T"
+            },
+            {
+              "label": "75T host interface",
+              "value": "PCIe x1 (fits x1, x4, x8 and x16 slots)"
+            },
+            {
+              "label": "75T data link",
+              "value": "USB-C, USB 3 (works in USB 3.1 and USB 3.2 Gen 1 and Gen 2 ports)"
+            },
+            {
+              "label": "Ferrum passthrough",
+              "value": "Mouse and keyboard"
+            },
+            {
+              "label": "Cable",
+              "value": "USB-C to USB-C, USB 3.2 Gen 2 rated, 2 m, braided"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months on each item"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "TraceCore 75T card",
+            "Ferrum device",
+            "USB-C 3.2 data cable (2 m)",
+            "Both brackets",
+            "Quick-start cards"
+          ],
+          "to": [
+            "TraceCore 75T DMA card",
+            "Full-height and low-profile brackets for the 75T",
+            "Ferrum USB passthrough device",
+            "USB-C 3.2 Data Cable (2 m)",
+            "Quick-start cards"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "Lab Bundle: TraceCore 75T DMA Card, Ferrum USB Passthrough"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "The Lab Bundle: a TraceCore 75T Artix-7 PCIe DMA card, a Ferrum USB passthrough device for mouse and keyboard, and a 2 m USB-C 3.2 cable. 3-month warranty."
+        },
+        "description": {
+          "from": null,
+          "to": "The Lab Bundle is three products sold together at one price: the TraceCore 75T DMA card, the Ferrum USB passthrough device and a 2 m USB-C 3.2 Data Cable. Each item works on its own, has its own setup guide where one is needed, and carries its own 3-month warranty. The bundle is for buyers who want all three items in a single order.\n\n## TraceCore 75T DMA card\n\nThe 75T is a PCIe FPGA development board built on the Xilinx Artix-7 XC7A75T. It is PCILeech-compatible hardware for memory forensics, incident response, security research and hardware debugging, and it connects over USB to a separate analysis workstation that runs PCILeech or MemProcFS.\n\n- PCIe x1 card that fits x1, x4, x8 and x16 slots. Full-height and low-profile brackets are both in the box.\n- USB-C data link that works in USB 3.1 and USB 3.2 ports, Gen 1 and Gen 2. A USB 2 port still connects but is far slower.\n- A kill switch on the I/O panel, at the bracket end, enables or disables the card without unplugging it.\n- Use it only on computers you own or are authorized to examine.\n\nSetup: [How to Install a PCIe DMA Card](/guides/install-a-pcie-dma-card), then [FT601 Driver and PCILeech Setup](/guides/ft601-driver-and-pcileech-setup).\n\n## Ferrum USB passthrough\n\nFerrum is a USB passthrough device for a mouse and keyboard. Mouse passthrough is plug-and-play. The computer connected to Ferrum's control port needs the Silicon Labs CP210x USB-to-UART driver. Ferrum supports mice with polling rates up to 8000 Hz (vendor-listed).\n\nSetup: [Ferrum setup guide](/guides/ferrum-setup).\n\n## USB-C 3.2 Data Cable\n\nA 2 m braided USB-C to USB-C cable rated USB 3.2 Gen 2 (10 Gbps), with aluminium connector shells. It is the same cable sold on its own under Accessories.\n\n## In the box\n\n- TraceCore 75T DMA card\n- Full-height and low-profile brackets for the 75T\n- Ferrum USB passthrough device\n- USB-C 3.2 Data Cable (2 m)\n- Quick-start cards\n\n## Questions\n\n### Are these the same products sold individually?\n\nYes. The bundle contains the same TraceCore 75T, Ferrum and USB-C 3.2 Data Cable models that are listed on their own product pages.\n\n### Is each item covered by the warranty?\n\nYes. Each item has the 3-month warranty from the purchase date, and a defective item is replaced.\n\n### Do I get both 75T brackets?\n\nYes. The full-height and low-profile brackets are both in the box, so you can fit the one your case needs.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "TraceCoreLab"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/lab-bundle.webp",
+          "alt": {
+            "from": "Lab Bundle",
+            "to": "Lab Bundle contents: a TraceCoreLab PCIe DMA card, the Ferrum USB passthrough device and a braided USB-C data cable"
+          }
+        }
+      ]
+    },
+    {
+      "op": "category.update",
+      "slug": "accessory",
+      "fields": {
+        "name": {
+          "from": "Accessories",
+          "to": "Accessories"
+        },
+        "blurb": {
+          "from": "Cables, risers and thermal upgrades.",
+          "to": "Data cables, cooling and an analysis workstation for TraceCore DMA cards."
+        },
+        "intro": {
+          "from": null,
+          "to": "Accessories for TraceCore DMA cards: a longer data cable for the USB 3 link, cooling for the FPGA, and a compact analysis workstation for PCILeech and MemProcFS. All three are optional. Every TraceCore card ships with a data cable, so start with the card and add what your bench needs.\n\n| Accessory | What it is | Consider it when | Guide |\n|---|---|---|---|\n| [USB-C 3.2 Data Cable](/product/usb-c-data-cable) | Braided USB-C to USB-C cable, USB 3.2 Gen 2 rated, 2 m or 3 m | The supplied cable does not reach, or your workstation has USB-C ports | [Test a DMA card](/guides/dma-card-connection-and-speed-test) |\n| [Thermal Kit](/product/thermal-kit) | Anodised aluminium FPGA heatsink, 1.5 mm thermal pads and retention clips for the 75T | The card runs sustained workloads or sits in a case with little airflow | [Fit the Thermal Kit](/guides/install-dma-card-thermal-kit) |\n| [DMA Mini PC](/product/dma-mini-pc) | Analysis workstation with an AMD Ryzen 5 3500U, 8 GB RAM, 128 GB SSD and 3 × USB 3.2 | You want dedicated hardware that keeps analysis off your everyday computer | [Choose an analysis workstation](/guides/choosing-an-analysis-pc) |\n\nWhichever workstation you use, plug the card's data cable straight into a USB 3 port, not a hub or dock, then run the connection test and speed test (`pcileech probe` and `pcileech benchmark`). Driver and software steps are in [FT601 Driver and PCILeech Setup](/guides/ft601-driver-and-pcileech-setup), and card installation is in [How to Install a PCIe DMA Card](/guides/install-a-pcie-dma-card).\n\nEach accessory carries the 3-month warranty. We ship to most countries worldwide: shipping is free on orders over {{freeShippingThreshold}}, and a flat rate of {{flatShipping}} applies below that.\n"
+        },
+        "seo_title": {
+          "from": null,
+          "to": "DMA Card Accessories: USB-C Data Cable, Thermal Kit, Mini PC"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "Accessories for TraceCore FPGA DMA cards: a braided USB-C 3.2 data cable, a heatsink and thermal pad kit, and a Ryzen 5 analysis workstation for PCILeech."
+        }
+      }
+    },
+    {
+      "op": "category.update",
+      "slug": "bundle",
+      "fields": {
+        "name": {
+          "from": "Bundles",
+          "to": "Bundles"
+        },
+        "blurb": {
+          "from": "Everything you need, priced together.",
+          "to": "Products also sold individually, offered together at one price."
+        },
+        "intro": {
+          "from": null,
+          "to": "Bundles group products that are also sold individually and offer them at one price in a single order. Every item in a bundle is the standard model with its own 3-month warranty, and each item works and is set up on its own.\n\nThe current bundle is the [Lab Bundle](/product/lab-bundle). It contains:\n\n| Item | What it is | Setup guide |\n|---|---|---|\n| TraceCore 75T DMA card | PCIe x1 FPGA development board with a Xilinx Artix-7 XC7A75T, a USB-C data link, and full-height and low-profile brackets | [How to Install a PCIe DMA Card](/guides/install-a-pcie-dma-card) |\n| Ferrum USB passthrough | Mouse and keyboard passthrough, up to 8000 Hz polling (vendor-listed) | [Ferrum setup guide](/guides/ferrum-setup) |\n| USB-C 3.2 Data Cable | Braided USB-C to USB-C cable, 2 m, USB 3.2 Gen 2 rated | No setup needed |\n\nThe Lab Bundle page lists the full box contents and the specifications of each item. If you have a question about what a bundle contains, ask us on Discord or at {{supportEmail}}.\n\nWe ship to most countries worldwide: shipping is free on orders over {{freeShippingThreshold}}, and a flat rate of {{flatShipping}} applies below that.\n"
+        },
+        "seo_title": {
+          "from": null,
+          "to": "Bundles: TraceCoreLab Hardware Sold Together at One Price"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "TraceCoreLab bundles: products also sold individually, at one price. The Lab Bundle has a TraceCore 75T DMA card, Ferrum USB passthrough and a 2 m cable."
+        }
+      }
+    },
+    {
+      "op": "product.update",
+      "slug": "tracecore-75t",
+      "fields": {
+        "tagline": {
+          "from": "The flagship DMA card",
+          "to": "Artix-7 75T FPGA DMA card with a USB-C USB 3 data link"
+        },
+        "summary": {
+          "from": "FPGA: Xilinx Artix-7 XC7A75T\r\nHost interface: PCIe x1 (fits x1 / x4 / x8 / x16)\r\nData link: USB-C 3.0 (FT601)\r\nCooling: Finned aluminium heatsink\r\nBoard size: 112 × 68 mm\r\nWarranty: 3 months",
+          "to": "The TraceCore 75T is a PCIe DMA card built on a Xilinx Artix-7 75T FPGA, for memory forensics, security research and FPGA development on computers you own or are authorized to examine. It fits any PCIe slot in the target system and connects to your analysis workstation over a USB-C USB 3 data link, so PCILeech-compatible tools such as PCILeech and MemProcFS can read target memory. A kill switch on the I/O panel enables or disables the card without unplugging it."
+        },
+        "highlights": {
+          "from": [
+            "Xilinx Artix-7 75T FPGA",
+            "USB 3.2 Gen 1 via FT601 bridge",
+            "Up to 5Gbps interface bandwidth",
+            "Up to 200MB/s real-world throughput",
+            "Ships with basic firmware only",
+            "No firmware update or game-specific support",
+            "Drop-in compatibility with mainstream 75T DMA cards"
+          ],
+          "to": [
+            "Xilinx Artix-7 XC7A75T FPGA with 75,520 logic cells",
+            "PCIe x1 card that fits x1, x4, x8 and x16 slots",
+            "USB-C USB 3 data link that works in USB 3.1 and USB 3.2 ports",
+            "PCILeech-compatible: 64-bit memory access and raw PCIe TLP access",
+            "Kill switch on the I/O panel enables or disables the card without unplugging it",
+            "Full-height or low-profile bracket, 3-month replacement warranty"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Model",
+              "value": "Tracecore 75T"
+            },
+            {
+              "label": "Product Type",
+              "value": "DMA Hardware / FPGA Development Board"
+            },
+            {
+              "label": "FPGA",
+              "value": "Xilinx Artix-7 75T"
+            },
+            {
+              "label": "USB Interface",
+              "value": "USB 3.2 Gen 1 via FT601 USB-to-FIFO bridge"
+            },
+            {
+              "label": "Interface Bandwidth",
+              "value": "5Gbps"
+            },
+            {
+              "label": "Throughput",
+              "value": "Up to 200MB/s"
+            },
+            {
+              "label": "Firmware",
+              "value": "Basic version firmware included; no firmware update service"
+            },
+            {
+              "label": "Intended Use",
+              "value": "Computer science learning, work and entertainment"
+            },
+            {
+              "label": "Usage Notice",
+              "value": "DMA is a legally permitted embedded-systems technology; buyers should assess suitability before purchase"
+            },
+            {
+              "label": "Restrictions",
+              "value": "No game-cheating software or game-specific technical support provided"
+            }
+          ],
+          "to": [
+            {
+              "label": "Model",
+              "value": "TraceCore 75T"
+            },
+            {
+              "label": "Product type",
+              "value": "FPGA DMA card (PCIe FPGA development board)"
+            },
+            {
+              "label": "FPGA",
+              "value": "Xilinx Artix-7 XC7A75T (75,520 logic cells)"
+            },
+            {
+              "label": "Host interface",
+              "value": "PCIe x1 (fits x1, x4, x8 and x16 slots)"
+            },
+            {
+              "label": "Data link",
+              "value": "USB-C, USB 3 (works in USB 3.1 and USB 3.2 Gen 1 and Gen 2 ports)"
+            },
+            {
+              "label": "Software compatibility",
+              "value": "PCILeech-compatible (64-bit memory access, PCIe TLP access)"
+            },
+            {
+              "label": "Kill switch",
+              "value": "On the I/O panel; enables or disables the card"
+            },
+            {
+              "label": "Bracket",
+              "value": "Full height or low profile (chosen at checkout)"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months (replacement)"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "TraceCore 75T card",
+            "Full-height bracket (fitted)",
+            "Low-profile bracket",
+            "USB-C 3.0 cable (1 m)",
+            "Quick-start card"
+          ],
+          "to": [
+            "TraceCore 75T DMA card with the bracket you choose",
+            "USB-C to USB-A data cable"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "TraceCore 75T FPGA DMA Card: Artix-7 XC7A75T, PCIe x1, USB 3"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "TraceCore 75T PCIe DMA card: Xilinx Artix-7 XC7A75T FPGA, PCIe x1, USB-C USB 3 data link and I/O-panel kill switch. PCILeech-compatible, ships worldwide."
+        },
+        "description": {
+          "from": null,
+          "to": "The TraceCore 75T is an FPGA DMA card for memory forensics, incident response, security research and FPGA development. It installs in a PCIe slot of the target system, reads that system's memory by direct memory access, and passes the data over a USB 3 link to a separate analysis workstation running tools such as PCILeech and MemProcFS. Use a DMA card only on computers you own or are authorized to examine.\n\n## What the specs mean\n\n- **Xilinx Artix-7 XC7A75T.** The FPGA runs the card's PCIe and USB logic. Its 75,520 logic cells are more than twice those of a 35T, which leaves room for FPGA designs of your own.\n- **PCIe x1.** The card uses one PCIe lane, as PCILeech FPGA designs do, and fits x1, x4, x8 and x16 slots.\n- **USB-C USB 3 data link.** The link to the analysis workstation works in USB 3.1 and USB 3.2 ports, Gen 1 and Gen 2. A USB 2 port still connects but is far slower: `pcileech benchmark` warns when 16 MB reads fall under 45 MB/s.\n- **PCILeech-compatible.** The card works as a PCILeech FPGA device, with 64-bit memory access and raw PCIe TLP access. This describes the hardware interface; it is not an endorsement by the PCILeech project.\n- **Kill switch.** A switch on the I/O panel, at the bracket end of the card, enables or disables the card without unplugging it.\n\n## Requirements and compatibility\n\n- A free PCIe slot in the target system, and the full-height or low-profile bracket that fits its case.\n- An analysis workstation with a USB 3 port, ideally on the rear of the motherboard. The [DMA Mini PC](/product/dma-mini-pc) is built for that job.\n- Platform protections on the target, such as an active IOMMU (Intel VT-d, AMD-Vi) or Kernel DMA Protection, limit what any DMA card can read. [DMA card compatibility](/guides/dma-card-compatibility) explains how to check their status.\n\n## In the box\n\n- TraceCore 75T DMA card with the bracket you choose\n- USB-C to USB-A data cable\n\nLike every unit we ship, it is tested in the TraceCoreLab lab before dispatch and covered by a 3-month replacement warranty, with setup help on Discord. For long acquisitions in cases with little airflow, the [Thermal Kit](/product/thermal-kit) adds a clip-on heatsink.\n\n## Setup\n\nFollow [how to install a PCIe DMA card](/guides/install-a-pcie-dma-card), then the [driver and PCILeech setup guide](/guides/ft601-driver-and-pcileech-setup), and confirm the link with the [connection and speed test](/guides/dma-card-connection-and-speed-test). New to this hardware? Start with [what is a PCIe DMA card](/guides/what-is-a-pcie-dma-card).\n\n## Common questions\n\n### Should I choose the 75T or the 100T Pro?\n\nFor PCILeech and MemProcFS work the USB link, not the FPGA size, sets read speed, so the 75T suits most buyers. The [TraceCore 100T Pro](/product/tracecore-100t-pro) has about 34% more logic for larger designs of your own. [35T vs 75T vs 100T](/guides/artix-7-35t-vs-75t-vs-100t) compares them in detail.\n\n### What does the kill switch do?\n\nIt enables or disables the card from the I/O panel, so the card can stay installed and cabled while it is not in use.\n\n### Does it need software on the target computer?\n\nNo. The card works over PCIe, and PCILeech needs no drivers on the target. The software and the USB driver run on the analysis workstation.\n\nSee every [FPGA DMA card](/shop/dma) in the range."
+        },
+        "brand": {
+          "from": null,
+          "to": "TraceCoreLab"
+        }
+      },
+      "images": [
+        {
+          "url": "/media/products/2026/11/c1b05e21801b9fa1f87d.webp",
+          "alt": {
+            "from": "TraceCore 75T",
+            "to": "TraceCore 75T FPGA DMA card with a dark grey TraceCoreLab-branded cover and a PCIe x1 edge connector, on a dark red background"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "tracecore-100t-pro",
+      "fields": {
+        "tagline": {
+          "from": "Maximum logic, active cooling",
+          "to": "Artix-7 100T FPGA DMA card with about 34% more logic than the 75T"
+        },
+        "summary": {
+          "from": "The largest Artix-7 in the range, with a finned aluminium heatsink for long sessions. Built in small batches and stress-tested for longer.",
+          "to": "The TraceCore 100T Pro is a PCIe DMA card built on the Xilinx Artix-7 XC7A100T, the largest FPGA in the TraceCore range, for memory forensics, security research and FPGA development on computers you own or are authorized to examine. Its 101,440 logic cells give about 34% more room than the 75T for PCIe and FPGA designs of your own. A kill switch on the I/O panel enables or disables the card without unplugging it."
+        },
+        "highlights": {
+          "from": [
+            "AMD Xilinx Artix-7 XC7A100T FPGA",
+            "More logic resources than 35T and 75T platforms",
+            "Standard PCIe expansion card form factor",
+            "High-speed USB interface",
+            "CNC-machined aluminum enclosure",
+            "Fanless passive cooling",
+            "For FPGA development, PCIe research and hardware acceleration",
+            "Includes USB cable and quick start guide"
+          ],
+          "to": [
+            "Xilinx Artix-7 XC7A100T FPGA with 101,440 logic cells",
+            "About 34% more logic than the 75T, plus more block RAM and DSP slices",
+            "PCIe x1 card that fits x1, x4, x8 and x16 slots",
+            "PCILeech-compatible FPGA DMA card with a USB-C data link",
+            "Kill switch on the I/O panel enables or disables the card without unplugging it",
+            "Full-height or low-profile bracket, 3-month replacement warranty"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Product Name",
+              "value": "100T DMA Development Board"
+            },
+            {
+              "label": "Product Type",
+              "value": "FPGA Development Board"
+            },
+            {
+              "label": "FPGA Platform",
+              "value": "AMD Xilinx Artix-7 XC7A100T"
+            },
+            {
+              "label": "Form Factor",
+              "value": "PCI Express expansion card"
+            },
+            {
+              "label": "Enclosure",
+              "value": "CNC aluminum"
+            },
+            {
+              "label": "Cooling",
+              "value": "Passive aluminum heat dissipation; no fan required"
+            },
+            {
+              "label": "Interface",
+              "value": "USB high-speed interface"
+            },
+            {
+              "label": "FPGA Resources",
+              "value": "More logic resources than 35T and 75T platforms"
+            },
+            {
+              "label": "Applications",
+              "value": "FPGA development, PCIe communication, hardware prototyping, embedded design, data processing, algorithm verification, DSP, computer architecture experiments, high-speed interface verification, laboratory research and engineering prototyping"
+            },
+            {
+              "label": "Operating Environment",
+              "value": "Laboratory / engineering / educational use"
+            },
+            {
+              "label": "Package Contents",
+              "value": "Development board, USB data cable, quick start guide"
+            },
+            {
+              "label": "Intended Use",
+              "value": "Computer science learning, work and entertainment"
+            },
+            {
+              "label": "Usage Notice",
+              "value": "DMA is a legally permitted embedded-systems technology; buyers should assess suitability before purchase"
+            },
+            {
+              "label": "Restrictions",
+              "value": "No game-cheating software or game-specific technical support provided"
+            }
+          ],
+          "to": [
+            {
+              "label": "Model",
+              "value": "TraceCore 100T Pro"
+            },
+            {
+              "label": "Product type",
+              "value": "FPGA DMA card (PCIe FPGA development board)"
+            },
+            {
+              "label": "FPGA",
+              "value": "Xilinx Artix-7 XC7A100T (101,440 logic cells)"
+            },
+            {
+              "label": "Host interface",
+              "value": "PCIe x1 (fits x1, x4, x8 and x16 slots)"
+            },
+            {
+              "label": "Data link",
+              "value": "USB-C to the analysis workstation"
+            },
+            {
+              "label": "Software compatibility",
+              "value": "PCILeech-compatible"
+            },
+            {
+              "label": "Kill switch",
+              "value": "On the I/O panel; enables or disables the card"
+            },
+            {
+              "label": "Bracket",
+              "value": "Full height or low profile (chosen at checkout)"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months (replacement)"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "TraceCore 100T Pro card",
+            "Full-height bracket (fitted)",
+            "Low-profile bracket",
+            "USB-C 3.0 cable (1 m)",
+            "Quick-start card"
+          ],
+          "to": [
+            "TraceCore 100T Pro DMA card with the bracket you choose",
+            "USB-C to USB-A data cable"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "TraceCore 100T Pro FPGA DMA Card: Artix-7 XC7A100T, PCIe x1"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "TraceCore 100T Pro PCIe DMA card on a Xilinx Artix-7 XC7A100T: 101,440 logic cells, PCIe x1, USB-C data link and I/O-panel kill switch. Ships worldwide."
+        },
+        "description": {
+          "from": null,
+          "to": "The TraceCore 100T Pro is an FPGA DMA card built on the largest Artix-7 in the TraceCore range, the Xilinx XC7A100T. Like the [TraceCore 75T](/product/tracecore-75t), it installs in a PCIe slot of the target system and passes memory reads over USB to a separate analysis workstation running tools such as PCILeech and MemProcFS, for memory forensics, incident response and security research. The extra logic is there for FPGA development: PCIe and TLP research designs, hardware prototyping and on-chip debug cores of your own. Use a DMA card only on computers you own or are authorized to examine.\n\n## What the specs mean\n\n- **Xilinx Artix-7 XC7A100T.** 101,440 logic cells, about 34% more than the XC7A75T, with more block RAM and DSP slices for larger designs.\n- **PCIe x1.** The card uses one PCIe lane, as PCILeech FPGA designs do, and fits x1, x4, x8 and x16 slots.\n- **USB-C data link.** A USB-C port connects the card to the analysis workstation. Use a USB 3 port on the workstation, ideally on the rear of the motherboard.\n- **PCILeech-compatible.** The card works as a PCILeech FPGA device. This describes the hardware interface; it is not an endorsement by the PCILeech project.\n- **Kill switch.** A switch on the I/O panel, at the bracket end of the card, enables or disables the card without unplugging it.\n\n## When the 100T Pro is the right choice\n\n- You build and test your own FPGA designs and want headroom in logic, block RAM and DSP slices.\n- You add on-chip logic analyzer cores next to a PCIe design, which use block RAM for sample buffers.\n- You want one board for PCILeech-based work and for your own FPGA development.\n\nFor memory acquisition alone, read speed depends on the USB link far more than on FPGA size, so the 75T is usually enough.\n\n## In the box\n\n- TraceCore 100T Pro DMA card with the bracket you choose\n- USB-C to USB-A data cable\n\nLike every unit we ship, it is tested in the TraceCoreLab lab before dispatch and covered by a 3-month replacement warranty, with setup help on Discord.\n\n## Setup\n\nInstall it with [how to install a PCIe DMA card](/guides/install-a-pcie-dma-card), set up the analysis workstation with the [driver and PCILeech setup guide](/guides/ft601-driver-and-pcileech-setup), then run the [connection and speed test](/guides/dma-card-connection-and-speed-test).\n\n## Common questions\n\n### Is the 100T Pro faster than the 75T?\n\nNot for memory reads in general. Both cards use a PCIe x1 link and a USB data link, and those links set the speed. The 100T Pro's advantage is logic for your own designs; [35T vs 75T vs 100T](/guides/artix-7-35t-vs-75t-vs-100t) explains why.\n\n### What does the kill switch do?\n\nIt enables or disables the card from the I/O panel, so the card can stay installed and cabled while it is not in use.\n\n### Which platform protections affect it?\n\nAn active IOMMU (Intel VT-d, AMD-Vi), virtualization-based security and Kernel DMA Protection all limit DMA from PCIe devices. [DMA card compatibility](/guides/dma-card-compatibility) shows how to check their status on a system.\n\nBrowse all [FPGA DMA cards](/shop/dma)."
+        },
+        "brand": {
+          "from": null,
+          "to": "TraceCoreLab"
+        }
+      },
+      "images": [
+        {
+          "url": "/media/products/2026/11/aae170ecdaff8d78a0e4.webp",
+          "alt": {
+            "from": "TraceCore 100T Pro",
+            "to": "TraceCore 100T Pro FPGA DMA card with a silver-grey TraceCoreLab-branded cover and a PCIe x1 edge connector, on a dark red background"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "heino-2",
+      "fields": {
+        "tagline": {
+          "from": "Standalone DMA device",
+          "to": "Third-party standalone PCIe DMA device"
+        },
+        "summary": {
+          "from": "A standalone DMA device that works without custom firmware. Contact us before ordering for current lead times.",
+          "to": "Heino 2.0 is a standalone PCIe DMA device from a third-party maker, sold and supported by TraceCoreLab with a 3-month warranty. It ships ready to use. Stock is limited, so contact us for the current lead time before you order."
+        },
+        "highlights": {
+          "from": [
+            "No custom firmware needed",
+            "Third-party device, 3-month warranty from us"
+          ],
+          "to": [
+            "Standalone PCIe DMA device from a third-party maker",
+            "Ships ready to use",
+            "3-month replacement warranty handled by TraceCoreLab",
+            "Setup help from the TraceCoreLab team on Discord",
+            "Limited stock: ask us for the current lead time before ordering"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Firmware",
+              "value": "Not required"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months"
+            }
+          ],
+          "to": [
+            {
+              "label": "Product type",
+              "value": "Standalone PCIe DMA device"
+            },
+            {
+              "label": "Maker",
+              "value": "Third party (not a TraceCore board)"
+            },
+            {
+              "label": "Firmware",
+              "value": "Ships ready to use; nothing to load"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months (replacement), handled by TraceCoreLab"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "Heino 2.0"
+          ],
+          "to": [
+            "Heino 2.0 DMA device"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "Heino 2.0 Standalone PCIe DMA Device with 3-Month Warranty"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "Heino 2.0 standalone PCIe DMA device from a third-party maker, sold with a 3-month warranty and setup help from TraceCoreLab. Contact us for lead times."
+        },
+        "description": {
+          "from": null,
+          "to": "Heino 2.0 is a standalone PCIe DMA device from a third-party maker. TraceCoreLab sells it alongside its own TraceCore boards and handles its 3-month warranty and support. It ships ready to use. Stock is limited and lead times vary, so contact us before you order and we will confirm availability and timing. Use a DMA card only on computers you own or are authorized to examine.\n\n## How it differs from TraceCore boards\n\nThe [TraceCore 75T](/product/tracecore-75t) and [TraceCore 100T Pro](/product/tracecore-100t-pro) are Artix-7 FPGA DMA cards with published FPGA, host interface and data link details, and both are PCILeech-compatible. Heino 2.0 comes from another maker and is listed here with only the details we can confirm. If a specific detail matters for your work, such as the host interface, software support or box contents, ask us before ordering and we will answer it for the unit we have in stock.\n\n## Before you order\n\n1. Contact us on Discord or through the [support page](/support) and tell us what you plan to use the device for.\n2. We confirm stock, the current lead time and any details you asked about.\n3. Place the order once you have our confirmation.\n\n## What you need\n\n- A target system that you own or are authorized to examine, with a free PCIe slot.\n- A separate analysis workstation for your tools and captures.\n- A check of the target's platform protections. An active IOMMU (Intel VT-d, AMD-Vi), virtualization-based security or Kernel DMA Protection limits any DMA device; [DMA card compatibility](/guides/dma-card-compatibility) explains how to check their status.\n\n## Warranty and support\n\nLike every unit we ship, it is tested in the TraceCoreLab lab before dispatch. It is covered by a 3-month replacement warranty handled by TraceCoreLab, and the TraceCoreLab team helps with setup on Discord.\n\n## Common questions\n\n### Is Heino 2.0 a TraceCore board?\n\nNo. It is made by a third-party maker. TraceCoreLab sells it, provides the warranty and helps with setup.\n\n### Why should I contact you before ordering?\n\nStock is limited and lead times change, so we confirm both before you pay.\n\n### Do I need to load anything onto it?\n\nNo. It ships ready to use, with no firmware to load.\n\n### How does it compare with the TraceCore 75T and 100T Pro?\n\nThe TraceCore boards are documented Artix-7 FPGA cards; [35T vs 75T vs 100T](/guides/artix-7-35t-vs-75t-vs-100t) compares them. For how DMA hardware works in general, read [what is a PCIe DMA card](/guides/what-is-a-pcie-dma-card).\n\nBrowse all [FPGA DMA cards](/shop/dma)."
+        },
+        "brand": {
+          "from": null,
+          "to": "Heino"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/heino-2.webp",
+          "alt": {
+            "from": "Heino 2.0",
+            "to": "Heino 2.0 PCIe DMA device: black shrouded card with a single cooling fan and a red bracket, on a dark red background"
+          }
+        }
+      ]
+    },
+    {
+      "op": "category.update",
+      "slug": "dma",
+      "fields": {
+        "name": {
+          "from": "DMA Cards",
+          "to": "DMA Cards"
+        },
+        "blurb": {
+          "from": "FPGA boards built on Xilinx Artix-7.",
+          "to": "FPGA DMA cards on Xilinx Artix-7 for memory forensics, security research and FPGA development."
+        },
+        "intro": {
+          "from": null,
+          "to": "FPGA DMA cards install in a PCIe slot of a target system and read its memory by direct memory access, passing the data over USB to a separate analysis workstation. With PCILeech-compatible tools such as PCILeech and MemProcFS, they are used for memory forensics, incident response, security research and FPGA development. Use a DMA card only on computers you own or are authorized to examine.\n\n| | [TraceCore 75T](/product/tracecore-75t) | [TraceCore 100T Pro](/product/tracecore-100t-pro) |\n|---|---|---|\n| FPGA | Xilinx Artix-7 XC7A75T | Xilinx Artix-7 XC7A100T |\n| Logic cells | 75,520 | 101,440 |\n| Host interface | PCIe x1, fits x1 to x16 slots | PCIe x1, fits x1 to x16 slots |\n| Data link | USB-C, USB 3 (USB 3.1 and USB 3.2 ports) | USB-C |\n| Kill switch | I/O panel, enable/disable | I/O panel, enable/disable |\n\nFor PCILeech and MemProcFS work the USB link sets read speed more than the FPGA size does, so the 75T suits most buyers. The 100T Pro adds about 34% more logic for FPGA designs of your own. [Heino 2.0](/product/heino-2) is a standalone DMA device from a third-party maker; contact us for the current lead time before ordering.\n\n- [What is a PCIe DMA card?](/guides/what-is-a-pcie-dma-card)\n- [Artix-7 35T vs 75T vs 100T compared](/guides/artix-7-35t-vs-75t-vs-100t)\n- [How to install a PCIe DMA card](/guides/install-a-pcie-dma-card)\n- [PCILeech-compatible hardware explained](/guides/pcileech-compatible-hardware)\n\nEvery card is tested in the TraceCoreLab lab before dispatch and ships worldwide with a 3-month replacement warranty."
+        },
+        "seo_title": {
+          "from": null,
+          "to": "FPGA DMA Cards: Artix-7 75T and 100T PCIe DMA Boards"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "PCIe FPGA DMA cards on Xilinx Artix-7 75T and 100T for memory forensics, security research and FPGA development. PCILeech-compatible, 3-month warranty."
+        }
+      }
+    },
+    {
+      "op": "product.update",
+      "slug": "tracecore-dc505",
+      "fields": {
+        "tagline": {
+          "from": null,
+          "to": "HDMI 2.1 and DP 1.4 video fuser with 1080p 60 Hz capture"
+        },
+        "summary": {
+          "from": null,
+          "to": "The DICHEN DC505 is a video fuser that shows two video sources on one monitor: the main source provides the picture and the overlay source is keyed over it, for stream overlays, presentation overlays and picture-in-picture layouts. It runs over HDMI 2.1 with FRL at 48 Gbit/s or over DisplayPort 1.4, and it can capture the direct or fused picture at 1080p 60 Hz with audio while the overlay keeps running. Three EDID modes control which resolutions and refresh rates the graphics cards are offered."
+        },
+        "highlights": {
+          "from": [
+            "Next-generation 4K fuser with built-in video capture",
+            "DisplayPort up to 1080p 500Hz / 1440p 320Hz / 4K 144Hz",
+            "HDMI up to 1080p 550Hz / 1440p 360Hz / 4K 160Hz",
+            "Built-in 1080p 60Hz capture with audio",
+            "Capture while display fusion is active",
+            "Advanced EDID injection, editing and writing",
+            "Three EDID modes: Adaptive, Native and Custom",
+            "Flicker-free with NVIDIA RTX 50 Series GPUs"
+          ],
+          "to": [
+            "HDMI 2.1 mode (FRL 48 Gbit/s): vendor-listed up to 1080p 550 Hz, 1440p 360 Hz and 4K 160 Hz",
+            "DisplayPort 1.4 mode: vendor-listed up to 1080p 500 Hz, 1440p 320 Hz and 4K 144 Hz, which need DSC",
+            "Built-in capture at 1080p 60 Hz with audio, available while the overlay runs",
+            "Capture source: one input directly or the fused picture",
+            "Three EDID modes (Adaptive, Native, Custom) to match resolution and refresh rate to the monitor",
+            "Vendor-listed as flicker-free with NVIDIA RTX 50 Series graphics cards"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Brand",
+              "value": "DICHEN"
+            },
+            {
+              "label": "Model",
+              "value": "DC505"
+            },
+            {
+              "label": "Product Type",
+              "value": "4K Display Fuser with Video Capture and EDID Injection"
+            },
+            {
+              "label": "Input Interfaces",
+              "value": "DisplayPort and HDMI"
+            },
+            {
+              "label": "DisplayPort Input",
+              "value": "1920×1080 up to 500Hz; 2560×1440 up to 320Hz; 3840×2160 up to 144Hz"
+            },
+            {
+              "label": "HDMI Input",
+              "value": "1920×1080 up to 550Hz; 2560×1440 up to 360Hz; 3840×2160 up to 160Hz"
+            },
+            {
+              "label": "Typical Real-World Performance",
+              "value": "1080p500; 1440p320; 4K144"
+            },
+            {
+              "label": "Display-Dependent Limits",
+              "value": "Some monitors may be limited to 1080p480, 1440p240 or 4K120"
+            },
+            {
+              "label": "Capture Resolution",
+              "value": "Up to 1080p@60Hz"
+            },
+            {
+              "label": "Capture Features",
+              "value": "Ultra-low latency; simultaneous video and audio capture"
+            },
+            {
+              "label": "Capture Modes",
+              "value": "Direct source capture; fused output capture; stream and record while fusing"
+            },
+            {
+              "label": "EDID Injection",
+              "value": "Loads compatible EDID profiles to improve source-to-display compatibility"
+            },
+            {
+              "label": "EDID Editing",
+              "value": "Read, modify and write Display ID, serial number, monitor name, model information, manufacturer information and other EDID parameters"
+            },
+            {
+              "label": "EDID Modes",
+              "value": "Mode A Adaptive Timing EDID; Mode B Native Monitor EDID; Mode C Custom EDID Injection"
+            },
+            {
+              "label": "GPU Compatibility",
+              "value": "No flickering with NVIDIA RTX 50 Series GPUs; certain RTX 5070 Ti and higher GPUs and some newer laptops may require 12G×4 mode"
+            },
+            {
+              "label": "Supported Devices",
+              "value": "Desktop PCs, laptops, major-brand graphics cards, gaming and professional monitors, industrial cameras, wireless casting devices, microscopes and medical equipment"
+            },
+            {
+              "label": "Applications",
+              "value": "Display fusion, live streaming, content creation, OBS workflows, gaming, professional demonstrations, industrial imaging, medical imaging, signal testing, custom monitor emulation and professional AV"
+            },
+            {
+              "label": "Firmware",
+              "value": "Device compatibility continues to expand through firmware updates"
+            }
+          ],
+          "to": [
+            {
+              "label": "Interfaces",
+              "value": "HDMI 2.1 (FRL 48 Gbit/s) or DisplayPort 1.4"
+            },
+            {
+              "label": "Capture",
+              "value": "1080p 60 Hz, video and audio"
+            },
+            {
+              "label": "EDID modes",
+              "value": "Adaptive, Native, Custom"
+            },
+            {
+              "label": "HDMI 2.1 modes (vendor-listed)",
+              "value": "1920 × 1080 up to 550 Hz; 2560 × 1440 up to 360 Hz; 3840 × 2160 up to 160 Hz"
+            },
+            {
+              "label": "HDMI 2.1 common modes (vendor-listed)",
+              "value": "1920 × 1080 at 500 Hz; 2560 × 1440 at 320 Hz; 3840 × 2160 at 144 Hz; the top modes depend on monitor timing"
+            },
+            {
+              "label": "DP 1.4 modes (vendor-listed)",
+              "value": "1920 × 1080 up to 500 Hz; 2560 × 1440 up to 320 Hz; 3840 × 2160 up to 144 Hz"
+            },
+            {
+              "label": "DP 1.4 bandwidth",
+              "value": "The listed DP modes exceed the 25.92 Gbit/s uncompressed HBR3 payload at 8-bit RGB and need DSC; some monitors stop at 1080p 480 Hz, 1440p 240 Hz or 4K 120 Hz"
+            },
+            {
+              "label": "HDMI requirements",
+              "value": "HDMI 2.1 with FRL 48 Gbit/s on the graphics cards and monitor; Ultra High Speed HDMI cables"
+            },
+            {
+              "label": "DP requirements",
+              "value": "DisplayPort 1.4 on the graphics cards and monitor; certified DP 1.4 (HBR3) cables"
+            },
+            {
+              "label": "NVIDIA RTX 50 Series",
+              "value": "Vendor-listed as flicker-free; some laptops with an RTX 5070 Ti or newer GPU need 12G × 4 mode (HDMI 2.1 FRL 48 Gbit/s)"
+            },
+            {
+              "label": "Capture modes (vendor-listed)",
+              "value": "Direct source or fused output; record or stream while the overlay runs"
+            },
+            {
+              "label": "Brand",
+              "value": "DICHEN"
+            },
+            {
+              "label": "Model",
+              "value": "DC505"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months, replacement for hardware faults"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "1 × DC505",
+            "1 x Power Supply"
+          ],
+          "to": [
+            "1 × DICHEN DC505 video fuser",
+            "1 × power supply"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "DICHEN DC505 Video Fuser: HDMI 2.1 + DP 1.4, 1080p60 Capture"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "DICHEN DC505 video fuser for HDMI 2.1 (FRL 48 Gbit/s) and DP 1.4 overlays: vendor-listed up to 4K 160 Hz over HDMI 2.1, plus 1080p 60 Hz capture with audio."
+        },
+        "description": {
+          "from": null,
+          "to": "## What the DC505 does\n\nThe DICHEN DC505 is a video fuser with built-in capture. It shows two video sources on one monitor: the main source provides the picture, and the overlay source is keyed on top, so its background drops out and only its graphics stay visible. A streamer can run alerts, lower-thirds or a chat panel from a second computer; a presenter can lay notes, a timer or a logo over slides; an AV technician can build picture-in-picture layouts or digital signage. The DC505 is built for high-refresh monitors and can record or stream the result at the same time.\n\n## Key specs in plain words\n\n- **HDMI 2.1 mode.** Vendor-listed up to 1080p 550 Hz, 1440p 360 Hz and 4K 160 Hz. The top modes depend on the monitor's timing; many monitors settle at 1080p 500 Hz, 1440p 320 Hz and 4K 144 Hz. With reduced-blanking timing these modes fit inside the FRL 48 Gbit/s link at 8-bit RGB.\n- **DisplayPort 1.4 mode.** Vendor-listed up to 1080p 500 Hz, 1440p 320 Hz and 4K 144 Hz. DP 1.4 (HBR3) carries 25.92 Gbit/s of video uncompressed, and these modes need about 31 to 34 Gbit/s at 8-bit RGB, so they rely on Display Stream Compression (DSC) in the graphics card and monitor. Without DSC, plan on about 1440p 240 Hz or 4K 120 Hz.\n- **Capture output.** 1080p 60 Hz video with audio, taken from one source directly or from the fused picture, while the overlay keeps running (vendor-listed).\n- **EDID modes.** EDID is the data a monitor sends to describe the resolutions and refresh rates it supports. Adaptive uses an adapted timing, Native passes the monitor's own EDID through, and Custom uses a profile you choose. Either way, the EDID handshake offers both sources only modes that the monitor and the DC505 can carry.\n\n## Requirements and compatibility\n\n- **HDMI 2.1 mode:** both graphics cards and the monitor need HDMI 2.1 with FRL at 48 Gbit/s. HDMI 2.1 features are optional, so a port labelled HDMI 2.1 may not support FRL 48G; check each device's specifications. Use Ultra High Speed HDMI cables.\n- **DisplayPort 1.4 mode:** DP 1.4 on both graphics cards and the monitor, with certified DP 1.4 (HBR3) cables.\n- **NVIDIA RTX 50 Series:** vendor-listed as flicker-free. Some laptops with an RTX 5070 Ti or newer GPU need the 12G × 4 mode, which is HDMI 2.1 FRL at 48 Gbit/s over four 12 Gbit/s lanes.\n- Before you buy, check your monitor's mode with the [pixel clock calculator](/tools/pixel-clock-calculator).\n\n## In the box\n\nThe DC505 video fuser and its power supply. Video cables are not included.\n\n## Setup\n\n[DisplayPort and HDMI 2.1 fuser setup](/guides/displayport-and-hdmi-2-1-fuser-setup) covers cabling, mode selection and the capture output. If a resolution or refresh rate is missing, see [fix wrong resolution or refresh rate](/guides/video-fuser-resolution-and-refresh).\n\n## Questions\n\n### Do the graphics cards and the monitor all need HDMI 2.1?\n\nFor the HDMI modes, yes: every device in the chain needs HDMI 2.1 with FRL at 48 Gbit/s. If your graphics cards and monitor have DisplayPort 1.4 instead, use the DisplayPort mode.\n\n### Why do the top DisplayPort modes need DSC?\n\nThey need more data than DP 1.4 carries uncompressed. 4K 144 Hz at 8-bit RGB needs about 31.4 Gbit/s against 25.92 Gbit/s available, so the stream has to be compressed with DSC to fit. All mode figures here are vendor-listed, not TraceCoreLab measurements.\n\n### Can I capture while the overlay is running?\n\nYes. The vendor lists 1080p 60 Hz capture with audio while fusion is active, from a direct source or from the fused picture.\n\nTraceCoreLab ships the DC505 worldwide with a 3-month replacement warranty, and setup help is available on our Discord.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "DICHEN"
+        },
+        "mpn": {
+          "from": null,
+          "to": "DC505"
+        }
+      },
+      "images": [
+        {
+          "url": "/media/products/2026/10/62da4dd63cb143a7608a.webp",
+          "alt": {
+            "from": "DC505 FUSER",
+            "to": "DICHEN DC505 video fuser in a white metal case with a round top vent, K1 to K4 keys, status LEDs and a USB-C port labelled Collect"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "d60-4k-fuser",
+      "fields": {
+        "tagline": {
+          "from": null,
+          "to": "DisplayPort 1.4 video fuser, 4K 120 Hz in full RGB"
+        },
+        "summary": {
+          "from": null,
+          "to": "The DICHEN D60 4K is a DisplayPort 1.4 video fuser: it shows two video sources on one monitor, keying the overlay source's graphics over the main picture for stream overlays, presentation overlays and picture-in-picture layouts. Its vendor-listed modes reach 4K 120 Hz in RGB, 1440p 240 Hz and 1080p 360 Hz, all within DP 1.4's uncompressed bandwidth at 8-bit colour. It adapts resolution and refresh rate automatically and has a full-colour status display and a rotary knob on the front."
+        },
+        "highlights": {
+          "from": [
+            "DP 1.4 with 32.4Gbps bandwidth",
+            "True 4K 120Hz RGB output",
+            "4K120, 3K165, 2K240 and 1K360 support",
+            "Dual DP interface design",
+            "HDMI 2.1 and DP 1.4 compatibility",
+            "Adaptive resolution and image optimization",
+            "Automatic setup with plug-and-play",
+            "Full-color display interface",
+            "Lossless native image output"
+          ],
+          "to": [
+            "Vendor-listed modes: 4K 120 Hz, 1440p 240 Hz and 1080p 360 Hz",
+            "4K 120 Hz in RGB at 8-bit fits DP 1.4 without compression",
+            "Ultrawide modes: 3440 × 1440 at 144 to 180 Hz and 3840 × 1080 at 120 Hz (vendor-listed)",
+            "DisplayPort 1.4 HBR3 link: 32.4 Gbit/s raw, 25.92 Gbit/s for video",
+            "Automatic resolution and refresh-rate adaptation, plug-and-play",
+            "Full-colour status display and rotary knob on the front panel"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Product",
+              "value": "DICHEN D60 4K Fuser"
+            },
+            {
+              "label": "Interface Design",
+              "value": "Dual DP"
+            },
+            {
+              "label": "Signal Compatibility",
+              "value": "HDMI 2.1 and DisplayPort 1.4 input/output"
+            },
+            {
+              "label": "DisplayPort Bandwidth",
+              "value": "32.4Gbps"
+            },
+            {
+              "label": "Maximum Resolution",
+              "value": "3840×2160 @ 120Hz (RGB)"
+            },
+            {
+              "label": "Supported Modes",
+              "value": "4K120; 3K165; 2K240; 1K360"
+            },
+            {
+              "label": "3440×1440 Refresh Range",
+              "value": "144–180Hz"
+            },
+            {
+              "label": "3840×1080 Maximum Refresh",
+              "value": "120Hz"
+            },
+            {
+              "label": "3840×2160 Maximum Refresh",
+              "value": "120Hz"
+            },
+            {
+              "label": "Image Output",
+              "value": "Lossless native output"
+            },
+            {
+              "label": "Processing",
+              "value": "Adaptive resolution and image optimization"
+            },
+            {
+              "label": "Setup",
+              "value": "Automatic resolution and refresh-rate adaptation; plug-and-play"
+            },
+            {
+              "label": "On-Device Display",
+              "value": "Full-color interface"
+            },
+            {
+              "label": "Verified Monitors",
+              "value": "AOC CU34G3X — 3440×1440 @ 165Hz; Skyworth 44C1G — 3840×1080 @ 120Hz"
+            },
+            {
+              "label": "System Requirement",
+              "value": "HDMI 2.1 output on the secondary system for high-refresh operation"
+            },
+            {
+              "label": "Applications",
+              "value": "Gaming, design, high-definition video playback, work and entertainment"
+            }
+          ],
+          "to": [
+            {
+              "label": "Interface",
+              "value": "DisplayPort 1.4 (HBR3)"
+            },
+            {
+              "label": "3840 × 2160",
+              "value": "Up to 120 Hz, RGB (vendor-listed)"
+            },
+            {
+              "label": "2560 × 1440",
+              "value": "Up to 240 Hz (vendor-listed)"
+            },
+            {
+              "label": "1920 × 1080",
+              "value": "Up to 360 Hz (vendor-listed)"
+            },
+            {
+              "label": "3440 × 1440",
+              "value": "144 to 180 Hz, monitor-dependent (vendor-listed)"
+            },
+            {
+              "label": "3840 × 1080",
+              "value": "Up to 120 Hz (vendor-listed)"
+            },
+            {
+              "label": "Port design",
+              "value": "Dual DisplayPort; HDMI 2.1 and DP 1.4 signal compatibility (vendor-listed)"
+            },
+            {
+              "label": "Overlay source",
+              "value": "HDMI 2.1 output needed for high-refresh modes (vendor-listed)"
+            },
+            {
+              "label": "Link bandwidth",
+              "value": "32.4 Gbit/s raw; 25.92 Gbit/s video payload after 8b/10b encoding"
+            },
+            {
+              "label": "Setup",
+              "value": "Automatic resolution and refresh-rate adaptation; plug-and-play"
+            },
+            {
+              "label": "Front panel",
+              "value": "Full-colour status display, rotary knob"
+            },
+            {
+              "label": "Verified monitors (vendor-listed)",
+              "value": "AOC CU34G3X at 3440 × 1440, 165 Hz; Skyworth 44C1G at 3840 × 1080, 120 Hz"
+            },
+            {
+              "label": "Brand",
+              "value": "DICHEN"
+            },
+            {
+              "label": "Model",
+              "value": "D60"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months, replacement for hardware faults"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "1 × DICHEN D60 4K Fuser",
+            "1 x Power Supply"
+          ],
+          "to": [
+            "1 × DICHEN D60 4K video fuser",
+            "1 × power supply"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "DICHEN D60 4K Video Fuser: DisplayPort 1.4, 4K 120 Hz RGB"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "DICHEN D60 4K DisplayPort 1.4 video fuser for stream and presentation overlays: vendor-listed 4K 120 Hz RGB, 1440p 240 Hz and 1080p 360 Hz, auto setup."
+        },
+        "description": {
+          "from": null,
+          "to": "## What the D60 4K does\n\nThe DICHEN D60 4K is a DisplayPort video fuser. It shows two video sources on one monitor: the main source provides the picture, and the overlay source is keyed over it so only its graphics remain. Typical jobs are stream overlays drawn on a second computer, presentation overlays such as speaker notes or a countdown, picture-in-picture layouts, and digital signage where a ticker or clock runs over a playback feed. It suits high-refresh monitors, from 4K 120 Hz screens to 3440 × 1440 ultrawides and 3840 × 1080 super-ultrawides.\n\n## Key specs in plain words\n\n- **DisplayPort 1.4 (HBR3).** Four lanes at 8.1 Gbit/s make the 32.4 Gbit/s figure on the spec sheet. After 8b/10b encoding, 25.92 Gbit/s is left for video, and every mode has to fit inside that.\n- **4K 120 Hz in RGB.** At 8-bit colour with CVT reduced-blanking timing, 4K 120 Hz needs about 25.8 Gbit/s. It fits without compression, with almost no room to spare.\n- **Vendor-listed modes.** 4K 120 Hz, 1440p 240 Hz, 1080p 360 Hz, 3440 × 1440 at 144 to 180 Hz depending on the monitor, and 3840 × 1080 at 120 Hz. At 8-bit RGB, all of them fit DP 1.4 without DSC.\n- **Automatic adaptation.** The D60 matches resolution and refresh rate on its own when you connect it, so a standard setup needs no configuration.\n- **Front panel.** A full-colour status display and a rotary knob.\n\n## Requirements and compatibility\n\n- A DisplayPort 1.4 monitor and graphics output, with certified DP 1.4 (HBR3) cables.\n- For high-refresh modes, the vendor lists an HDMI 2.1 output on the overlay source.\n- Monitors listed as verified: AOC CU34G3X at 3440 × 1440 and 165 Hz, and Skyworth 44C1G at 3840 × 1080 and 120 Hz.\n- Your monitor's own EDID timing sets the exact pixel clock. DP 1.4 carries about 1080 MHz at 8-bit RGB and 4K 120 Hz needs about 1076 MHz, so check your mode with the [pixel clock calculator](/tools/pixel-clock-calculator).\n\n## In the box\n\nThe D60 4K video fuser and a power supply. Cables are not included.\n\n## Setup\n\nFollow [DisplayPort and HDMI 2.1 fuser setup](/guides/displayport-and-hdmi-2-1-fuser-setup) to connect the D60 and check the overlay with a test pattern. For the bandwidth background, read [pixel clock and fuser bandwidth](/guides/pixel-clock-and-fuser-bandwidth).\n\n## Questions\n\n### Will my monitor work through the D60?\n\nIf its mode needs a pixel clock under about 1080 MHz at 8-bit RGB, it fits DP 1.4 without compression. 1440p 240 Hz needs about 1026 MHz and 3440 × 1440 at 180 Hz about 995 MHz with reduced blanking. Modes close to the limit may need a tighter timing.\n\n### Can I use 10-bit colour at 4K 120 Hz?\n\nNot without compression. 10-bit colour adds a quarter more data, which takes 4K 120 Hz to about 32 Gbit/s, more than DP 1.4 carries uncompressed. Use 8-bit RGB for that mode.\n\n### What does the overlay source need?\n\nFor high-refresh modes, an HDMI 2.1 output (vendor-listed). It must also drive the same resolution and refresh rate as the main source.\n\nTraceCoreLab ships worldwide and covers the D60 with a 3-month replacement warranty; ask on our Discord if you need help with setup.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "DICHEN"
+        },
+        "mpn": {
+          "from": null,
+          "to": "D60"
+        }
+      },
+      "images": [
+        {
+          "url": "/media/products/2026/10/27bb315c07c7aaf6d582.webp",
+          "alt": {
+            "from": "D60 4K FUSER",
+            "to": "DICHEN D60 4K DisplayPort video fuser, black case with a colour status display and a large rotary knob on the front panel"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "dichen-dc1a255",
+      "fields": {
+        "tagline": {
+          "from": null,
+          "to": "Three-port HDMI 2.0 video fuser, 1080p up to 240 Hz"
+        },
+        "summary": {
+          "from": null,
+          "to": "The DICHEN DC1A255-H3 is an HDMI 2.0 video fuser with three ports: two inputs for your video sources and one output to the monitor. The overlay source is keyed over the main picture, so a second computer can add stream graphics, a presentation timer or a picture-in-picture window, at vendor-listed modes up to 1080p 240 Hz and 1440p 144 Hz. Native EDID passthrough gives both sources the monitor's own modes, and two HDMI cables and a power adapter are in the box."
+        },
+        "highlights": {
+          "from": [
+            "3 × HDMI 2.0 interfaces",
+            "1080p@240Hz, 1440p@144Hz, 3K@100Hz",
+            "Native EDID automatic passthrough",
+            "One-click EDID modification",
+            "Hardware direct-connect signal architecture",
+            "Full DDC / HDCP / TMDS / CEC / HPD / SCL / SDA / EDID support",
+            "Plug-and-play operation",
+            "Stable, high-compatibility signal transmission"
+          ],
+          "to": [
+            "3 × HDMI 2.0 ports: two source inputs, one monitor output",
+            "Vendor-listed up to 1080p 240 Hz, 1440p 144 Hz and 3440 × 1440 at 100 Hz",
+            "4K (3840 × 2160) at up to 60 Hz for presentation and signage screens",
+            "Native EDID passthrough: both sources see the monitor's own resolutions and refresh rates",
+            "Carries HDMI DDC, HPD, CEC and HDCP signalling (vendor-listed)",
+            "Plug-and-play; two HDMI cables and a power adapter included"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Model",
+              "value": "DC1A255-H3"
+            },
+            {
+              "label": "Interface Configuration",
+              "value": "3 × HDMI 2.0"
+            },
+            {
+              "label": "Resolution / Refresh Rate",
+              "value": "1920×1080 up to 240Hz; 2560×1440 (2K) up to 144Hz; 3K up to 100Hz"
+            },
+            {
+              "label": "Signal Protocol Support",
+              "value": "DDC / HDCP / TMDS / CEC / HPD / SCL / SDA / EDID"
+            },
+            {
+              "label": "EDID Functions",
+              "value": "Native automatic passthrough; one-click modification"
+            },
+            {
+              "label": "Signal Architecture",
+              "value": "Hardware direct-connect"
+            },
+            {
+              "label": "Operation",
+              "value": "Plug-and-play"
+            },
+            {
+              "label": "Compatibility",
+              "value": "Host computers, displays and professional display equipment"
+            },
+            {
+              "label": "Applications",
+              "value": "Multi-display office setups; esports and high-refresh-rate gaming; engineering display adaptation"
+            }
+          ],
+          "to": [
+            {
+              "label": "Interfaces",
+              "value": "3 × HDMI 2.0 (2 inputs, 1 output)"
+            },
+            {
+              "label": "1920 × 1080",
+              "value": "Up to 240 Hz (vendor-listed)"
+            },
+            {
+              "label": "2560 × 1440",
+              "value": "Up to 144 Hz (vendor-listed)"
+            },
+            {
+              "label": "3440 × 1440",
+              "value": "Up to 100 Hz, listed as 3K (vendor-listed)"
+            },
+            {
+              "label": "3840 × 2160",
+              "value": "Up to 60 Hz (vendor-listed)"
+            },
+            {
+              "label": "EDID",
+              "value": "Native automatic passthrough"
+            },
+            {
+              "label": "Signal support (vendor-listed)",
+              "value": "DDC (EDID), HPD, CEC and HDCP over TMDS"
+            },
+            {
+              "label": "Operation",
+              "value": "Plug-and-play"
+            },
+            {
+              "label": "Brand",
+              "value": "DICHEN"
+            },
+            {
+              "label": "Model",
+              "value": "DC1A255-H3"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months, replacement for hardware faults"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "HDMI CABLE X2",
+            "POWER ADAPTURE",
+            "1 × DC1A255-H3"
+          ],
+          "to": [
+            "1 × DICHEN DC1A255-H3 video fuser",
+            "1 × power adapter",
+            "2 × HDMI cables"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "DICHEN DC1A255-H3 HDMI 2.0 Video Fuser: 1080p 240 Hz, 3 Ports"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "DICHEN DC1A255-H3 three-port HDMI 2.0 video fuser with native EDID passthrough: vendor-listed 1080p 240 Hz and 1440p 144 Hz. HDMI cables and power included."
+        },
+        "description": {
+          "from": null,
+          "to": "## What the DC1A255-H3 does\n\nThe DICHEN DC1A255-H3 is an HDMI 2.0 video fuser with three ports: two inputs for your video sources and one output to the monitor. The main source provides the picture and the overlay source is keyed over it, so a second computer can add stream graphics, a presentation timer, captions or a picture-in-picture window. It suits 1080p and 1440p high-refresh monitors, ultrawides up to 3440 × 1440 and 4K screens at 60 Hz, whether on a streaming desk, in a classroom or behind a signage display.\n\n## Key specs in plain words\n\n- **HDMI 2.0 bandwidth.** HDMI 2.0 runs at 18 Gbit/s, of which 14.4 Gbit/s is video data, and limits the pixel clock to 600 MHz. With reduced-blanking timing, 1080p 240 Hz needs about 583 MHz and 1440p 144 Hz about 587 MHz, which is why those are the top modes.\n- **Vendor-listed modes.** 1080p up to 240 Hz, 1440p up to 144 Hz, 3440 × 1440 up to 100 Hz (listed as 3K) and 4K up to 60 Hz.\n- **Native EDID passthrough.** EDID is the data that tells a graphics card which resolutions and refresh rates a monitor supports. The DC1A255 passes the monitor's own EDID to both sources automatically, so the EDID handshake offers each one the monitor's real modes.\n- **Signal support.** The vendor lists DDC, HPD, CEC and HDCP over the HDMI link. The DC1A255 is plug-and-play.\n\n## Requirements and compatibility\n\n- HDMI outputs on both sources and an HDMI input on the monitor. For DisplayPort graphics cards, a DisplayPort fuser such as the [D60 4K](/product/d60-4k-fuser) is the simpler route.\n- For 1080p 240 Hz and 1440p 144 Hz, use HDMI cables rated for 18 Gbit/s (Premium High Speed or better).\n- Set both sources to the same resolution and refresh rate.\n- Unusual monitor? Check its mode with the [pixel clock calculator](/tools/pixel-clock-calculator).\n\n## In the box\n\nThe DC1A255-H3 video fuser, a power adapter and two HDMI cables.\n\n## Setup\n\n[HDMI video fuser setup](/guides/hdmi-video-fuser-setup) walks through cabling, the status LEDs and first power-on.\n\n## Questions\n\n### Why does 1440p stop at 144 Hz?\n\nHDMI 2.0 limits the pixel clock to 600 MHz. 1440p 144 Hz uses about 587 MHz; 165 Hz would need about 680 MHz, more than the link carries.\n\n### How many HDMI cables do I need?\n\nThree: one from each source and one to the monitor. Two are in the box, and the monitor's own HDMI cable usually covers the third.\n\n### Do I need to set up EDID?\n\nNo. Native EDID passthrough hands the monitor's EDID to both sources automatically. If a mode is still missing, see [fix wrong resolution or refresh rate](/guides/video-fuser-resolution-and-refresh).\n\nThe DC1A255-H3 ships worldwide from TraceCoreLab with a 3-month replacement warranty and support on Discord.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "DICHEN"
+        },
+        "mpn": {
+          "from": null,
+          "to": "DC1A255-H3"
+        }
+      },
+      "images": [
+        {
+          "url": "/media/products/2026/11/08f0954eb86392112c53.webp",
+          "alt": {
+            "from": "DC1A255 FUSER",
+            "to": "DICHEN DC1A255-H3 HDMI 2.0 video fuser, grey metal case with DCKJ logo, front power switch, four status LEDs and keys X1 to X4"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "dichen-fuser",
+      "fields": {
+        "tagline": {
+          "from": "HDMI video fuser up to 240 Hz",
+          "to": "HDMI video fuser, 1080p up to 240 Hz with automatic EDID"
+        },
+        "summary": {
+          "from": "Combines the video from two PCs onto a single HDMI display. EDID is handled automatically, so it works the moment it's plugged in.",
+          "to": "The Dichen Fuser combines two HDMI sources on one display: the main source fills the screen and the overlay source is keyed over it, so only its graphics show. It adapts EDID automatically, so both sources are offered modes the monitor supports without manual setup, and its vendor-listed modes run from 1080p 240 Hz to 4K 60 Hz. It is a simple HDMI choice for stream overlays, presentation overlays, picture-in-picture windows and signage."
+        },
+        "highlights": {
+          "from": [
+            "1080p up to 240 Hz, 1440p up to 144 Hz",
+            "4K up to 60 Hz",
+            "Automatic EDID, no setup",
+            "HDMI connection"
+          ],
+          "to": [
+            "Keys an overlay source over the main picture on one HDMI monitor",
+            "Vendor-listed up to 1080p 240 Hz and 1440p 144 Hz",
+            "21:9 ultrawide modes: 2560 × 1080 up to 200 Hz, 3440 × 1440 up to 100 Hz",
+            "4K (3840 × 2160) up to 60 Hz",
+            "Automatic EDID adaptation, no manual EDID setup"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Connection",
+              "value": "HDMI"
+            },
+            {
+              "label": "1920 × 1080",
+              "value": "Up to 240 Hz"
+            },
+            {
+              "label": "2560 × 1080",
+              "value": "Up to 200 Hz"
+            },
+            {
+              "label": "2560 × 1440",
+              "value": "Up to 144 Hz"
+            },
+            {
+              "label": "3440 × 1440",
+              "value": "Up to 100 Hz"
+            },
+            {
+              "label": "3840 × 2160",
+              "value": "Up to 60 Hz"
+            },
+            {
+              "label": "EDID",
+              "value": "Automatic"
+            }
+          ],
+          "to": [
+            {
+              "label": "Interface",
+              "value": "HDMI"
+            },
+            {
+              "label": "1920 × 1080",
+              "value": "Up to 240 Hz (vendor-listed)"
+            },
+            {
+              "label": "2560 × 1440",
+              "value": "Up to 144 Hz (vendor-listed)"
+            },
+            {
+              "label": "2560 × 1080",
+              "value": "Up to 200 Hz (vendor-listed)"
+            },
+            {
+              "label": "3440 × 1440",
+              "value": "Up to 100 Hz (vendor-listed)"
+            },
+            {
+              "label": "3840 × 2160",
+              "value": "Up to 60 Hz (vendor-listed)"
+            },
+            {
+              "label": "EDID",
+              "value": "Automatic adaptation"
+            },
+            {
+              "label": "Brand",
+              "value": "DICHEN"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months, replacement for hardware faults"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "Dichen Fuser"
+          ],
+          "to": [
+            "1 × Dichen Fuser (HDMI video fuser)"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "DICHEN HDMI Video Fuser: 1080p 240 Hz, 4K 60 Hz, Auto EDID"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "DICHEN HDMI video fuser for stream and presentation overlays: vendor-listed 1080p 240 Hz, 1440p 144 Hz, ultrawide and 4K 60 Hz, with automatic EDID."
+        },
+        "description": {
+          "from": null,
+          "to": "## What the Dichen Fuser does\n\nThe Dichen Fuser is an HDMI video fuser from DICHEN. It combines two HDMI sources on one monitor: the main source fills the screen and the overlay source is keyed over it, so only its graphics show. Use it to add stream overlays from a second computer, put speaker notes or a countdown over a presentation, run a picture-in-picture window, or lay a clock or ticker over a signage feed. EDID is handled automatically, which makes it an easy first video fuser for HDMI monitors.\n\n## Key specs in plain words\n\n- **Vendor-listed modes.** 1920 × 1080 up to 240 Hz, 2560 × 1440 up to 144 Hz, 2560 × 1080 up to 200 Hz, 3440 × 1440 up to 100 Hz and 3840 × 2160 up to 60 Hz.\n- **What limits them.** These modes match what an HDMI 2.0-class link carries, about 600 MHz of pixel clock. 1080p 240 Hz needs about 583 MHz with reduced-blanking timing. 2560 × 1080 at 200 Hz needs about 628 MHz with standard reduced blanking, so it runs only on monitors whose own timing is tighter.\n- **Automatic EDID.** EDID is the data a monitor sends to describe the resolutions and refresh rates it supports. The Dichen Fuser adapts it automatically, so both sources are offered modes the monitor can display without any manual setup.\n- **Ultrawide and 4K.** 21:9 monitors at 2560 × 1080 and 3440 × 1440 are covered, and 4K at 60 Hz suits presentation screens and signage.\n\n## Requirements and compatibility\n\n- HDMI outputs on both sources and an HDMI input on the monitor.\n- Set both sources to the same resolution and refresh rate before you connect them.\n- For 1080p 240 Hz and 1440p 144 Hz, use HDMI cables rated for 18 Gbit/s (Premium High Speed or better).\n- Check an unusual mode with the [pixel clock calculator](/tools/pixel-clock-calculator) before you buy.\n\n## In the box\n\nThe Dichen Fuser.\n\n## Setup\n\n[HDMI video fuser setup](/guides/hdmi-video-fuser-setup) covers cabling, the status LEDs, the front-panel keys and automatic EDID. For a black screen, a pink tint or a wrong refresh rate, see [video fuser troubleshooting](/guides/video-fuser-troubleshooting).\n\n## Questions\n\n### Do I need to configure EDID?\n\nNo. Automatic EDID adaptation runs on its own. If a mode is missing, [fix wrong resolution or refresh rate](/guides/video-fuser-resolution-and-refresh) explains what to check.\n\n### Do both sources need the same resolution?\n\nYes. Set both to the same resolution and refresh rate before connecting, then let the Dichen Fuser adapt.\n\n### Will 2560 × 1080 at 200 Hz work on my monitor?\n\nIt is vendor-listed, but it depends on your monitor's timing. If the monitor's EDID gives a pixel clock above about 600 MHz for that mode, use 180 Hz, which needs about 560 MHz.\n\nTraceCoreLab ships the Dichen Fuser worldwide with a 3-month replacement warranty and Discord support.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "DICHEN"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/dichen-fuser.webp",
+          "alt": {
+            "from": "Dichen Fuser",
+            "to": "Dichen HDMI video fuser seen from the front left: dark grey case with an engraved DCKJ dragon logo and four front-panel keys"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "dc1a686-fuser",
+      "fields": {
+        "tagline": {
+          "from": "DisplayPort fuser up to 639 Hz",
+          "to": "Three-port DisplayPort 1.4 video fuser, mixed-resolution sources"
+        },
+        "summary": {
+          "from": "Model: DC1A686-D3ZC\r\nProduct Type: Professional-Grade Signal Processing and Fusion Device\r\nVersion: Flagship Version (Open for Pre-Order); Deluxe and Standard versions are not yet available\r\nAvailable Colors: DICHEN Gold, Patriot Red, Loyal Silver, Sincere White, Rock Black\r\nStock Status: Sincere White and Rock Black currently out of stock",
+          "to": "The DICHEN DC1A686-D3ZC is a DisplayPort 1.4 video fuser with three full-bandwidth DP ports: two source inputs and one monitor output. It keys the overlay source over the main picture, lets the two sources run different resolutions, and passes the monitor's EDID through so both graphics cards are offered its real modes. Its vendor-listed maximums, up to 1080p 639 Hz and 4K 164 Hz, go beyond what DP 1.4 carries uncompressed and depend on DSC support in the graphics cards and monitor."
+        },
+        "highlights": {
+          "from": [
+            "3 × full-bandwidth DP 1.4 interfaces",
+            "Up to 639Hz at 1080p; 164Hz at 4K",
+            "Native EDID automatic passthrough",
+            "Mixed-resolution dual-device output",
+            "One-touch dual-host switching",
+            "One-click display ID customization",
+            "Capture card live streaming",
+            "Serial-port firmware upgrades"
+          ],
+          "to": [
+            "3 × full-bandwidth DisplayPort 1.4 ports: two inputs, one output",
+            "Vendor-listed up to 1080p 639 Hz, 1440p 364 Hz and 4K 164 Hz; these modes need DSC",
+            "Sources can run different resolutions, with scaling (vendor-listed)",
+            "Native EDID passthrough to both sources",
+            "RGB and YCbCr colour at 8, 10 or 12 bits per channel",
+            "1080p 60 Hz capture with audio for live streaming (vendor-listed)"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Model",
+              "value": "DC1A686-D3ZC"
+            },
+            {
+              "label": "Product Type",
+              "value": "Professional-Grade Signal Processing and Fusion Device"
+            },
+            {
+              "label": "Version",
+              "value": "Flagship Version"
+            },
+            {
+              "label": "Hardware Interfaces",
+              "value": "3 × full-bandwidth DisplayPort 1.4"
+            },
+            {
+              "label": "Supported Protocols",
+              "value": "DLSS, DDC, HPD, EDID, HDCP, MST, FEC and the full low-level AUX protocol suite"
+            },
+            {
+              "label": "EDID",
+              "value": "Native automatic passthrough; one-click display serial number and hardware ID customization with permanent memory"
+            },
+            {
+              "label": "Color Modes",
+              "value": "RGB and YCbCr"
+            },
+            {
+              "label": "Color Depth",
+              "value": "8-bit / 10-bit / 12-bit"
+            },
+            {
+              "label": "Resolution / Refresh Rate",
+              "value": "1280×720 up to 1000Hz+ (theoretical peak 1350Hz+); 1920×1080 up to 639Hz; 2560×1440 up to 364Hz; 3440×1440 up to 264Hz; 3840×2160 up to 164Hz"
+            },
+            {
+              "label": "Hardware Architecture",
+              "value": "Next-generation hardware-level signal interconnection"
+            },
+            {
+              "label": "Multi-Host",
+              "value": "Real-time switching between two host computers with independent, non-interfering operation"
+            },
+            {
+              "label": "Dual-Device Output",
+              "value": "Simultaneous mixed-resolution output, including 2K 360Hz + 1K 360Hz"
+            },
+            {
+              "label": "Resolution Scaling",
+              "value": "Enables 2K high-refresh displays to output 1K ultra-high refresh"
+            },
+            {
+              "label": "Capture Support",
+              "value": "Capture card live streaming"
+            },
+            {
+              "label": "Firmware Upgrade",
+              "value": "Built-in serial-port upgrade interface; updates unlock 5120×1440 support and add new functions"
+            },
+            {
+              "label": "Compatibility",
+              "value": "Tested with 62 display models across multiple brands; 99% overall compatibility rate"
+            },
+            {
+              "label": "Applications",
+              "value": "PC office use, multi-display esports and gaming, cameras, projectors, microscopy, medical instruments and professional display equipment"
+            },
+            {
+              "label": "Intended Use",
+              "value": "Commercial and office use, audiovisual entertainment, professional equipment debugging and multi-display expansion only"
+            },
+            {
+              "label": "Usage Restrictions",
+              "value": "Does not provide data reading, program modification, detection bypass or other cheating-related functions"
+            }
+          ],
+          "to": [
+            {
+              "label": "Interfaces",
+              "value": "3 × DisplayPort 1.4 (2 inputs, 1 output)"
+            },
+            {
+              "label": "1920 × 1080",
+              "value": "Up to 639 Hz (vendor-listed, needs DSC)"
+            },
+            {
+              "label": "3840 × 2160",
+              "value": "Up to 164 Hz (vendor-listed, needs DSC)"
+            },
+            {
+              "label": "2560 × 1440",
+              "value": "Up to 364 Hz (vendor-listed, needs DSC)"
+            },
+            {
+              "label": "3440 × 1440",
+              "value": "Up to 264 Hz (vendor-listed, needs DSC)"
+            },
+            {
+              "label": "1280 × 720",
+              "value": "1000 Hz and above (vendor-listed, needs DSC)"
+            },
+            {
+              "label": "Colour formats",
+              "value": "RGB and YCbCr; 8, 10 or 12-bit"
+            },
+            {
+              "label": "EDID",
+              "value": "Native automatic passthrough"
+            },
+            {
+              "label": "Mixed resolutions (vendor-listed)",
+              "value": "Main and overlay sources can use different resolutions; resolution scaling supported"
+            },
+            {
+              "label": "Source switching (vendor-listed)",
+              "value": "One-button switching between the two sources"
+            },
+            {
+              "label": "Capture (vendor-listed)",
+              "value": "1080p 60 Hz video and audio for live streaming"
+            },
+            {
+              "label": "DP signalling (vendor-listed)",
+              "value": "AUX channel with DDC, HPD, EDID, HDCP, MST and FEC"
+            },
+            {
+              "label": "Edition",
+              "value": "Flagship"
+            },
+            {
+              "label": "Brand",
+              "value": "DICHEN"
+            },
+            {
+              "label": "Model",
+              "value": "DC1A686-D3ZC"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months, replacement for hardware faults"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "1 × DC1A686-D3ZC",
+            "1x Power supply"
+          ],
+          "to": [
+            "1 × DICHEN DC1A686-D3ZC video fuser",
+            "1 × power supply"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "DICHEN DC1A686-D3ZC DP 1.4 Video Fuser, 1080p 639 Hz (DSC)"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "DICHEN DC1A686-D3ZC video fuser with three DisplayPort 1.4 ports, native EDID passthrough and mixed-resolution sources. Vendor-listed to 1080p 639 Hz with DSC."
+        },
+        "description": {
+          "from": null,
+          "to": "## What the DC1A686-D3ZC does\n\nThe DICHEN DC1A686-D3ZC is a DisplayPort 1.4 video fuser with three full-bandwidth DP ports: two inputs and one output. It keys an overlay source over the main picture on one monitor, and the two sources do not have to match: the vendor lists different resolutions on each source, with scaling. It is built for very high-refresh monitors and streaming desks, carrying stream graphics from a second computer, presentation overlays, picture-in-picture monitoring and capture for live streaming.\n\n## Key specs in plain words\n\n- **Vendor-listed maximums.** 1080p at 639 Hz, 1440p at 364 Hz, 3440 × 1440 at 264 Hz, 4K at 164 Hz, and 720p at 1000 Hz and above.\n- **Why those modes need DSC.** DP 1.4 (HBR3) carries 25.92 Gbit/s of video uncompressed. At 8-bit RGB with reduced-blanking timing, that covers roughly 1080p 400 Hz, 1440p 250 Hz, 3440 × 1440 190 Hz or 4K 120 Hz. Every headline mode above those figures depends on Display Stream Compression (DSC) in the graphics cards and monitor; 1080p 639 Hz, for example, needs about 47 Gbit/s uncompressed.\n- **Colour.** RGB or YCbCr at 8, 10 or 12 bits per channel. Deeper colour costs bandwidth: 10-bit carries 25% more data than 8-bit, and 12-bit 50% more.\n- **Native EDID passthrough.** The monitor's EDID goes to both sources, so each graphics card is offered the monitor's real modes.\n- **Switching and capture.** One-button switching between the two sources, and capture for live streaming at 1080p 60 Hz with audio (both vendor-listed).\n\n## Requirements and compatibility\n\n- DisplayPort 1.4 on both graphics cards and the monitor. For modes above the uncompressed figures, all three must support DSC.\n- Three certified DP 1.4 (HBR3) cables: one from each source and one to the monitor. Cables are not in the box.\n- Check your target mode with the [pixel clock calculator](/tools/pixel-clock-calculator).\n\n## In the box\n\nThe DC1A686-D3ZC video fuser and a power supply. Pick the case colour in the product options.\n\n## Setup\n\n[DisplayPort and HDMI 2.1 fuser setup](/guides/displayport-and-hdmi-2-1-fuser-setup) covers cabling and model notes, and [pixel clock and fuser bandwidth](/guides/pixel-clock-and-fuser-bandwidth) explains the DSC limits in detail.\n\n## Questions\n\n### Do all the listed modes work over DP 1.4?\n\nOnly with DSC. Without it, plan on about 1080p 400 Hz, 1440p 250 Hz or 4K 120 Hz at 8-bit RGB. The higher figures are vendor-listed, not TraceCoreLab measurements.\n\n### Can the two sources run different resolutions?\n\nYes. The vendor lists mixed-resolution operation with scaling, so the overlay source does not have to match the main source's mode.\n\n### Which cables do I need?\n\nThree certified DisplayPort 1.4 (HBR3) cables: two for the sources and one for the monitor. Uncertified cables are a common cause of flicker or a black screen at high refresh rates.\n\nTraceCoreLab ships the DC1A686-D3ZC worldwide with a 3-month replacement warranty; our Discord team can help with setup.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "DICHEN"
+        },
+        "mpn": {
+          "from": null,
+          "to": "DC1A686-D3ZC"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/dc1a686-fuser.webp",
+          "alt": {
+            "from": "DC1A686 Fuser",
+            "to": "DICHEN DC1A686-D3ZC DisplayPort video fuser, silver aluminium case with a fan grille on top and a row of front keys and status LEDs"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "godlike-4k-fuser",
+      "fields": {
+        "tagline": {
+          "from": "4K 120 Hz fuser with remote",
+          "to": "4K 120 Hz DisplayPort video fuser with remote"
+        },
+        "summary": {
+          "from": "Fuses two video sources at up to 4K 120 Hz or 1080p 360 Hz. Ships with a remote, two DisplayPort cables and its own power adapter.",
+          "to": "The GODLIKE 4K Pro is a DisplayPort video fuser that keys an overlay source over the main picture on one monitor, for stream graphics, presentation overlays and picture-in-picture windows. Vendor-listed modes reach 4K 120 Hz, 1440p 240 Hz and 1080p 360 Hz with full 4:4:4 chroma, and a remote control handles mode switching. The box includes two DisplayPort cables and a 12 V power adapter."
+        },
+        "highlights": {
+          "from": [
+            "Full 4:4:4 chroma with zero-latency processing",
+            "True lossless image quality",
+            "Seamless switching with no black screen or stutter",
+            "Native image quality on both connected systems",
+            "4K 120Hz / 2K 240Hz / 1K 360Hz",
+            "Remote control and plug-and-play setup",
+            "Premium RGB esports design",
+            "3-month hardware replacement policy"
+          ],
+          "to": [
+            "Vendor-listed modes: 4K 120 Hz, 1440p 240 Hz and 1080p 360 Hz",
+            "Full 4:4:4 chroma, so small text and thin lines in overlays stay sharp",
+            "Switches between the main and overlay channels without a black screen (vendor-listed)",
+            "Remote control plus front-panel buttons",
+            "RGB lighting",
+            "Two DisplayPort cables and a 12 V 2 A power adapter included"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Product Name",
+              "value": "GODLIKE 4K Pro Fuser"
+            },
+            {
+              "label": "Product Type",
+              "value": "4K Display Fuser"
+            },
+            {
+              "label": "Chroma",
+              "value": "Full 4:4:4"
+            },
+            {
+              "label": "Latency",
+              "value": "Zero-latency processing"
+            },
+            {
+              "label": "Switching",
+              "value": "Seamless between primary and secondary channels; no black screen, stutter or waiting"
+            },
+            {
+              "label": "Control",
+              "value": "Remote control; plug-and-play"
+            },
+            {
+              "label": "Image Quality",
+              "value": "Native image quality on both connected systems"
+            },
+            {
+              "label": "Output Modes",
+              "value": "4K @ 120Hz; 2K @ 240Hz; 1K @ 360Hz"
+            },
+            {
+              "label": "1920×1080",
+              "value": "144 / 165 / 240 / 360Hz"
+            },
+            {
+              "label": "2560×1080",
+              "value": "165Hz"
+            },
+            {
+              "label": "2560×1440",
+              "value": "144 / 240Hz"
+            },
+            {
+              "label": "3440×1440",
+              "value": "60Hz"
+            },
+            {
+              "label": "3840×2160",
+              "value": "60 / 120Hz"
+            },
+            {
+              "label": "Secondary System Requirements",
+              "value": "AMD RX 470 or above; NVIDIA RTX 2060 or above; AMD Radeon 780M integrated graphics or above"
+            },
+            {
+              "label": "Power",
+              "value": "12V 2A"
+            },
+            {
+              "label": "Design",
+              "value": "Premium RGB, flagship esports aesthetic"
+            },
+            {
+              "label": "Warranty",
+              "value": "3-month free replacement for hardware quality issues"
+            }
+          ],
+          "to": [
+            {
+              "label": "Interface",
+              "value": "DisplayPort"
+            },
+            {
+              "label": "3840 × 2160",
+              "value": "60 or 120 Hz (vendor-listed)"
+            },
+            {
+              "label": "2560 × 1440",
+              "value": "144 or 240 Hz (vendor-listed)"
+            },
+            {
+              "label": "1920 × 1080",
+              "value": "144, 165, 240 or 360 Hz (vendor-listed)"
+            },
+            {
+              "label": "2560 × 1080",
+              "value": "165 Hz (vendor-listed)"
+            },
+            {
+              "label": "3440 × 1440",
+              "value": "60 Hz (vendor-listed)"
+            },
+            {
+              "label": "Chroma",
+              "value": "Full 4:4:4"
+            },
+            {
+              "label": "Switching (vendor-listed)",
+              "value": "Main and overlay channels, no black screen or stutter"
+            },
+            {
+              "label": "Controls",
+              "value": "Remote control; front buttons TR, RES, CH and FUSION"
+            },
+            {
+              "label": "Overlay source GPU (vendor-listed)",
+              "value": "AMD RX 470, NVIDIA RTX 2060 or AMD Radeon 780M integrated graphics, or newer"
+            },
+            {
+              "label": "Power",
+              "value": "12 V, 2 A"
+            },
+            {
+              "label": "Lighting",
+              "value": "RGB"
+            },
+            {
+              "label": "Brand",
+              "value": "GODLIKE"
+            },
+            {
+              "label": "Model",
+              "value": "4K Pro"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months, replacement for hardware faults"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "1 × GodLike Fusion Device",
+            "1 × Remote Control",
+            "2 × DP Cables",
+            "1 × 12V 2A US Plug Power Adapter",
+            "1 × EU Standard Plug Adapter"
+          ],
+          "to": [
+            "1 × GODLIKE 4K Pro video fusion device",
+            "1 × remote control",
+            "2 × DisplayPort cables",
+            "1 × 12 V 2 A power adapter (US plug)",
+            "1 × EU plug adapter"
+          ]
+        },
+        "seo_title": {
+          "from": "GODLIKE 4K Pro Fuser | 4K 120Hz, No DMA Cheat Support",
+          "to": "GODLIKE 4K Pro Video Fuser: DisplayPort, 4K 120 Hz, Remote"
+        },
+        "seo_description": {
+          "from": "GODLIKE 4K Pro Fuser: 4:4:4 chroma, 4K 120Hz, 2K 240Hz and 1K 360Hz with seamless dual-PC switching. We do not encourage or support DMA-based cheating.",
+          "to": "GODLIKE 4K Pro DisplayPort video fuser for overlays: vendor-listed 4K 120 Hz, 1440p 240 Hz and 1080p 360 Hz with 4:4:4 chroma. Remote and 2 DP cables included."
+        },
+        "description": {
+          "from": null,
+          "to": "## What the GODLIKE 4K Pro does\n\nThe GODLIKE 4K Pro is a DisplayPort video fuser. It combines two video sources on one monitor: the main source provides the picture and the overlay source is keyed over it, so a second computer can add stream graphics, a presentation timer, notes or a picture-in-picture window. It suits 4K 120 Hz monitors and high-refresh 1440p and 1080p panels, and its remote control lets you change modes without reaching for the unit.\n\n## Key specs in plain words\n\n- **Vendor-listed modes.** 3840 × 2160 at 60 or 120 Hz; 2560 × 1440 at 144 or 240 Hz; 1920 × 1080 at 144, 165, 240 or 360 Hz; 2560 × 1080 at 165 Hz; 3440 × 1440 at 60 Hz.\n- **Full 4:4:4 chroma.** Every pixel keeps its own colour information instead of sharing it with its neighbours, as 4:2:2 and 4:2:0 subsampling do. Small text and thin lines in an overlay stay sharp.\n- **Bandwidth.** 4K 120 Hz at 8-bit RGB needs about 25.8 Gbit/s with reduced-blanking timing, just inside the 25.92 Gbit/s that DisplayPort 1.4 (HBR3) carries uncompressed. 1440p 240 Hz needs about 24.6 Gbit/s and 1080p 360 Hz about 22.4 Gbit/s, so the listed modes fit without DSC at 8-bit colour.\n- **Switching.** It switches between the main and overlay channels; the vendor describes the switch as seamless, without a black screen or stutter.\n- **Controls.** A remote control, front buttons labelled TR, RES, CH and FUSION, status LEDs for power and fusion, and RGB lighting.\n\n## Requirements and compatibility\n\n- Overlay source graphics (vendor-listed): AMD RX 470, NVIDIA RTX 2060 or AMD Radeon 780M integrated graphics, or newer.\n- DisplayPort on both sources and the monitor. For 4K 120 Hz and 1440p 240 Hz, every device needs HBR3, which DisplayPort 1.4 provides.\n- Set both sources to the same resolution and refresh rate.\n- Power comes from the included 12 V, 2 A adapter with a US plug; an EU plug adapter is in the box.\n\n## In the box\n\nThe GODLIKE 4K Pro video fusion device, a remote control, two DisplayPort cables, a 12 V 2 A power adapter with a US plug, and an EU plug adapter.\n\n## Setup\n\n[DisplayPort and HDMI 2.1 fuser setup](/guides/displayport-and-hdmi-2-1-fuser-setup) covers cabling and model notes. If the picture is black or tinted, see [video fuser troubleshooting](/guides/video-fuser-troubleshooting).\n\n## Questions\n\n### What does the overlay source need?\n\nA graphics card at least as capable as an AMD RX 470, NVIDIA RTX 2060 or AMD Radeon 780M (vendor-listed), with a DisplayPort output that can drive the same mode as the main source.\n\n### What does 4:4:4 chroma mean for overlays?\n\nColour detail is kept for every pixel, so coloured text, thin borders and small icons in the overlay look crisp rather than smeared.\n\n### Is DisplayPort 1.4 enough for 4K 120 Hz?\n\nYes, at 8-bit RGB. 4K 120 Hz needs about 25.8 Gbit/s, and DP 1.4 carries 25.92 Gbit/s uncompressed. 10-bit colour at 4K 120 Hz would need about 32 Gbit/s, which needs DSC.\n\nTraceCoreLab ships the GODLIKE 4K Pro worldwide with a 3-month replacement warranty and setup help on Discord.\n"
+        },
+        "brand": {
+          "from": null,
+          "to": "GODLIKE"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/godlike-4k-fuser.webp",
+          "alt": {
+            "from": "Godlike 4K Fuser",
+            "to": "GODLIKE 4K Pro video fusion device, black case with a perforated top, TR, RES, CH and FUSION buttons and a 4K 120 Hz Pro badge"
+          }
+        }
+      ]
+    },
+    {
+      "op": "category.update",
+      "slug": "fuser",
+      "fields": {
+        "name": {
+          "from": "Video Fusers",
+          "to": "Video Fusers"
+        },
+        "blurb": {
+          "from": "Combine two video sources onto one display.",
+          "to": "Combine two HDMI or DisplayPort sources on one display."
+        },
+        "intro": {
+          "from": null,
+          "to": "A video fuser combines two video sources on one display. The main source provides the picture, and the second source is keyed over it: a colour key removes its background, so only its graphics remain. Typical uses are stream overlays rendered on a second computer, presentation overlays such as notes or a timer, picture-in-picture windows, digital signage tickers, and capture of the combined picture on models with a capture output.\n\nChoose by interface first. HDMI 2.0 covers 1080p up to 240 Hz and 1440p up to 144 Hz. DisplayPort 1.4 (HBR3) carries 25.92 Gbit/s of video, enough for 4K 120 Hz at 8-bit RGB; listed modes beyond that rely on DSC. HDMI 2.1 with FRL at 48 Gbit/s goes further, but the graphics cards and monitor must all support it. Check your monitor's pixel clock with the [pixel clock and bandwidth guide](/guides/pixel-clock-and-fuser-bandwidth) before you buy.\n\n| Model | Interface | Top vendor-listed modes | Capture |\n|---|---|---|---|\n| [Dichen Fuser](/product/dichen-fuser) | HDMI | 1080p 240 Hz, 4K 60 Hz | Not listed |\n| [DC1A255-H3](/product/dichen-dc1a255) | 3 × HDMI 2.0 | 1080p 240 Hz, 1440p 144 Hz | Not listed |\n| [D60 4K](/product/d60-4k-fuser) | DP 1.4 | 4K 120 Hz, 1080p 360 Hz | Not listed |\n| [GODLIKE 4K Pro](/product/godlike-4k-fuser) | DisplayPort | 4K 120 Hz, 1080p 360 Hz | Not listed |\n| [DC1A686-D3ZC](/product/dc1a686-fuser) | 3 × DP 1.4 | 4K 164 Hz, 1080p 639 Hz (DSC) | 1080p 60 Hz |\n| [DC505](/product/tracecore-dc505) | HDMI 2.1 + DP 1.4 | 4K 160 Hz, 1080p 550 Hz (HDMI 2.1) | 1080p 60 Hz |\n\nNew to video fusers? Start with [what is a video fuser](/guides/what-is-a-video-fuser) and [choosing a video fuser](/guides/choosing-a-video-fuser), then follow [HDMI video fuser setup](/guides/hdmi-video-fuser-setup) or [DisplayPort and HDMI 2.1 fuser setup](/guides/displayport-and-hdmi-2-1-fuser-setup).\n"
+        },
+        "seo_title": {
+          "from": null,
+          "to": "HDMI and DisplayPort Video Fusers for Overlays and Capture"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "Compare HDMI 2.0, HDMI 2.1 and DisplayPort 1.4 video fusers for stream overlays, presentations and capture, with vendor-listed modes and setup guides."
+        }
+      }
+    },
+    {
+      "op": "product.update",
+      "slug": "ferrum",
+      "fields": {
+        "tagline": {
+          "from": "Precision input device",
+          "to": "USB passthrough for a mouse or keyboard, up to 8000 Hz"
+        },
+        "summary": {
+          "from": "A palm-sized USB device in a bead-blasted aluminium shell. Plug-and-play, driverless and built to sit quietly on your desk for years.",
+          "to": "The Ferrum USB passthrough device sits between a mouse or keyboard and your computer and passes it through over high-speed USB, at polling rates up to 8000 Hz (vendor-listed). Full device passthrough means the mouse maker's own software keeps working. Passthrough is plug-and-play; only the computer on the control port needs the Silicon Labs CP210x driver."
+        },
+        "highlights": {
+          "from": [
+            "Machined aluminium housing",
+            "Plug-and-play USB-C, no drivers",
+            "Mouse and keyboard passthrough",
+            "Firmware updates over USB"
+          ],
+          "to": [
+            "Mouse, keyboard or shared-receiver passthrough, set by device type",
+            "Up to 8000 Hz polling over high-speed USB (vendor-listed)",
+            "Vendor-listed average added latency: 0.6 ms at 1000 Hz, 0.14 ms at 8000 Hz",
+            "Full device passthrough keeps the mouse maker's software working",
+            "Plug-and-play passthrough; CP210x driver only on the control-port computer",
+            "Aluminium housing with a bead-blasted finish"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Interface",
+              "value": "USB-C"
+            },
+            {
+              "label": "Passthrough",
+              "value": "Mouse + keyboard"
+            },
+            {
+              "label": "Housing",
+              "value": "Bead-blasted aluminium"
+            },
+            {
+              "label": "Dimensions",
+              "value": "64 × 46 × 9 mm"
+            },
+            {
+              "label": "Weight",
+              "value": "38 g"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months"
+            }
+          ],
+          "to": [
+            {
+              "label": "Polling rate",
+              "value": "Up to 8000 Hz (vendor-listed)"
+            },
+            {
+              "label": "Passthrough",
+              "value": "Mouse, keyboard or both on one receiver"
+            },
+            {
+              "label": "USB speed",
+              "value": "High speed, 480 Mbit/s"
+            },
+            {
+              "label": "Added latency",
+              "value": "0.6 ms at 1000 Hz, 0.14 ms at 8000 Hz (vendor-listed averages)"
+            },
+            {
+              "label": "Ports",
+              "value": "USB-C (computer), USB-A (mouse or keyboard), USB-C (control)"
+            },
+            {
+              "label": "Passthrough driver",
+              "value": "None, plug-and-play"
+            },
+            {
+              "label": "Control-port driver",
+              "value": "Silicon Labs CP210x USB-to-UART"
+            },
+            {
+              "label": "Housing",
+              "value": "Aluminium, bead-blasted finish"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months (replacement)"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "Ferrum device",
+            "USB-C to USB-A cable",
+            "USB-C to USB-C cable",
+            "Quick-start card"
+          ],
+          "to": [
+            "Ferrum USB passthrough device",
+            "USB cables for the computer and control ports"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "Ferrum USB Input Passthrough Device: Mouse and Keyboard, 8000 Hz"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "Ferrum USB passthrough device for a mouse or keyboard: high-speed USB, up to 8000 Hz polling (vendor-listed), plug-and-play passthrough. Ships worldwide."
+        },
+        "description": {
+          "from": null,
+          "to": "The Ferrum USB passthrough device sits between a USB mouse or keyboard and the computer it is used on, and passes the input through over high-speed USB. It suits setups where an input device has to run through an inline passthrough device without giving up its polling rate or the maker's own software, including mice set to 2000, 4000 or 8000 Hz. The housing is aluminium with a bead-blasted finish.\n\n## What the specs mean\n\n- **Polling rate up to 8000 Hz (vendor-listed).** Polling rate is how many times per second the computer collects new data from the mouse or keyboard. Full-speed USB works in 1 ms frames, which caps it at 1000 Hz. High-speed USB works in 125 µs microframes, which is what makes 8000 Hz possible.\n- **Added latency (vendor-listed).** The maker lists an average added latency of 0.6 ms at 1000 Hz and 0.14 ms at 8000 Hz. These are the maker's figures, not TraceCoreLab measurements.\n- **Full device passthrough.** According to the maker, the whole USB device is passed through, so the mouse maker's configuration software and device-specific features keep working.\n- **Device type.** The device is set to pass through a mouse (the default), a keyboard, or both when they share one wireless receiver.\n\n## Requirements and compatibility\n\n- **Ports.** USB-C to the computer, USB-A for the mouse or keyboard, and a second USB-C for the control port.\n- **Passthrough is plug-and-play.** The computer the mouse or keyboard is used on needs no driver. Use a rear motherboard USB port rather than a front-panel case port.\n- **Control port.** The computer connected to the control port needs the Silicon Labs CP210x USB-to-UART driver. The device-type setting is made from that computer.\n\n## In the box\n\n- Ferrum USB passthrough device\n- USB cables for the computer and control ports\n\nLike every unit we ship, it is tested in the TraceCoreLab lab before dispatch and covered by a 3-month replacement warranty, with setup help on Discord.\n\n## Setup\n\nThe [Ferrum setup guide](/guides/ferrum-setup) walks through the wiring, the CP210x driver install, the device-type setting and checking that the device appears. For more on polling, read [USB polling rate explained: 1000 Hz vs 8000 Hz](/guides/usb-polling-rate-1000hz-vs-8000hz).\n\n## Common questions\n\n### Does passthrough raise my mouse's polling rate?\n\nNo. The device passes through the rate the mouse is set to, up to 8000 Hz. A 1000 Hz mouse stays at 1000 Hz, and reaching 8000 Hz needs a mouse that supports it.\n\n### Does it work with a wireless receiver?\n\nYes. Plug the receiver into the USB-A port. If one receiver serves both a mouse and a keyboard, set the device type to both so the two pass through together.\n\n### How do I check that it is working?\n\nThe mouse or keyboard should work as normal on the computer it is plugged into. On the control-port computer, once the CP210x driver is installed, the device shows up in Device Manager under Ports (COM & LPT). To confirm the polling rate, use a polling-rate checker.\n\n### Which should I choose, Ferrum USB passthrough or MAKCU?\n\n[MAKCU](/product/makcu) costs less and passes a mouse through on full-speed USB, so it stops at 1000 Hz. Ferrum adds high-speed USB for up to 8000 Hz, keyboard passthrough and an aluminium housing. [MAKCU vs Ferrum](/guides/makcu-vs-ferrum) compares them side by side."
+        },
+        "brand": {
+          "from": null,
+          "to": "Ferrum"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/ferrum.webp",
+          "alt": {
+            "from": "Ferrum",
+            "to": "Ferrum USB passthrough device in the gunmetal finish, angled on a dark red background"
+          }
+        },
+        {
+          "url": "/products/ferrum.webp",
+          "alt": {
+            "from": "Ferrum input device in brushed gunmetal",
+            "to": "Close-up of the Ferrum USB passthrough device: textured gunmetal housing with a glossy black F logo"
+          }
+        },
+        {
+          "url": "/products/ferrum-banner.webp",
+          "alt": {
+            "from": "Ferrum product banner",
+            "to": "Ferrum USB passthrough device product banner with the TraceCoreLab logo"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "makcu",
+      "fields": {
+        "tagline": {
+          "from": "Compact USB passthrough controller",
+          "to": "Dual ESP32-S3 USB mouse passthrough, 1000 Hz"
+        },
+        "summary": {
+          "from": "A small USB controller that passes your mouse through to the PC and takes commands over a UART serial link.",
+          "to": "MAKCU is a compact USB mouse passthrough board built on two Espressif ESP32-S3 microcontrollers. It passes a mouse through at up to 1000 Hz, the ceiling of its full-speed USB, and ships ready to use with two USB-A cables. Passthrough needs no driver; the computer on its control port needs the WCH CH343 driver."
+        },
+        "highlights": {
+          "from": [
+            "Mouse passthrough with UART control",
+            "Works with 1000 Hz mice",
+            "One compact unit"
+          ],
+          "to": [
+            "USB mouse passthrough at up to 1000 Hz",
+            "Built on two Espressif ESP32-S3 microcontrollers",
+            "Full-speed USB (12 Mbit/s), which sets the 1000 Hz ceiling",
+            "Three USB-A ports: computer, control and mouse",
+            "WCH CH343 USB-to-serial bridge on the control port",
+            "Ships ready to use, with two USB-A to USB-A cables"
+          ]
+        },
+        "specs": {
+          "from": [
+            {
+              "label": "Control",
+              "value": "UART serial"
+            },
+            {
+              "label": "Polling",
+              "value": "1000 Hz mice supported"
+            },
+            {
+              "label": "Platform",
+              "value": "PC"
+            }
+          ],
+          "to": [
+            {
+              "label": "Polling rate",
+              "value": "Up to 1000 Hz"
+            },
+            {
+              "label": "Passthrough",
+              "value": "USB mouse"
+            },
+            {
+              "label": "Microcontrollers",
+              "value": "2 × Espressif ESP32-S3"
+            },
+            {
+              "label": "USB speed",
+              "value": "Full speed, 12 Mbit/s"
+            },
+            {
+              "label": "Ports",
+              "value": "3 × USB-A (computer, control, mouse)"
+            },
+            {
+              "label": "Passthrough driver",
+              "value": "None, plug-and-play"
+            },
+            {
+              "label": "Control-port driver",
+              "value": "WCH CH343 USB-to-serial"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months (replacement)"
+            }
+          ]
+        },
+        "in_the_box": {
+          "from": [
+            "MAKCU"
+          ],
+          "to": [
+            "MAKCU USB passthrough board",
+            "2 × USB-A to USB-A cable"
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "MAKCU USB Mouse Passthrough Board: Dual ESP32-S3, 1000 Hz"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "MAKCU USB mouse passthrough board on two ESP32-S3 chips: 1000 Hz passthrough, three USB-A ports, CH343 driver for the control port, two cables included."
+        },
+        "description": {
+          "from": null,
+          "to": "MAKCU is a compact USB mouse passthrough board built on two Espressif ESP32-S3 microcontrollers. It sits between a USB mouse and the computer it is used on and passes the mouse through at up to 1000 Hz. It suits anyone who wants a low-cost inline passthrough device and does not need more than 1000 Hz, and it ships ready to use.\n\n## What the specs mean\n\n- **1000 Hz passthrough.** The ESP32-S3's built-in USB runs at full speed (12 Mbit/s), and a full-speed device can be polled at most once per millisecond. That sets the 1000 Hz ceiling.\n- **Three USB-A ports.** The left port goes to the computer the mouse is used on, the middle port is the control port, and the right port takes the mouse.\n- **CH343 control port.** The control port runs through a WCH CH343 USB-to-serial bridge chip.\n\n## Requirements and compatibility\n\n- **No driver for passthrough.** The computer the mouse is used on needs nothing installed.\n- **CH343 driver for the control port.** On Windows 10 or 11, the computer connected to the middle port needs the WCH CH343 serial driver.\n- **Cables.** If you replace a cable, a standard USB 2.0 or USB 3.0 USB-A to USB-A data cable does the job.\n\n## In the box\n\n- MAKCU USB passthrough board\n- 2 × USB-A to USB-A cable\n\nTraceCoreLab tests each MAKCU in our lab before dispatch. It carries a 3-month replacement warranty, and setup help is available on Discord.\n\n## Setup\n\nThe [MAKCU setup guide](/guides/makcu-setup) covers the wiring, the CH343 driver install, checking the COM port and passthrough troubleshooting. [USB polling rate explained](/guides/usb-polling-rate-1000hz-vs-8000hz) goes deeper on why full-speed devices stop at 1000 Hz.\n\n## Common questions\n\n### Can I use a mouse that polls above 1000 Hz?\n\nIt will run at no more than 1000 Hz through MAKCU, and some high-rate mice and wireless receivers may not work through it at all. The mouse compatibility section of the setup guide has the details.\n\n### How do I check that it is working?\n\nThe mouse should work as normal on the computer it is plugged into. On the control-port computer, after the CH343 driver install, MAKCU appears in Device Manager under Ports (COM & LPT) as USB-Enhanced-SERIAL CH343, with a COM number.\n\n### Which should I choose, MAKCU or Ferrum?\n\nChoose MAKCU for low-cost mouse passthrough up to 1000 Hz. The [Ferrum USB passthrough device](/product/ferrum) adds high-speed USB for up to 8000 Hz (vendor-listed), keyboard passthrough and an aluminium housing. [MAKCU vs Ferrum](/guides/makcu-vs-ferrum) compares the two."
+        },
+        "brand": {
+          "from": null,
+          "to": "MAKCU"
+        }
+      },
+      "images": [
+        {
+          "url": "/products/cards/makcu.webp",
+          "alt": {
+            "from": "MAKCU",
+            "to": "MAKCU USB mouse passthrough board with three USB-A ports along one edge"
+          }
+        }
+      ]
+    },
+    {
+      "op": "product.update",
+      "slug": "ysc8k",
+      "fields": {
+        "tagline": {
+          "from": null,
+          "to": "USB input device in a textured black housing"
+        },
+        "summary": {
+          "from": null,
+          "to": "The YSC8K is a USB input device in a textured black housing with the YSC logo. We have not published its full specification yet, so ask us to confirm the polling rate, ports and box contents before you order."
+        },
+        "highlights": {
+          "from": [],
+          "to": [
+            "USB input device in a textured black housing with the YSC logo",
+            "Tested in our lab before dispatch",
+            "Full specification not yet published: ask us before ordering"
+          ]
+        },
+        "specs": {
+          "from": [],
+          "to": [
+            {
+              "label": "Type",
+              "value": "USB input device"
+            },
+            {
+              "label": "Finish",
+              "value": "Textured black, YSC logo"
+            },
+            {
+              "label": "Warranty",
+              "value": "3 months (replacement)"
+            }
+          ]
+        },
+        "seo_title": {
+          "from": null,
+          "to": "YSC8K USB Input Device in a Textured Black Housing"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "YSC8K USB input device in a textured black housing. Tested in our lab before dispatch, 3-month warranty, worldwide shipping. Ask us for full specs first."
+        },
+        "description": {
+          "from": null,
+          "to": "The YSC8K is a USB input device in a textured black housing that carries the YSC logo. It is part of the TraceCoreLab [Input Devices](/shop/input) range, alongside the [MAKCU](/product/makcu) and [Ferrum USB passthrough](/product/ferrum) devices.\n\n## What to ask before you order\n\nWe have not yet published a full specification for the YSC8K. If any of these matter for your setup, [contact us](/support) before you order:\n\n- the polling rate it supports and the USB speed it runs at\n- its ports and the cables in the box\n- any driver it needs\n\nEvery unit is tested in our lab before dispatch and carries a 3-month replacement warranty.\n\n## Background reading\n\n[USB polling rate explained: 1000 Hz vs 8000 Hz](/guides/usb-polling-rate-1000hz-vs-8000hz) covers how USB speed sets the highest polling rate an input device can pass through, and what added latency means.\n\n## Common questions\n\n### Does the YSC8K support 8000 Hz?\n\nWe do not list a polling rate for the YSC8K yet, because we have not published a verified figure. Ask us before ordering if you need a specific rate.\n\n### Is there a YSC8K setup guide?\n\nNot yet. Our input setup guides cover [MAKCU](/guides/makcu-setup) and [Ferrum](/guides/ferrum-setup). For the YSC8K, [contact support](/support) for setup help."
+        },
+        "brand": {
+          "from": null,
+          "to": "YSC"
+        }
+      },
+      "images": [
+        {
+          "url": "/media/products/2026/10/a265effba13991c48b52.webp",
+          "alt": {
+            "from": "YSC8K",
+            "to": "YSC8K USB input device in a textured black housing with a white YSC logo"
+          }
+        }
+      ]
+    },
+    {
+      "op": "category.update",
+      "slug": "input",
+      "fields": {
+        "name": {
+          "from": "Input Devices",
+          "to": "Input Devices"
+        },
+        "blurb": {
+          "from": "Compact USB devices with machined housings.",
+          "to": "USB input passthrough devices for mice and keyboards."
+        },
+        "intro": {
+          "from": null,
+          "to": "USB input passthrough devices sit inline between a USB mouse or keyboard and a computer, and pass the input through. Two numbers matter when you compare them: the highest polling rate a device can pass through, and the latency it adds. The polling ceiling follows from USB speed. A full-speed USB link is polled at most once per 1 ms frame, which is 1000 Hz. High-speed USB can be polled once per 125 µs microframe, which allows 8000 Hz.\n\n| | [MAKCU](/product/makcu) | [Ferrum USB passthrough](/product/ferrum) |\n|---|---|---|\n| Passes through | USB mouse | Mouse, keyboard or both on one receiver |\n| Polling rate | Up to 1000 Hz | Up to 8000 Hz (vendor-listed) |\n| USB speed | Full speed, 12 Mbit/s | High speed, 480 Mbit/s |\n| Added latency | Not listed | 0.6 ms at 1000 Hz, 0.14 ms at 8000 Hz (vendor-listed) |\n| Control-port driver | WCH CH343 | Silicon Labs CP210x |\n| Build | Board with 2 × ESP32-S3, 3 × USB-A ports | Aluminium housing, USB-C and USB-A ports |\n\nOn both, passthrough is plug-and-play. Only the computer connected to the control port needs a driver, and the setup guides show how to install it and check that the device appears as a COM port.\n\n- [MAKCU setup guide](/guides/makcu-setup)\n- [Ferrum setup guide](/guides/ferrum-setup)\n- [USB polling rate explained: 1000 Hz vs 8000 Hz](/guides/usb-polling-rate-1000hz-vs-8000hz)\n- [MAKCU vs Ferrum compared](/guides/makcu-vs-ferrum)\n\nEvery unit is tested in the TraceCoreLab lab before dispatch and ships worldwide with a 3-month replacement warranty."
+        },
+        "seo_title": {
+          "from": null,
+          "to": "USB Mouse and Keyboard Passthrough Devices, 1000 to 8000 Hz"
+        },
+        "seo_description": {
+          "from": null,
+          "to": "USB input passthrough devices for mice and keyboards: MAKCU at 1000 Hz on ESP32-S3 and Ferrum up to 8000 Hz (vendor-listed), with a setup guide for each."
+        }
+      }
+    }
+  ]
+}

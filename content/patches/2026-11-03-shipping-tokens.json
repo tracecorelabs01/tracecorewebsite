@@ -1,0 +1,18 @@
+{
+  "id": "2026-11-03-shipping-tokens",
+  "description": "Announcement bar: the free-shipping amount follows Settings instead of a typed dollar figure.",
+  "operations": [
+    {
+      "op": "settings.announcements.replace",
+      "where_contains": "shipping",
+      "find": "$250",
+      "replace": "{{freeShippingThreshold}}"
+    },
+    {
+      "op": "settings.announcements.replace",
+      "where_contains": "shipping",
+      "find": "$600",
+      "replace": "{{freeShippingThreshold}}"
+    }
+  ]
+}
