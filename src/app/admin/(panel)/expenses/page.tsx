@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CircleDollarSign, Download, Pencil, Percent, Plus, Search, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { Calculator, CircleDollarSign, Download, PackageMinus, Pencil, Plus, Search, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { saveExpense } from "@/actions/admin/expenses";
 import { ExpenseForm } from "@/components/admin/ExpenseForm";
 import { AutoSubmitSelect } from "@/components/admin/forms";
@@ -37,15 +37,24 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/admin/e
   const range = rangeLabel(period);
   const profit = overview.profitCents;
   const margin = overview.revenueCents > 0 ? Math.round((profit / overview.revenueCents) * 100) : null;
-  const best = Math.max(1, ...months.map((m) => Math.max(m.revenueCents, m.expenseCents)));
+  const best = Math.max(1, ...months.map((m) => Math.max(m.revenueCents, m.costCents + m.expenseCents)));
+  // Order costs (from Product costs) and recorded expenses together, largest first. Expense categories filter the list.
+  const outgoings = [
+    ...overview.costs.map((c) => ({ label: c.name, cents: c.cents, href: "/admin/expenses/costs", title: "Order cost, set in Product costs", order: true })),
+    ...overview.byCategory.map((c) => ({ label: c.category, cents: c.cents, href: href({ category: c.category, page: undefined }), title: `Show only ${c.category}`, order: false })),
+  ].sort((a, b) => b.cents - a.cents);
+  const outgoingCents = overview.costCents + overview.expenseCents;
 
   return (
     <>
       <PageHeader
         title="Expenses"
-        description="Record what the business spends and see your profit against paid orders. Amounts are in USD and dates in UTC."
+        description="Record what the business spends and see your profit: paid-order revenue minus product costs and expenses. Amounts are in USD and dates in UTC."
         actions={
           <>
+            <LinkButton href="/admin/expenses/costs" variant="secondary">
+              <Calculator className="size-4" /> Product costs
+            </LinkButton>
             <a href={`/api/admin/export/expenses${qs({ ...periodParams, category, q })}`} className={buttonClass("secondary")}>
               <Download className="size-4" /> Export CSV
             </a>
@@ -75,37 +84,40 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/admin/e
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-            <StatCard label="Spent" value={money(overview.expenseCents)} hint={`${plural(overview.expenseCount, "expense")} · ${range}`} icon={<Wallet className="size-4" />} />
-            <StatCard label="Revenue" value={money(overview.revenueCents)} hint={`${plural(overview.orderCount, "paid order")}`} icon={<CircleDollarSign className="size-4" />} tone="brand" />
+            <StatCard label="Revenue" value={money(overview.revenueCents)} hint={`${plural(overview.orderCount, "paid order")} · ${range}`} icon={<CircleDollarSign className="size-4" />} tone="brand" />
+            <StatCard label="Order costs" value={money(overview.costCents)} hint="Supplier, postage and fees, from Product costs" icon={<PackageMinus className="size-4" />} />
+            <StatCard label="Expenses" value={money(overview.expenseCents)} hint={plural(overview.expenseCount, "expense")} icon={<Wallet className="size-4" />} />
             <StatCard
               label="Profit"
               value={money(profit)}
-              hint="Revenue minus expenses"
+              hint={margin === null ? "Revenue minus costs and expenses" : `${margin}% margin · revenue minus costs and expenses`}
               icon={profit >= 0 ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
               tone={profit >= 0 ? "ok" : "warn"}
             />
-            <StatCard label="Margin" value={margin === null ? "—" : `${margin}%`} hint="Profit as a share of revenue" icon={<Percent className="size-4" />} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
             <Card title="Where the money went" description={range}>
-              {overview.byCategory.length === 0 ? (
-                <p className="text-sm text-muted">No expenses in this period.</p>
+              {outgoings.length === 0 ? (
+                <p className="text-sm text-muted">No costs or expenses in this period.</p>
               ) : (
                 <ul className="space-y-3.5">
-                  {overview.byCategory.map((c) => {
-                    const share = overview.expenseCents ? c.cents / overview.expenseCents : 0;
+                  {outgoings.map((c) => {
+                    const share = outgoingCents ? c.cents / outgoingCents : 0;
                     return (
-                      <li key={c.category}>
-                        <Link href={href({ category: c.category, page: undefined })} className="group block" title={`Show only ${c.category}`}>
+                      <li key={`${c.order}-${c.label}`}>
+                        <Link href={c.href} className="group block" title={c.title}>
                           <div className="flex items-baseline justify-between gap-3 text-sm">
-                            <span className="truncate transition-colors group-hover:text-amber">{c.category}</span>
+                            <span className="truncate transition-colors group-hover:text-amber">
+                              {c.label}
+                              {c.order && <span className="ml-2 text-xs text-dim">order cost</span>}
+                            </span>
                             <span className="shrink-0 tabular-nums">
                               {money(c.cents)} <span className="text-dim">· {Math.round(share * 100)}%</span>
                             </span>
                           </div>
                           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-                            <div className="h-full rounded-full bg-brand" style={{ width: `${Math.max(2, share * 100)}%` }} />
+                            <div className={cn("h-full rounded-full", c.order ? "bg-amber/70" : "bg-brand")} style={{ width: `${Math.max(2, share * 100)}%` }} />
                           </div>
                         </Link>
                       </li>
@@ -115,13 +127,14 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/admin/e
               )}
             </Card>
 
-            <Card title="Last 12 months" description="Paid-order revenue against expenses, month by month." padded={false}>
+            <Card title="Last 12 months" description="Paid-order revenue against order costs and expenses, month by month." padded={false}>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr>
                       <Th>Month</Th>
                       <Th className="text-right">Revenue</Th>
+                      <Th className="text-right">Costs</Th>
                       <Th className="text-right">Spent</Th>
                       <Th className="text-right">Profit</Th>
                     </tr>
@@ -133,11 +146,12 @@ export default async function ExpensesPage({ searchParams }: PageProps<"/admin/e
                           <Link href={`/admin/expenses${qs({ period: "custom", from: m.start, to: m.end })}`} className="hover:text-amber">
                             {monthName(m.start)}
                           </Link>
-                          {/* Revenue (orange) over spend (grey), on one scale for the whole table. */}
+                          {/* Revenue (orange) over order costs and spend (grey), on one scale for the whole table. */}
                           <span aria-hidden className="mt-1 block h-1 rounded-full bg-amber/70" style={{ width: `${(m.revenueCents / best) * 100}%` }} />
-                          <span aria-hidden className="mt-0.5 block h-1 rounded-full bg-white/30" style={{ width: `${(m.expenseCents / best) * 100}%` }} />
+                          <span aria-hidden className="mt-0.5 block h-1 rounded-full bg-white/30" style={{ width: `${((m.costCents + m.expenseCents) / best) * 100}%` }} />
                         </Td>
                         <Td className="py-2 text-right tabular-nums">{money(m.revenueCents)}</Td>
+                        <Td className="py-2 text-right tabular-nums text-muted">{money(m.costCents)}</Td>
                         <Td className="py-2 text-right tabular-nums text-muted">{money(m.expenseCents)}</Td>
                         <Td className={cn("py-2 text-right tabular-nums", m.profitCents < 0 ? "text-warn" : m.profitCents > 0 ? "text-ok" : "text-dim")}>{money(m.profitCents)}</Td>
                       </tr>

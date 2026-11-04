@@ -2,6 +2,8 @@ import "server-only";
 import { and, count, desc, eq, gte, like, lt, lte, or, sql, sum } from "drizzle-orm";
 import { expenses, getDb, orders } from "@/db";
 import { DEFAULT_EXPENSE_CATEGORIES } from "@/lib/expenses";
+import { totalCost } from "@/lib/costs";
+import { costsByField, costsOfOrders } from "./costs";
 import { EXPORT_LIMIT } from "./orders";
 
 export const PAGE_SIZE = 25;
@@ -67,43 +69,58 @@ const paidIn = (p: Period) =>
     p.to ? lt(orders.createdAt, new Date(Date.parse(`${p.to}T00:00:00Z`) + 86_400_000)) : undefined,
   );
 
-/** Spend, revenue and profit for a period, plus spend by category (largest first). */
+/**
+ * Spend, revenue, order costs (Product costs) and profit for a period, plus spend by category and order costs by cost
+ * field (largest first).
+ */
 export async function getExpenseOverview(p: Period) {
   const db = getDb();
   const total = sum(expenses.amountCents);
-  const [[spent], [revenue], byCategory] = await Promise.all([
+  const [[spent], [revenue], byCategory, paid] = await Promise.all([
     db.select({ cents: sum(expenses.amountCents), n: count() }).from(expenses).where(spentIn(p)),
     db.select({ cents: sum(orders.totalCents), n: count() }).from(orders).where(paidIn(p)),
     db.select({ category: expenses.category, cents: total, n: count() }).from(expenses).where(spentIn(p)).groupBy(expenses.category).orderBy(desc(total)),
+    db.select({ id: orders.id, totalCents: orders.totalCents }).from(orders).where(paidIn(p)),
   ]);
+  const costs = costsByField((await costsOfOrders(paid)).values());
   const expenseCents = Number(spent?.cents ?? 0);
   const revenueCents = Number(revenue?.cents ?? 0);
+  const costCents = totalCost(costs);
   return {
     expenseCents,
     expenseCount: spent?.n ?? 0,
     revenueCents,
     orderCount: revenue?.n ?? 0,
-    profitCents: revenueCents - expenseCents,
+    costCents,
+    costs,
+    profitCents: revenueCents - costCents - expenseCents,
     byCategory: byCategory.map((c) => ({ category: c.category, cents: Number(c.cents ?? 0), count: c.n })),
   };
 }
 
-/** Revenue, spend and profit for each of the last `months` months, newest first. */
+/** Revenue, order costs, spend and profit for each of the last `months` months, newest first. */
 export async function getMonthlyTotals(months = 12, now = new Date()) {
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
   const spentMonth = sql<string>`date_format(${expenses.spentOn}, '%Y-%m')`;
   const orderMonth = sql<string>`date_format(${orders.createdAt}, '%Y-%m')`;
   const db = getDb();
-  const [spent, revenue] = await Promise.all([
+  const [spent, revenue, paid] = await Promise.all([
     db.select({ month: spentMonth, cents: sum(expenses.amountCents) }).from(expenses).where(gte(expenses.spentOn, ymd(start))).groupBy(spentMonth),
     db
       .select({ month: orderMonth, cents: sum(orders.totalCents) })
       .from(orders)
       .where(and(eq(orders.paymentStatus, "paid"), gte(orders.createdAt, start)))
       .groupBy(orderMonth),
+    db
+      .select({ id: orders.id, totalCents: orders.totalCents, month: orderMonth })
+      .from(orders)
+      .where(and(eq(orders.paymentStatus, "paid"), gte(orders.createdAt, start))),
   ]);
   const spentBy = new Map(spent.map((r) => [r.month, Number(r.cents ?? 0)]));
   const revenueBy = new Map(revenue.map((r) => [r.month, Number(r.cents ?? 0)]));
+  const costsOf = await costsOfOrders(paid);
+  const costBy = new Map<string, number>();
+  for (const o of paid) costBy.set(o.month, (costBy.get(o.month) ?? 0) + totalCost(costsOf.get(o.id) ?? []));
   return Array.from({ length: months }, (_, i) => {
     const y = now.getUTCFullYear();
     const m = now.getUTCMonth() - i;
@@ -111,7 +128,8 @@ export async function getMonthlyTotals(months = 12, now = new Date()) {
     const month = start.slice(0, 7);
     const expenseCents = spentBy.get(month) ?? 0;
     const revenueCents = revenueBy.get(month) ?? 0;
-    return { month, start, end: ymd(new Date(Date.UTC(y, m + 1, 0))), expenseCents, revenueCents, profitCents: revenueCents - expenseCents };
+    const costCents = costBy.get(month) ?? 0;
+    return { month, start, end: ymd(new Date(Date.UTC(y, m + 1, 0))), expenseCents, revenueCents, costCents, profitCents: revenueCents - costCents - expenseCents };
   });
 }
 

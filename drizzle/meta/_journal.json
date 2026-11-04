@@ -85,6 +85,13 @@
       "when": 1793650970382,
       "tag": "0011_seo_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1793812247578,
+      "tag": "0012_product_costs",
+      "breakpoints": true
     }
   ]
 }

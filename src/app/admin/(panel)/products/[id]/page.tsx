@@ -7,6 +7,7 @@ import { ImageManager } from "@/components/admin/ImageManager";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { PageHeader } from "@/components/admin/ui";
 import { param } from "@/lib/admin/format";
+import { productCostSetup } from "@/lib/admin/costs";
 import { getProductForEdit, listCategories } from "@/lib/admin/products";
 import { requireAdmin } from "@/lib/auth/session";
 
@@ -19,7 +20,7 @@ export default async function EditProductPage({ params, searchParams }: PageProp
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const productId = Number(id);
   if (!Number.isInteger(productId)) notFound();
-  const [data, categories] = await Promise.all([getProductForEdit(productId), listCategories()]);
+  const [data, categories, costs] = await Promise.all([getProductForEdit(productId), listCategories(), productCostSetup(productId)]);
   if (!data) notFound();
   const { product, images } = data;
 
@@ -52,7 +53,7 @@ export default async function EditProductPage({ params, searchParams }: PageProp
       )}
       <div className="space-y-4">
         <ImageManager productId={product.id} images={images} />
-        <ProductForm action={saveProduct.bind(null, product.id)} product={product} categories={categories} />
+        <ProductForm action={saveProduct.bind(null, product.id)} product={product} categories={categories} costs={costs} />
       </div>
     </>
   );

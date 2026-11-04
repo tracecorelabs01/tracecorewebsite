@@ -3,7 +3,8 @@
 import { revalidateTag } from "next/cache";
 import { and, count, eq, gt, gte, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { categories, customers, discountCodes, getDb, isDbConfigured, messages, orderEvents, orderItems, orders, products, subscribers } from "@/db";
+import { categories, customers, discountCodes, getDb, isDbConfigured, messages, orderCosts, orderEvents, orderItems, orders, products, subscribers } from "@/db";
+import { costsForSale } from "@/lib/admin/costs";
 import { addressSchema, rememberAddress } from "@/lib/address";
 import { shipCountryNames } from "@/lib/countries";
 import { currentPartner, getProgram, partnerByCode, partnerPriceMap, partnerTerms, rememberPartner, type Partner } from "@/lib/affiliates";
@@ -419,6 +420,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
 
   // Stock changed: refresh the storefront catalogue in the background.
   revalidateTag(TAGS.catalog, "max");
+  // What the sale cost (Expenses > Product costs), kept so later cost changes don't rewrite its profit. The order
+  // stands without it: reports then use the products' current costs.
+  await costsForSale({ totalCents: summary.totalCents, lines: priced.lines })
+    .then((costs) => costs && getDb().insert(orderCosts).values({ orderId: placedId, costs }))
+    .catch((err) => console.error("[checkout] recording the order's costs failed", err));
   // Kept for next time; the order stands even if this fails.
   if (rememberFor) await rememberAddress(rememberFor, addressSchema.parse(data)).catch((err) => console.error("[checkout] saving the address failed", err));
   // Card orders paid online are confirmed by email once the payment is in (src/lib/razorpay.ts).

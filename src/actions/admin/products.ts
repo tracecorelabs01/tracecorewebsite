@@ -5,13 +5,16 @@ import { redirect } from "next/navigation";
 import { and, asc, eq, inArray, max, ne, sql } from "drizzle-orm";
 import sharp from "sharp";
 import type { ActionState } from "@/components/admin/forms";
-import { categories, getDb, productImages, products } from "@/db";
+import { categories, getDb, productCosts, productImages, products } from "@/db";
+import type { Database } from "@/db/client";
 import { logActivity } from "@/lib/admin/audit";
+import { listCostFields } from "@/lib/admin/costs";
 import { bulkInput, lines, parseCents, slugify } from "@/lib/admin/format";
 import { requireAdmin } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
 import { ART_KEYS } from "@/lib/catalog/types";
 import { findBlocked, findLiteralPrices } from "@/lib/content-guard";
+import { parseCost, type CostField } from "@/lib/costs";
 import { recordSlugRedirect } from "@/lib/slug-redirects";
 import { deleteObject, newKey, putObject } from "@/lib/storage";
 
@@ -146,21 +149,45 @@ function parseProduct(fd: FormData) {
   return { fieldErrors, data };
 }
 
+type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+type ProductCostInput = { fieldIds: number[]; values: { costFieldId: number; value: number }[] };
+
+/**
+ * The product's own costs from its form ("cost:<field id>"; blank uses the cost's default). Only costs the form
+ * showed are touched, so one added while the form was open keeps any value set for it meanwhile.
+ */
+function parseCosts(fields: CostField[], fd: FormData, fieldErrors: Record<string, string>): ProductCostInput {
+  const shown = fields.filter((f) => fd.has(`cost:${f.id}`));
+  const values = shown.flatMap((f) => {
+    const value = parseCost(f.kind, str(fd.get(`cost:${f.id}`)));
+    if (Number.isNaN(value)) fieldErrors[`cost:${f.id}`] = f.kind === "percent" ? "Enter a percent from 0 to 100, or leave it blank." : "Enter an amount, e.g. 20.00, or leave it blank.";
+    return value === null || Number.isNaN(value) ? [] : [{ costFieldId: f.id, value }];
+  });
+  return { fieldIds: shown.map((f) => f.id), values };
+}
+
+async function writeCosts(tx: Transaction, productId: number, costs: ProductCostInput) {
+  if (costs.fieldIds.length) await tx.delete(productCosts).where(and(eq(productCosts.productId, productId), inArray(productCosts.costFieldId, costs.fieldIds)));
+  if (costs.values.length) await tx.insert(productCosts).values(costs.values.map((c) => ({ ...c, productId })));
+}
+
 export async function saveProduct(productId: number | null, _prev: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin("admin");
   const { data, fieldErrors } = parseProduct(fd);
   const db = getDb();
 
-  const [[clash], [current]] = await Promise.all([
+  const [[clash], [current], fields] = await Promise.all([
     db
       .select({ id: products.id })
       .from(products)
       .where(productId ? and(eq(products.slug, data.slug), ne(products.id, productId)) : eq(products.slug, data.slug))
       .limit(1),
     productId ? db.select().from(products).where(eq(products.id, productId)).limit(1) : [],
+    listCostFields(),
   ]);
   if (productId && !current) return { ok: false, message: "This product no longer exists." };
   if (clash) fieldErrors.slug = "Another product already uses this slug.";
+  const costs = parseCosts(fields, fd, fieldErrors);
   if (Object.keys(fieldErrors).length) return { ok: false, message: "Please fix the highlighted fields.", fieldErrors };
 
   const contentChanged = !current || PRODUCT_CONTENT.some((k) => !same(current[k], data[k]));
@@ -170,11 +197,16 @@ export async function saveProduct(productId: number | null, _prev: ActionState, 
     await db.transaction(async (tx) => {
       await tx.update(products).set(values).where(eq(products.id, current.id));
       await recordSlugRedirect(tx, "product", current.slug, data.slug);
+      await writeCosts(tx, current.id, costs);
     });
     const renamed = current.slug !== data.slug ? ` (URL /product/${current.slug} now redirects to /product/${data.slug})` : "";
     await logActivity(user, "update", "product", id, `Updated product ${data.name}${renamed}`);
   } else {
-    [{ id }] = await db.insert(products).values(values).$returningId();
+    id = await db.transaction(async (tx) => {
+      const [{ id: newId }] = await tx.insert(products).values(values).$returningId();
+      await writeCosts(tx, newId, costs);
+      return newId;
+    });
     await logActivity(user, "create", "product", id, `Created product ${data.name}`);
   }
   updateTag(TAGS.catalog);
@@ -195,6 +227,8 @@ export async function duplicateProduct(productId: number) {
     .insert(products)
     .values({ ...rest, slug, name: `${p.name} (copy)`, status: "draft", contentUpdatedAt: new Date() })
     .$returningId();
+  const costs = await db.select().from(productCosts).where(eq(productCosts.productId, productId));
+  if (costs.length) await db.insert(productCosts).values(costs.map((c) => ({ ...c, productId: id })));
   await logActivity(user, "create", "product", id, `Duplicated ${p.name}`);
   redirect(`/admin/products/${id}?created=1`);
 }

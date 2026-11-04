@@ -8,6 +8,7 @@ import { plainText } from "@/lib/markdown";
 import { metaDescription } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import { ActionForm, Field, FormStatus, Input, Select, SubmitButton, Textarea, Toggle, useActionForm, type ActionState } from "./forms";
+import { ProductCosts, type ProductCostSetup } from "./ProductCosts";
 import { SeoFields } from "./SeoFields";
 import { Card } from "./ui";
 
@@ -94,12 +95,16 @@ export function ProductForm({
   action,
   product,
   categories,
+  costs,
 }: {
   action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
   product?: ProductRow;
   categories: { id: number; name: string }[];
+  costs: ProductCostSetup;
 }) {
   const p = product;
+  // Kept in state for the profit preview in the Costs card.
+  const [price, setPrice] = useState(centsToInput(p?.priceCents));
   return (
     <ActionForm action={action} className="grid gap-4 xl:grid-cols-3" showStatus={false}>
       <div className="space-y-4 xl:col-span-2">
@@ -123,13 +128,15 @@ export function ProductForm({
         <Card title="Pricing">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Price (USD)" name="price">
-              <Input name="price" inputMode="decimal" defaultValue={centsToInput(p?.priceCents)} placeholder="279.00" required />
+              <Input name="price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="279.00" required />
             </Field>
             <Field label="Compare-at price" name="compareAt" hint="Optional. Shows as a strikethrough “was” price.">
               <Input name="compareAt" inputMode="decimal" defaultValue={centsToInput(p?.compareAtCents)} placeholder="319.00" />
             </Field>
           </div>
         </Card>
+
+        <ProductCosts price={price} {...costs} />
 
         <Card title="Inventory">
           <div className="grid gap-5 sm:grid-cols-2">

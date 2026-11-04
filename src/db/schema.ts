@@ -13,6 +13,7 @@ import {
   mediumtext,
   mysqlEnum,
   mysqlTable,
+  primaryKey,
   text,
   timestamp,
   tinyint,
@@ -461,6 +462,49 @@ export const expenses = mysqlTable(
   },
   (t) => [index("expenses_spent_on_idx").on(t.spentOn), index("expenses_category_idx").on(t.category)],
 );
+
+export const COST_KINDS = ["per-item", "per-order", "percent"] as const;
+
+/**
+ * What a sale costs the business (supplier price, postage, payment fees), defined in /admin/expenses/costs and set
+ * per product. Values are cents, or hundredths of a percent for "percent" (185 = 1.85%).
+ */
+export const costFields = mysqlTable("cost_fields", {
+  id: id(),
+  name: varchar("name", { length: 60 }).notNull(),
+  kind: mysqlEnum("kind", COST_KINDS).notNull(),
+  /** For products that don't set their own value; null: none. */
+  defaultValue: int("default_value"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/** A product's own value for a cost field. */
+export const productCosts = mysqlTable(
+  "product_costs",
+  {
+    productId: int("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    costFieldId: int("cost_field_id")
+      .notNull()
+      .references(() => costFields.id, { onDelete: "cascade" }),
+    value: int("value").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.productId, t.costFieldId] })],
+);
+
+/**
+ * What an order cost when it was placed, by cost field, so later changes to costs don't rewrite past profit. Kept
+ * apart from orders so costs never travel with an order row. Orders without one use the products' current costs.
+ */
+export const orderCosts = mysqlTable("order_costs", {
+  orderId: int("order_id")
+    .primaryKey()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  costs: jsonCol<{ name: string; cents: number }[]>("costs").notNull(),
+  createdAt: createdAt(),
+});
 
 /* ───────────── Loyalty ───────────── */
 
