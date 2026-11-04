@@ -203,7 +203,12 @@ export async function previewSetupDiscount(lines: CartInput): Promise<{ code: st
 
 const orderSchema = addressSchema.extend({
   email: z.email("Enter a valid email").max(191),
-  phone: z.string().trim().max(40).optional(),
+  // The courier needs it to arrange delivery and clear customs.
+  phone: z
+    .string()
+    .trim()
+    .max(40)
+    .refine((v) => (v.match(/\d/g)?.length ?? 0) >= 6, "Enter a phone number the courier can reach you on"),
   paymentMethod: z.enum(["card", "paypal", "crypto"]),
   discountCode: z.string().trim().max(40).optional(),
   note: z.string().trim().max(1000).optional(),

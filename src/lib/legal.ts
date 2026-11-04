@@ -234,7 +234,7 @@ This policy explains how TraceCoreLab, operated by [Registered business name], [
 
 ## What we collect
 
-- **When you order:** your name, email, phone number (optional), shipping address and what you ordered.
+- **When you order:** your name, email, phone number, shipping address and what you ordered.
 - **When you sign in:** we email you a one-time code; we don't use passwords. If you sign in with Discord or Google, we store your Discord user ID and username, or your Google account ID, to recognise you.
 - **When you contact us:** what you send us through the contact form, email or a support ticket in our Discord.
 - **Technical information:** your IP address, to prevent fraud and limit repeated sign-in attempts.

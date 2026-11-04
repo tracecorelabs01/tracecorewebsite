@@ -181,7 +181,7 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
     startTransition(async () => {
       const res = await placeOrder({
         email: get("email"),
-        phone: get("phone") || undefined,
+        phone: get("phone"),
         firstName: get("firstName"),
         lastName: get("lastName"),
         address1: get("address1"),
@@ -285,7 +285,7 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
               </div>
             )}
             <Field label="Email" name="email" type="email" autoComplete="email" required className="sm:col-span-2" defaultValue={details?.email} error={fieldErrors.email} />
-            <Field label="Phone (optional)" name="phone" type="tel" autoComplete="tel" className="sm:col-span-2" defaultValue={details?.phone} error={fieldErrors.phone} />
+            <Field label="Phone (for the courier)" name="phone" type="tel" autoComplete="tel" required maxLength={40} className="sm:col-span-2" defaultValue={details?.phone} error={fieldErrors.phone} />
           </Fieldset>
 
           <Fieldset step="02" title="Shipping">
