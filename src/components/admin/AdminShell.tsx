@@ -6,7 +6,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   BookOpen,
   Boxes,
-  Calculator,
   ExternalLink,
   FileText,
   FolderTree,
@@ -52,13 +51,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: typeof P
       { href: "/admin/affiliates", label: "Affiliates", icon: Handshake, min: "admin", badge: "partners" },
     ],
   },
-  {
-    group: "Finance",
-    items: [
-      { href: "/admin/expenses", label: "Expenses", icon: Wallet, min: "admin" },
-      { href: "/admin/expenses/costs", label: "Product costs", icon: Calculator, min: "admin" },
-    ],
-  },
+  { group: "Finance", items: [{ href: "/admin/expenses", label: "Expenses", icon: Wallet, min: "admin" }] },
   {
     group: "Catalog",
     items: [
@@ -88,7 +81,6 @@ const NAV: { group: string; items: { href: string; label: string; icon: typeof P
     ],
   },
 ];
-const NAV_HREFS = NAV.flatMap((g) => g.items.map((i) => i.href));
 
 export function AdminShell({ user, counts, children }: { user: { name: string; email: string; role: Role }; counts: NavCounts; children: ReactNode }) {
   const pathname = usePathname();
@@ -110,8 +102,7 @@ export function AdminShell({ user, counts, children }: { user: { name: string; e
             <p className="px-3 pb-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-dim">{group.group}</p>
             <ul className="space-y-0.5">
               {items.map(({ href, label, icon: Icon, badge }) => {
-                // The most specific match only: /admin/expenses/costs lights up Product costs, not Expenses too.
-                const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href) && !NAV_HREFS.some((h) => h.length > href.length && pathname.startsWith(h));
+                const active = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
                 const n = badge ? counts[badge] : 0;
                 return (
                   <li key={href}>

@@ -86,5 +86,5 @@ export async function deleteExpense(expenseId: number) {
     await db.delete(expenses).where(eq(expenses.id, expenseId));
     await logActivity(user, "delete", "expense", expenseId, `Deleted expense: ${money(e.amountCents)} for ${e.category} on ${e.spentOn}`.slice(0, 255));
   }
-  redirect("/admin/expenses?deleted=1");
+  redirect("/admin/expenses/other?deleted=1");
 }

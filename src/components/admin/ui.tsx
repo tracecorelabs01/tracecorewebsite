@@ -100,7 +100,8 @@ export function PaymentBadge({ status }: { status: string }) {
 
 export function Table({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("overflow-x-auto", className)}>
+    // relative: keeps sr-only header labels inside the scroll box, or they widen the whole page on phones.
+    <div className={cn("relative overflow-x-auto", className)}>
       <table className="w-full min-w-[720px] border-collapse text-sm">{children}</table>
     </div>
   );
@@ -135,20 +136,18 @@ export function EmptyState({ icon, title, description, action }: { icon?: ReactN
 
 /* ───────────── navigation helpers ───────────── */
 
+/** The look shared by FilterTabs (links) and Tabs (in-page sections). */
+export const tabBarClass = "no-scrollbar flex gap-1 overflow-x-auto rounded-xl border border-line bg-ink-900/70 p-1";
+export const tabClass = (active: boolean) => cn("flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors", active ? "bg-white/[0.08] text-fg" : "text-muted hover:text-fg");
+export const tabCountClass = (active: boolean) => cn("font-mono text-[11px] tabular-nums", active ? "text-amber" : "text-dim");
+
 export function FilterTabs({ items }: { items: { label: string; href: string; active: boolean; count?: number }[] }) {
   return (
-    <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl border border-line bg-ink-900/70 p-1">
+    <div className={tabBarClass}>
       {items.map((t) => (
-        <Link
-          key={t.href}
-          href={t.href}
-          className={cn(
-            "flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors",
-            t.active ? "bg-white/[0.08] text-fg" : "text-muted hover:text-fg",
-          )}
-        >
+        <Link key={t.href} href={t.href} className={tabClass(t.active)}>
           {t.label}
-          {t.count !== undefined && <span className={cn("font-mono text-[11px] tabular-nums", t.active ? "text-amber" : "text-dim")}>{t.count}</span>}
+          {t.count !== undefined && <span className={tabCountClass(t.active)}>{t.count}</span>}
         </Link>
       ))}
     </div>

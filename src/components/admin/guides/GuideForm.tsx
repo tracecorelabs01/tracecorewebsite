@@ -5,6 +5,7 @@ import { Heading2, Heading3, ImagePlus, Link2, List, ListOrdered, Loader2, Lock,
 import { restoreRevision, uploadGuideImage } from "@/actions/admin/guides";
 import { ActionForm, Field, FormStatus, Input, Select, SubmitButton, Textarea, useActionForm, type ActionState } from "@/components/admin/forms";
 import { SeoFields } from "@/components/admin/SeoFields";
+import { TabPanel, Tabs } from "@/components/admin/Tabs";
 import { buttonClass, Card } from "@/components/admin/ui";
 import { Markdown } from "@/components/content/Markdown";
 import { dateTime } from "@/lib/admin/format";
@@ -37,7 +38,11 @@ const TOOLS = [
 /** A field error for inputs that aren't wrapped in a <Field> (the body, the product checkboxes). */
 function FieldError({ name }: { name: string }) {
   const error = useActionForm().state?.fieldErrors?.[name];
-  return error ? <p className="mt-1.5 text-xs text-[#ff6b5e]">{error}</p> : null;
+  return error ? (
+    <p data-field-error className="mt-1.5 text-xs text-[#ff6b5e]">
+      {error}
+    </p>
+  ) : null;
 }
 
 /** Picks one image file and uploads it, then hands its URL on. */
@@ -131,212 +136,227 @@ export function GuideForm({
   }
 
   return (
-    <ActionForm action={action} className="grid gap-4 xl:grid-cols-3" showStatus={false}>
-      <div className="min-w-0 space-y-4 xl:col-span-2">
-        <Card title="Guide">
-          <div className="space-y-4">
-            <Field label="Title" name="title" hint="The page's H1. Name the hardware and the task, e.g. How to install a PCIe DMA card.">
-              <Input name="title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
-            </Field>
-            <Field
-              label="URL slug"
-              name="slug"
-              hint={slugLocked ? "Locked because the guide has been published." : guide?.publishedAt ? "The old URL will redirect to the new one." : "Leave blank to generate it from the title."}
-            >
-              <span className="flex gap-2">
-                <span className="relative flex-1">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-dim">/guides/</span>
-                  <Input name="slug" value={slug} onChange={(e) => setSlug(e.target.value)} readOnly={slugLocked} placeholder="install-a-pcie-dma-card" className="pl-[4.6rem] font-mono" />
-                </span>
-                {slugLocked && (
-                  <button
-                    type="button"
-                    className={buttonClass("secondary")}
-                    onClick={() => window.confirm("Change the URL of a published guide? Links to the old URL will redirect to the new one.") && setSlugLocked(false)}
+    <ActionForm action={action} showStatus={false}>
+      <Tabs
+        tabs={[
+          { id: "write", label: "Write" },
+          { id: "cover", label: "Cover & products" },
+          { id: "seo", label: "SEO" },
+          ...(revisions.length ? [{ id: "revisions", label: "Revisions", count: revisions.length }] : []),
+        ]}
+      >
+        <div className="grid gap-4 xl:grid-cols-3">
+          <div className="min-w-0 space-y-4 xl:col-span-2">
+            <TabPanel id="write" className="space-y-4">
+              <Card title="Guide">
+                <div className="space-y-4">
+                  <Field label="Title" name="title" hint="The page's H1. Name the hardware and the task, e.g. How to install a PCIe DMA card.">
+                    <Input name="title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={200} />
+                  </Field>
+                  <Field
+                    label="URL slug"
+                    name="slug"
+                    hint={slugLocked ? "Locked because the guide has been published." : guide?.publishedAt ? "The old URL will redirect to the new one." : "Leave blank to generate it from the title."}
                   >
-                    <Lock className="size-3.5" /> Change
-                  </button>
-                )}
-              </span>
-            </Field>
-          </div>
-        </Card>
-
-        <Card
-          title="Body"
-          description="Markdown. ## starts a section (it goes in the table of contents)."
-          actions={
-            <div className="flex rounded-lg border border-line p-0.5 text-xs" role="tablist">
-              {(["write", "preview"] as const).map((t) => (
-                <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={cn("rounded-md px-3 py-1 capitalize", tab === t ? "bg-white/[0.08] text-fg" : "text-muted hover:text-fg")}>
-                  {t}
-                </button>
-              ))}
-            </div>
-          }
-        >
-          <div className={tab === "write" ? undefined : "hidden"}>
-            <div className="mb-2 flex flex-wrap gap-1" role="toolbar" aria-label="Formatting">
-              {TOOLS.map((t) => (
-                <button
-                  key={t.label}
-                  type="button"
-                  onClick={() => ("line" in t ? prefixLine(t.line) : wrap(t.wrap[0], t.wrap[1], t.wrap[2]))}
-                  title={t.label}
-                  aria-label={t.label}
-                  className={buttonClass("ghost", "sm")}
-                >
-                  <t.icon className="size-4" />
-                </button>
-              ))}
-              <button type="button" onClick={() => bodyImage.current?.click()} disabled={busy !== null} title="Image" aria-label="Upload an image" className={buttonClass("ghost", "sm")}>
-                {busy === "image" ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
-              </button>
-              <input ref={bodyImage} type="file" accept={ACCEPT} hidden onChange={() => upload("image")} />
-            </div>
-            <Textarea ref={area} name="body" value={body} onChange={(e) => setBody(e.target.value)} rows={30} spellCheck className="font-mono text-[13px] leading-relaxed" aria-label="Guide body" />
-            <FieldError name="body" />
-            <p className="mt-2 text-xs leading-relaxed text-dim">
-              <code>## Section</code> · <code>1. </code> numbered steps · <code>- </code> bullets · <code>{"> [!TIP]"}</code> callouts (NOTE, TIP, IMPORTANT, WARNING, CAUTION) ·{" "}
-              <code>```youtube</code> with <code>id:</code>, <code>title:</code> and <code>date:</code> lines for a video · <code>{"{{price:product-slug}}"}</code> for a price,{" "}
-              <code>{"{{freeShippingThreshold}}"}</code> / <code>{"{{flatShipping}}"}</code> for shipping. Never type a $ amount.
-            </p>
-          </div>
-          {tab === "preview" && (
-            <div className="rounded-xl border border-line bg-ink-950 p-6 md:p-8">
-              <h2 className="type-h3 mb-8">{title || "Untitled guide"}</h2>
-              {body.trim() ? <Markdown source={fillTokens(body, { settings, products })} /> :<p className="text-sm text-dim">Nothing to preview yet.</p>}
-            </div>
-          )}
-        </Card>
-
-        {note && <p className={cn("rounded-xl border px-4 py-3 text-sm", note.ok ? "border-ok/30 bg-ok/10" : "border-ember/40 bg-ember/10 text-[#ff6b5e]")}>{note.text}</p>}
-      </div>
-
-      <div className="min-w-0 space-y-4">
-        <Card title="Publishing">
-          <div className="space-y-4">
-            <Field label="Status" name="status">
-              <Select name="status" defaultValue={guide?.status ?? "draft"}>
-                <option value="draft">Draft: hidden</option>
-                <option value="published">Published: live on /guides</option>
-              </Select>
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Section" name="section">
-                <Select name="section" value={section} onChange={(e) => setSection(e.target.value as GuideSection)}>
-                  {(Object.keys(GUIDE_SECTION_LABELS) as GuideSection[]).map((s) => (
-                    <option key={s} value={s}>
-                      {GUIDE_SECTION_LABELS[s]}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Kind" name="kind">
-                <Select name="kind" defaultValue={guide?.kind ?? "guide"}>
-                  {(Object.keys(GUIDE_KIND_LABELS) as GuideKind[]).map((k) => (
-                    <option key={k} value={k}>
-                      {GUIDE_KIND_LABELS[k]}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <Field label="Sort order" name="sortOrder" hint="Lower comes first in its section.">
-              <Input name="sortOrder" type="number" defaultValue={guide?.sortOrder ?? 0} />
-            </Field>
-            <SubmitButton className="w-full" pendingText="Saving…">
-              Save guide
-            </SubmitButton>
-            <FormStatus className="mt-0" />
-          </div>
-        </Card>
-
-        <Card title="Cover image" description="Optional. Shown at the top of the guide. JPG, PNG or WebP up to 10 MB.">
-          <input type="hidden" name="coverUrl" value={cover} />
-          {cover && (
-            // eslint-disable-next-line @next/next/no-img-element -- an admin thumbnail
-            <img src={cover} alt="" className="mb-3 aspect-video w-full rounded-lg border border-line object-cover" />
-          )}
-          <div className="flex gap-2">
-            <button type="button" onClick={() => coverImage.current?.click()} disabled={busy !== null} className={buttonClass("secondary", "sm")}>
-              {busy === "cover" ? <Loader2 className="size-3.5 animate-spin" /> : <ImagePlus className="size-3.5" />} {cover ? "Replace" : "Upload"}
-            </button>
-            {cover && (
-              <button type="button" onClick={() => setCover("")} className={buttonClass("danger", "sm")}>
-                <Trash2 className="size-3.5" /> Remove
-              </button>
-            )}
-            <input ref={coverImage} type="file" accept={ACCEPT} hidden onChange={() => upload("cover")} />
-          </div>
-          <FieldError name="coverUrl" />
-          <Field label="Cover description (alt text)" name="coverAlt" className="mt-4">
-            <Input name="coverAlt" defaultValue={guide?.coverAlt ?? ""} maxLength={255} placeholder="A 75T DMA card in a PCIe x4 slot" />
-          </Field>
-        </Card>
-
-        <Card title="Products covered" description="Shown as product cards under the guide. One product family only.">
-          {section === "reference" ? (
-            <p className="text-sm text-dim">Reference guides don&apos;t list products.</p>
-          ) : choices.length ? (
-            <ul className="space-y-2">
-              {choices.map((p) => (
-                <li key={p.slug}>
-                  <label className="flex cursor-pointer items-center gap-3 text-sm">
-                    <input
-                      type="checkbox"
-                      name="relatedProducts"
-                      value={p.slug}
-                      checked={related.includes(p.slug)}
-                      onChange={(e) => setRelated((r) => (e.target.checked ? [...r, p.slug] : r.filter((s) => s !== p.slug)))}
-                      className="accent-blaze"
-                    />
-                    <span className="flex-1 text-fg">{p.name}</span>
-                    <span className="font-mono text-[11px] text-dim">{p.slug}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-dim">No {GUIDE_SECTION_LABELS[section].toLowerCase()} are on sale.</p>
-          )}
-          <FieldError name="relatedProducts" />
-        </Card>
-
-        <Card title="Search engines">
-          <SeoFields
-            title={guide?.seoTitle}
-            description={guide?.description}
-            titleFallback={title || "The guide title"}
-            descriptionFallback="Required: one or two sentences for search results and the guide card."
-            path={`/guides/${slug || "…"}`}
-            descriptionName="description"
-          />
-        </Card>
-
-        {revisions.length > 0 && (
-          <Card title="Revisions" description="One per save that changed the title or body; the newest 20 are kept.">
-            <ul className="divide-y divide-line/70 text-sm">
-              {revisions.map((rev, i) => (
-                <li key={rev.id} className="flex items-center justify-between gap-3 py-2.5">
-                  <span className="min-w-0">
-                    <span className="block text-fg/90">{dateTime(rev.createdAt)}</span>
-                    <span className="block truncate text-xs text-dim">
-                      {i === 0 ? "Latest · " : ""}
-                      {rev.savedBy ?? "Content patch"}
+                    <span className="flex gap-2">
+                      <span className="relative flex-1">
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-dim">/guides/</span>
+                        <Input name="slug" value={slug} onChange={(e) => setSlug(e.target.value)} readOnly={slugLocked} placeholder="install-a-pcie-dma-card" className="pl-[4.6rem] font-mono" />
+                      </span>
+                      {slugLocked && (
+                        <button
+                          type="button"
+                          className={buttonClass("secondary")}
+                          onClick={() => window.confirm("Change the URL of a published guide? Links to the old URL will redirect to the new one.") && setSlugLocked(false)}
+                        >
+                          <Lock className="size-3.5" /> Change
+                        </button>
+                      )}
                     </span>
-                  </span>
-                  {i > 0 && (
-                    <button type="button" onClick={() => restore(rev)} className={buttonClass("ghost", "sm")}>
-                      <RotateCcw className="size-3.5" /> Restore
+                  </Field>
+                </div>
+              </Card>
+
+              <Card
+                title="Body"
+                description="Markdown. ## starts a section (it goes in the table of contents)."
+                actions={
+                  <div className="flex rounded-lg border border-line p-0.5 text-xs" role="tablist">
+                    {(["write", "preview"] as const).map((t) => (
+                      <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={cn("rounded-md px-3 py-1 capitalize", tab === t ? "bg-white/[0.08] text-fg" : "text-muted hover:text-fg")}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                }
+              >
+                <div className={tab === "write" ? undefined : "hidden"}>
+                  <div className="mb-2 flex flex-wrap gap-1" role="toolbar" aria-label="Formatting">
+                    {TOOLS.map((t) => (
+                      <button
+                        key={t.label}
+                        type="button"
+                        onClick={() => ("line" in t ? prefixLine(t.line) : wrap(t.wrap[0], t.wrap[1], t.wrap[2]))}
+                        title={t.label}
+                        aria-label={t.label}
+                        className={buttonClass("ghost", "sm")}
+                      >
+                        <t.icon className="size-4" />
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => bodyImage.current?.click()} disabled={busy !== null} title="Image" aria-label="Upload an image" className={buttonClass("ghost", "sm")}>
+                      {busy === "image" ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />}
+                    </button>
+                    <input ref={bodyImage} type="file" accept={ACCEPT} hidden onChange={() => upload("image")} />
+                  </div>
+                  <Textarea ref={area} name="body" value={body} onChange={(e) => setBody(e.target.value)} rows={30} spellCheck className="font-mono text-[13px] leading-relaxed" aria-label="Guide body" />
+                  <FieldError name="body" />
+                  <p className="mt-2 text-xs leading-relaxed text-dim">
+                    <code>## Section</code> · <code>1. </code> numbered steps · <code>- </code> bullets · <code>{"> [!TIP]"}</code> callouts (NOTE, TIP, IMPORTANT, WARNING, CAUTION) ·{" "}
+                    <code>```youtube</code> with <code>id:</code>, <code>title:</code> and <code>date:</code> lines for a video · <code>{"{{price:product-slug}}"}</code> for a price,{" "}
+                    <code>{"{{freeShippingThreshold}}"}</code> / <code>{"{{flatShipping}}"}</code> for shipping. Never type a $ amount.
+                  </p>
+                </div>
+                {tab === "preview" && (
+                  <div className="rounded-xl border border-line bg-ink-950 p-6 md:p-8">
+                    <h2 className="type-h3 mb-8">{title || "Untitled guide"}</h2>
+                    {body.trim() ? <Markdown source={fillTokens(body, { settings, products })} /> :<p className="text-sm text-dim">Nothing to preview yet.</p>}
+                  </div>
+                )}
+              </Card>
+            </TabPanel>
+            <TabPanel id="cover" className="space-y-4">
+              <Card title="Cover image" description="Optional. Shown at the top of the guide. JPG, PNG or WebP up to 10 MB.">
+                <input type="hidden" name="coverUrl" value={cover} />
+                {cover && (
+                  // eslint-disable-next-line @next/next/no-img-element -- an admin thumbnail
+                  <img src={cover} alt="" className="mb-3 aspect-video w-full rounded-lg border border-line object-cover" />
+                )}
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => coverImage.current?.click()} disabled={busy !== null} className={buttonClass("secondary", "sm")}>
+                    {busy === "cover" ? <Loader2 className="size-3.5 animate-spin" /> : <ImagePlus className="size-3.5" />} {cover ? "Replace" : "Upload"}
+                  </button>
+                  {cover && (
+                    <button type="button" onClick={() => setCover("")} className={buttonClass("danger", "sm")}>
+                      <Trash2 className="size-3.5" /> Remove
                     </button>
                   )}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
-      </div>
+                  <input ref={coverImage} type="file" accept={ACCEPT} hidden onChange={() => upload("cover")} />
+                </div>
+                <FieldError name="coverUrl" />
+                <Field label="Cover description (alt text)" name="coverAlt" className="mt-4">
+                  <Input name="coverAlt" defaultValue={guide?.coverAlt ?? ""} maxLength={255} placeholder="A 75T DMA card in a PCIe x4 slot" />
+                </Field>
+              </Card>
+
+              <Card title="Products covered" description="Shown as product cards under the guide. One product family only.">
+                {section === "reference" ? (
+                  <p className="text-sm text-dim">Reference guides don&apos;t list products.</p>
+                ) : choices.length ? (
+                  <ul className="space-y-2">
+                    {choices.map((p) => (
+                      <li key={p.slug}>
+                        <label className="flex cursor-pointer items-center gap-3 text-sm">
+                          <input
+                            type="checkbox"
+                            name="relatedProducts"
+                            value={p.slug}
+                            checked={related.includes(p.slug)}
+                            onChange={(e) => setRelated((r) => (e.target.checked ? [...r, p.slug] : r.filter((s) => s !== p.slug)))}
+                            className="accent-blaze"
+                          />
+                          <span className="flex-1 text-fg">{p.name}</span>
+                          <span className="font-mono text-[11px] text-dim">{p.slug}</span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-dim">No {GUIDE_SECTION_LABELS[section].toLowerCase()} are on sale.</p>
+                )}
+                <FieldError name="relatedProducts" />
+              </Card>
+            </TabPanel>
+            <TabPanel id="seo">
+              <Card title="Search engines">
+                <SeoFields
+                  title={guide?.seoTitle}
+                  description={guide?.description}
+                  titleFallback={title || "The guide title"}
+                  descriptionFallback="Required: one or two sentences for search results and the guide card."
+                  path={`/guides/${slug || "…"}`}
+                  descriptionName="description"
+                />
+              </Card>
+            </TabPanel>
+            {revisions.length > 0 && (
+              <TabPanel id="revisions">
+                <Card title="Revisions" description="One per save that changed the title or body; the newest 20 are kept.">
+                  <ul className="divide-y divide-line/70 text-sm">
+                    {revisions.map((rev, i) => (
+                      <li key={rev.id} className="flex items-center justify-between gap-3 py-2.5">
+                        <span className="min-w-0">
+                          <span className="block text-fg/90">{dateTime(rev.createdAt)}</span>
+                          <span className="block truncate text-xs text-dim">
+                            {i === 0 ? "Latest · " : ""}
+                            {rev.savedBy ?? "Content patch"}
+                          </span>
+                        </span>
+                        {i > 0 && (
+                          <button type="button" onClick={() => restore(rev)} className={buttonClass("ghost", "sm")}>
+                            <RotateCcw className="size-3.5" /> Restore
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </TabPanel>
+            )}
+            {note && <p className={cn("rounded-xl border px-4 py-3 text-sm", note.ok ? "border-ok/30 bg-ok/10" : "border-ember/40 bg-ember/10 text-[#ff6b5e]")}>{note.text}</p>}
+          </div>
+
+          <div className="min-w-0 xl:sticky xl:top-24 xl:self-start">
+            <Card title="Publishing">
+              <div className="space-y-4">
+                <Field label="Status" name="status">
+                  <Select name="status" defaultValue={guide?.status ?? "draft"}>
+                    <option value="draft">Draft: hidden</option>
+                    <option value="published">Published: live on /guides</option>
+                  </Select>
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Section" name="section">
+                    <Select name="section" value={section} onChange={(e) => setSection(e.target.value as GuideSection)}>
+                      {(Object.keys(GUIDE_SECTION_LABELS) as GuideSection[]).map((s) => (
+                        <option key={s} value={s}>
+                          {GUIDE_SECTION_LABELS[s]}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Kind" name="kind">
+                    <Select name="kind" defaultValue={guide?.kind ?? "guide"}>
+                      {(Object.keys(GUIDE_KIND_LABELS) as GuideKind[]).map((k) => (
+                        <option key={k} value={k}>
+                          {GUIDE_KIND_LABELS[k]}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+                <Field label="Sort order" name="sortOrder" hint="Lower comes first in its section.">
+                  <Input name="sortOrder" type="number" defaultValue={guide?.sortOrder ?? 0} />
+                </Field>
+                <SubmitButton className="w-full" pendingText="Saving…">
+                  Save guide
+                </SubmitButton>
+                <FormStatus className="mt-0" />
+              </div>
+            </Card>
+          </div>
+        </div>
+      </Tabs>
     </ActionForm>
   );
 }

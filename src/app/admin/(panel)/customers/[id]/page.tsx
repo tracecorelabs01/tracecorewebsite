@@ -5,6 +5,7 @@ import { CheckCircle2, CircleDollarSign, Mail, Receipt, Wallet } from "lucide-re
 import { openCustomerAccount, saveCustomerNotes, signOutCustomer } from "@/actions/admin/customers";
 import { adjustPoints } from "@/actions/admin/loyalty";
 import { ActionForm, ConfirmButton, Field, Input, SubmitButton, Textarea } from "@/components/admin/forms";
+import { TabPanel, Tabs } from "@/components/admin/Tabs";
 import { buttonClass, Card, DescriptionList, EmptyState, LinkButton, OrderStatusBadge, PageHeader, PaymentBadge, qs, StatCard, Table, Td, Th } from "@/components/admin/ui";
 import { getCustomer } from "@/lib/admin/customers";
 import { dateTime, money, param, shortDate } from "@/lib/admin/format";
@@ -42,14 +43,74 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
         </p>
       )}
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <div className="space-y-4 xl:col-span-2">
+      <Tabs
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "orders", label: "Orders", count: stats.orders.toLocaleString("en-US") },
+          { id: "loyalty", label: "Loyalty points", count: loyalty.balance.toLocaleString("en-US") },
+        ]}
+      >
+        <TabPanel id="overview" className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <StatCard label="Orders" value={stats.orders.toLocaleString("en-US")} hint={`${stats.paidOrders.toLocaleString("en-US")} paid`} icon={<Receipt className="size-4" />} />
             <StatCard label="Paid spend" value={money(stats.paidSpendCents)} hint="Lifetime, paid orders" icon={<CircleDollarSign className="size-4" />} tone="brand" />
             <StatCard label="Avg paid order" value={money(stats.averagePaidCents)} icon={<Wallet className="size-4" />} />
           </div>
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+            <div className="space-y-4">
+              <Card title="Profile">
+                <DescriptionList
+                  items={[
+                    {
+                      label: "Email",
+                      value: (
+                        <a href={`mailto:${customer.email}`} className="break-all hover:text-amber">
+                          {customer.email}
+                        </a>
+                      ),
+                    },
+                    { label: "Phone", value: customer.phone || "—" },
+                    { label: "Country", value: customer.country || "—" },
+                    { label: "Customer since", value: shortDate(customer.createdAt) },
+                    { label: "Last order", value: shortDate(orders[0]?.createdAt) },
+                    { label: "Account", value: loyalty.accountCreatedAt ? `Opened ${shortDate(loyalty.accountCreatedAt)}` : "Not opened yet" },
+                    ...(loyalty.lastLoginAt ? [{ label: "Last login", value: dateTime(loyalty.lastLoginAt) }] : []),
+                  ]}
+                />
+              </Card>
+              {hasRole(user, "admin") && (
+                <Card
+                  title="Account"
+                  description={
+                    loyalty.accountCreatedAt
+                      ? "They sign in with a code we email them, so there's no password to reset. Lost a device? Sign them out everywhere."
+                      : "Customers get an account when they choose one at checkout or sign in with Discord or Google. Open one now and we'll email them how to sign in."
+                  }
+                >
+                  {loyalty.accountCreatedAt ? (
+                    <ConfirmButton action={signOutCustomer.bind(null, customer.id)} confirm={`Sign ${customer.email} out on every device?`}>
+                      Sign out everywhere
+                    </ConfirmButton>
+                  ) : (
+                    <ConfirmButton action={openCustomerAccount.bind(null, customer.id)} confirm={`Open an account for ${customer.email} and email them?`}>
+                      Open account
+                    </ConfirmButton>
+                  )}
+                </Card>
+              )}
+            </div>
+            <Card title="Notes" description="Only visible to staff.">
+              <ActionForm action={saveCustomerNotes.bind(null, customer.id)} className="space-y-3">
+                <Textarea name="notes" defaultValue={customer.notes ?? ""} rows={5} maxLength={5000} aria-label="Customer notes" placeholder="Preferences, support history, anything the team should know…" />
+                <SubmitButton variant="secondary" size="sm" pendingText="Saving…">
+                  Save notes
+                </SubmitButton>
+              </ActionForm>
+            </Card>
+          </div>
+        </TabPanel>
 
+        <TabPanel id="orders">
           <Card
             title="Orders"
             description={stats.orders > orders.length ? `Latest ${orders.length} of ${stats.orders}` : undefined}
@@ -100,49 +161,9 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
               </Table>
             )}
           </Card>
-        </div>
+        </TabPanel>
 
-        <div className="space-y-4">
-          <Card title="Profile">
-            <DescriptionList
-              items={[
-                {
-                  label: "Email",
-                  value: (
-                    <a href={`mailto:${customer.email}`} className="break-all hover:text-amber">
-                      {customer.email}
-                    </a>
-                  ),
-                },
-                { label: "Phone", value: customer.phone || "—" },
-                { label: "Country", value: customer.country || "—" },
-                { label: "Customer since", value: shortDate(customer.createdAt) },
-                { label: "Last order", value: shortDate(orders[0]?.createdAt) },
-                { label: "Account", value: loyalty.accountCreatedAt ? `Opened ${shortDate(loyalty.accountCreatedAt)}` : "Not opened yet" },
-                ...(loyalty.lastLoginAt ? [{ label: "Last login", value: dateTime(loyalty.lastLoginAt) }] : []),
-              ]}
-            />
-          </Card>
-          {hasRole(user, "admin") && (
-            <Card
-              title="Account"
-              description={
-                loyalty.accountCreatedAt
-                  ? "They sign in with a code we email them, so there's no password to reset. Lost a device? Sign them out everywhere."
-                  : "Customers get an account when they choose one at checkout or sign in with Discord or Google. Open one now and we'll email them how to sign in."
-              }
-            >
-              {loyalty.accountCreatedAt ? (
-                <ConfirmButton action={signOutCustomer.bind(null, customer.id)} confirm={`Sign ${customer.email} out on every device?`}>
-                  Sign out everywhere
-                </ConfirmButton>
-              ) : (
-                <ConfirmButton action={openCustomerAccount.bind(null, customer.id)} confirm={`Open an account for ${customer.email} and email them?`}>
-                  Open account
-                </ConfirmButton>
-              )}
-            </Card>
-          )}
+        <TabPanel id="loyalty" className="max-w-2xl">
           <Card title="Loyalty points" description={`Balance: ${loyalty.balance.toLocaleString("en-US")} points`}>
             {loyalty.history.length === 0 ? (
               <p className="text-sm text-muted">No points yet. They&apos;re added when this customer&apos;s orders are marked paid.</p>
@@ -183,16 +204,8 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
               </ActionForm>
             )}
           </Card>
-          <Card title="Notes" description="Only visible to staff.">
-            <ActionForm action={saveCustomerNotes.bind(null, customer.id)} className="space-y-3">
-              <Textarea name="notes" defaultValue={customer.notes ?? ""} rows={5} maxLength={5000} aria-label="Customer notes" placeholder="Preferences, support history, anything the team should know…" />
-              <SubmitButton variant="secondary" size="sm" pendingText="Saving…">
-                Save notes
-              </SubmitButton>
-            </ActionForm>
-          </Card>
-        </div>
-      </div>
+        </TabPanel>
+      </Tabs>
     </>
   );
 }

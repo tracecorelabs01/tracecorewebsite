@@ -6,12 +6,15 @@ import { saveOrderNote, updateOrderStatus, updatePayment, updateShipping } from 
 import { InternalNoteForm, PaymentForm, ShippingForm, StatusForm } from "@/components/admin/orders/OrderForms";
 import { OrderTimeline } from "@/components/admin/orders/OrderTimeline";
 import { OrderTotals } from "@/components/admin/orders/OrderTotals";
+import { TabPanel, Tabs } from "@/components/admin/Tabs";
 import { Card, DescriptionList, LinkButton, OrderStatusBadge, PageHeader, PaymentBadge, Table, Td, Th } from "@/components/admin/ui";
 import { eq } from "drizzle-orm";
 import { affiliateCommissions, affiliates, getDb, ORDER_STATUSES, PAYMENT_STATUSES } from "@/db";
+import { orderCostsOf } from "@/lib/admin/costs";
 import { dateTime, money } from "@/lib/admin/format";
 import { addressLines, getOrder } from "@/lib/admin/orders";
 import { hasRole, requireAdmin } from "@/lib/auth/session";
+import { totalCost } from "@/lib/costs";
 
 export const metadata: Metadata = { title: "Order" };
 // Admin pages read the session and live data on every request.
@@ -25,7 +28,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
   if (!data) notFound();
   const { order, items, events } = data;
 
-  const canEditProducts = hasRole(user, "admin");
+  const isAdmin = hasRole(user, "admin");
   const emailEnabled = Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
   const units = items.reduce((n, i) => n + i.quantity, 0);
   const restockUnits = items.reduce((n, i) => n + (i.trackInventory ? i.quantity : 0), 0);
@@ -56,8 +59,15 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <div className="space-y-4 xl:col-span-2">
+      <Tabs
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "update", label: "Status & shipping" },
+          ...(isAdmin ? [{ id: "profit", label: "Profit" }] : []),
+          { id: "history", label: "Notes & history" },
+        ]}
+      >
+        <TabPanel id="overview" className="space-y-4">
           <Card title="Items" padded={false}>
             <Table>
               <thead>
@@ -72,7 +82,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
                 {items.map((i) => (
                   <tr key={i.id}>
                     <Td>
-                      {canEditProducts && i.productId != null ? (
+                      {isAdmin && i.productId != null ? (
                         <Link href={`/admin/products/${i.productId}`} className="font-medium text-fg hover:text-amber">
                           {i.productName}
                         </Link>
@@ -91,7 +101,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
             </Table>
           </Card>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Card title="Totals">
               <OrderTotals order={order} />
             </Card>
@@ -139,13 +149,9 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
               )}
             </Card>
           </div>
+        </TabPanel>
 
-          <Card title="Timeline" description="Newest first">
-            <OrderTimeline events={events} />
-          </Card>
-        </div>
-
-        <div className="space-y-4">
+        <TabPanel id="update" className="grid gap-4 lg:grid-cols-3 lg:items-start">
           <Card title="Status" actions={<OrderStatusBadge status={order.status} />}>
             <div className="mb-4">
               <DescriptionList items={milestones} />
@@ -187,12 +193,70 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
               emailEnabled={emailEnabled}
             />
           </Card>
+        </TabPanel>
+
+        {isAdmin && (
+          <TabPanel id="profit">
+            <OrderProfit order={order} />
+          </TabPanel>
+        )}
+
+        <TabPanel id="history" className="grid gap-4 xl:grid-cols-3 xl:items-start">
+          <Card title="Timeline" description="Newest first" className="xl:col-span-2">
+            <OrderTimeline events={events} />
+          </Card>
           <Card title="Internal note" description="Only visible to staff.">
             <InternalNoteForm action={saveOrderNote.bind(null, order.id)} note={order.internalNote} />
           </Card>
-        </div>
-      </div>
+        </TabPanel>
+      </Tabs>
     </>
+  );
+}
+
+/** What the order cost and made, worked out from its products' cost fields. */
+async function OrderProfit({ order }: { order: { id: number; totalCents: number; currency: string; paymentStatus: string } }) {
+  const { costs, recorded } = await orderCostsOf(order);
+  const m = (cents: number) => money(cents, order.currency);
+  const profit = order.totalCents - totalCost(costs);
+  return (
+    <Card title="Profit on this order" description="Worked out automatically from the costs set on each product." className="max-w-2xl">
+      {costs.length === 0 && !recorded ? (
+        <p className="text-sm text-muted">
+          No costs to work out yet. Add cost fields in{" "}
+          <Link href="/admin/expenses/costs" className="text-fg underline underline-offset-4 hover:text-amber">
+            Expenses → Cost fields
+          </Link>{" "}
+          and fill them in on each product&apos;s Costs &amp; profit tab.
+        </p>
+      ) : (
+        <>
+          <dl className="space-y-2.5 text-sm">
+            <div className="flex items-baseline justify-between gap-4">
+              <dt className="text-muted">Customer paid</dt>
+              <dd className="font-mono tabular-nums text-fg">{m(order.totalCents)}</dd>
+            </div>
+            {costs.map((c) => (
+              <div key={c.name} className="flex items-baseline justify-between gap-4">
+                <dt className="text-dim">{c.name}</dt>
+                <dd className="font-mono tabular-nums text-muted">−{m(c.cents)}</dd>
+              </div>
+            ))}
+            <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">
+              <dt className="font-medium text-fg">Profit</dt>
+              <dd className={profit < 0 ? "font-mono text-base font-semibold tabular-nums text-warn" : "font-mono text-base font-semibold tabular-nums text-ok"}>
+                {m(profit)}
+                {order.totalCents > 0 && <span className="ml-2 text-xs font-normal text-dim">{((profit / order.totalCents) * 100).toFixed(1)}%</span>}
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-4 text-xs text-dim">
+            {recorded ? "Costs as they were when the order was placed." : "From the products' current costs: this order was placed before costs were set up."}
+            {order.paymentStatus !== "paid" && " Counted in your profit once the order is paid."}
+          </p>
+        </>
+      )}
+    </Card>
   );
 }
 

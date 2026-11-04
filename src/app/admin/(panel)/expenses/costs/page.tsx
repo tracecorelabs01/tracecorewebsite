@@ -3,14 +3,15 @@ import type { Metadata } from "next";
 import { Calculator, Trash2 } from "lucide-react";
 import { deleteCostField, saveCostField } from "@/actions/admin/costs";
 import { ActionForm, ConfirmButton, Field, Input, Select, SubmitButton } from "@/components/admin/forms";
-import { Badge, Card, EmptyState, PageHeader, Table, Td, Th } from "@/components/admin/ui";
+import { ExpensesHeader } from "@/components/admin/ExpensesHeader";
+import { Badge, Card, EmptyState, Table, Td, Th } from "@/components/admin/ui";
 import { getCostOverview } from "@/lib/admin/costs";
 import { money } from "@/lib/admin/format";
 import { requireAdmin } from "@/lib/auth/session";
 import { COST_KIND_HINTS, COST_KIND_LABELS, costInput, type CostKind } from "@/lib/costs";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Product costs" };
+export const metadata: Metadata = { title: "Cost fields" };
 // Admin pages read the session and live data on every request.
 export const instant = false;
 
@@ -20,22 +21,21 @@ function usageText(n: number, hasDefault: boolean) {
   return `${own}${hasDefault ? `; ${n ? "the rest use" : "all use"} the default.` : "."}`;
 }
 
-export default async function ProductCostsPage() {
+export default async function CostFieldsPage() {
   await requireAdmin("admin");
   const { fields, usage, profits } = await getCostOverview();
 
   return (
     <>
-      <PageHeader
-        title="Product costs"
-        description="What a sale costs you: supplier price, postage, payment fees. Set each product's values on its page, or a default here. Every paid order's costs come off its revenue on the Expenses page."
-        back={{ href: "/admin/expenses", label: "Expenses" }}
-      />
+      <ExpensesHeader active="costs" />
+      <p className="mb-4 rounded-xl border border-line bg-ink-900/70 px-4 py-3 text-sm text-muted">
+        Add each cost once here, e.g. supplier price, postage and payment fee. Every product then shows these fields on its Costs &amp; profit tab, to fill in once. From then on each order&apos;s costs and profit are worked out automatically. A default fills in for products you haven&apos;t set.
+      </p>
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-3 xl:col-span-2">
           {fields.length === 0 ? (
             <Card>
-              <EmptyState icon={<Calculator className="size-5" />} title="No costs yet" description="Add your first one on the right, e.g. Supplier price as an amount per item." />
+              <EmptyState icon={<Calculator className="size-5" />} title="No cost fields yet" description="Add your first one, e.g. Supplier price as an amount per item." />
             </Card>
           ) : (
             fields.map((f) => (
@@ -75,7 +75,7 @@ export default async function ProductCostsPage() {
         </div>
 
         <div className="space-y-4">
-          <Card title="Add a cost" className="h-fit">
+          <Card title="Add a cost field" className="h-fit">
             <ActionForm action={saveCostField.bind(null, null)} resetOnSuccess className="space-y-4">
               <Field label="Name" name="name">
                 <Input name="name" required maxLength={60} placeholder="Supplier price" autoComplete="off" />
@@ -92,14 +92,14 @@ export default async function ProductCostsPage() {
               <Field label="Default (optional)" name="defaultValue" hint="Used by products without their own value: an amount in USD, or a percent such as 1.85.">
                 <Input name="defaultValue" inputMode="decimal" placeholder="None" autoComplete="off" />
               </Field>
-              <SubmitButton className="w-full">Add cost</SubmitButton>
+              <SubmitButton className="w-full">Add cost field</SubmitButton>
             </ActionForm>
           </Card>
           <Card title="How profit is worked out">
             <ul className="list-disc space-y-2 pl-4 text-xs leading-relaxed text-muted">
-              <li>Each paid order&apos;s costs come off its revenue, alongside the expenses you record.</li>
+              <li>Each paid order&apos;s costs are worked out from its products&apos; values and taken off its revenue. Nothing to enter per order.</li>
               <li>Orders keep the costs they had when they were placed. Orders from before you set costs up use today&apos;s values.</li>
-              <li>Don&apos;t record these costs as expenses as well, or they&apos;ll count twice.</li>
+              <li>Other expenses is only for spending outside orders (rent, ads). Don&apos;t add these costs there too, or they&apos;ll count twice.</li>
             </ul>
           </Card>
         </div>

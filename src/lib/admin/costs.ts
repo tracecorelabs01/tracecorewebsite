@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, inArray, ne } from "drizzle-orm";
+import { asc, eq, inArray, ne } from "drizzle-orm";
 import { costFields, getDb, orderCosts, orderItems, productCosts, products } from "@/db";
 import { getStoreSettings } from "@/lib/catalog/server";
 import { saleCosts, totalCost, type CostField, type CostLine, type CostValues } from "@/lib/costs";
@@ -107,6 +107,12 @@ export async function costsOfOrders(orders: { id: number; totalCents: number }[]
     result.set(o.id, saleCosts(fields, { totalCents: o.totalCents, lines }));
   }
   return result;
+}
+
+/** One order's costs, and whether it recorded them when placed (if not, they're the products' current costs). */
+export async function orderCostsOf(order: { id: number; totalCents: number }) {
+  const [costs, recorded] = await Promise.all([costsOfOrders([order]), getDb().select({ id: orderCosts.orderId }).from(orderCosts).where(eq(orderCosts.orderId, order.id)).limit(1)]);
+  return { costs: costs.get(order.id) ?? [], recorded: recorded.length > 0 };
 }
 
 /** Order costs added up by cost field, largest first. */

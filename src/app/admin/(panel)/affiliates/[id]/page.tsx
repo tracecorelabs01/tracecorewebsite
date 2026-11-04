@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { addAdjustment, saveRules, savePartner, setCommissionStatus, setPartnerStatus } from "@/actions/admin/affiliates";
 import { RulesTable } from "@/components/admin/affiliates/RulesTable";
+import { TabPanel, Tabs } from "@/components/admin/Tabs";
 import { ActionForm, ConfirmButton, Field, Input, Select, SubmitButton, Textarea } from "@/components/admin/forms";
 import { Badge, Card, DescriptionList, EmptyState, PageHeader, StatCard, Table, Td, Th } from "@/components/admin/ui";
 import { COMMISSION_STATUS, PAYOUT_METHOD } from "@/lib/affiliate-labels";
@@ -81,62 +82,72 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
         }
       />
 
-      <div className="grid gap-4">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Clicks · 30 days" value={stats.clicks.toLocaleString("en-US")} />
-          <StatCard label="Paid orders · 30 days" value={stats.orders.toLocaleString("en-US")} hint={`${(stats.conversion * 100).toFixed(1)}% conversion`} />
-          <StatCard label="Available" value={money(balance.availableCents)} tone="brand" hint={`${money(balance.pendingCents)} pending`} />
-          <StatCard label="Paid out" value={money(balance.paidCents)} hint={balance.requestedCents ? `${money(balance.requestedCents)} requested` : undefined} />
-        </div>
+      <Tabs
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "products", label: "Products" },
+          { id: "commissions", label: "Commissions", count: commissions.length },
+          { id: "payouts", label: "Payouts", count: payouts.length },
+        ]}
+      >
+        <TabPanel id="overview" className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard label="Clicks · 30 days" value={stats.clicks.toLocaleString("en-US")} />
+            <StatCard label="Paid orders · 30 days" value={stats.orders.toLocaleString("en-US")} hint={`${(stats.conversion * 100).toFixed(1)}% conversion`} />
+            <StatCard label="Available" value={money(balance.availableCents)} tone="brand" hint={`${money(balance.pendingCents)} pending`} />
+            <StatCard label="Paid out" value={money(balance.paidCents)} hint={balance.requestedCents ? `${money(balance.requestedCents)} requested` : undefined} />
+          </div>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <Card title="Partner">
+              <ActionForm action={savePartner.bind(null, id)} className="grid gap-4 sm:grid-cols-2">
+                <Field label="Name" name="name">
+                  <Input name="name" defaultValue={a.name} maxLength={120} />
+                </Field>
+                <Field label="Code" name="code" hint={`Link: ${site.url}/?ref=${a.code}`}>
+                  <Input name="code" defaultValue={a.code} maxLength={32} className="font-mono uppercase" />
+                </Field>
+                <Field label="Group" name="groupId" hint="Products, commissions and prices come from the group unless set below.">
+                  <Select name="groupId" defaultValue={a.groupId ?? ""}>
+                    <option value="">Default group</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="PayPal email" name="paypalEmail">
+                  <Input name="paypalEmail" type="email" defaultValue={a.paypalEmail ?? ""} maxLength={191} />
+                </Field>
+                <Field label="Notes (staff only)" name="notes" className="sm:col-span-2">
+                  <Textarea name="notes" defaultValue={a.notes ?? ""} rows={3} />
+                </Field>
+                <div className="sm:col-span-2">
+                  <SubmitButton>Save partner</SubmitButton>
+                </div>
+              </ActionForm>
+            </Card>
+            <Card title="Application">
+              <DescriptionList
+                items={[
+                  { label: "Discord", value: discordId ? (discordUsername ?? discordId) : "Not linked" },
+                  { label: "Applied", value: dateTime(a.createdAt) },
+                  { label: "Approved", value: a.approvedAt ? dateTime(a.approvedAt) : "—" },
+                  { label: "Website", value: a.website ? <a href={a.website} target="_blank" rel="noreferrer" className="hover:text-fg">{a.website}</a> : "—" },
+                  { label: "How they'd promote us", value: <span className="whitespace-pre-wrap">{a.audience ?? "—"}</span> },
+                ]}
+              />
+            </Card>
+          </div>
+        </TabPanel>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <Card title="Partner">
-            <ActionForm action={savePartner.bind(null, id)} className="grid gap-4 sm:grid-cols-2">
-              <Field label="Name" name="name">
-                <Input name="name" defaultValue={a.name} maxLength={120} />
-              </Field>
-              <Field label="Code" name="code" hint={`Link: ${site.url}/?ref=${a.code}`}>
-                <Input name="code" defaultValue={a.code} maxLength={32} className="font-mono uppercase" />
-              </Field>
-              <Field label="Group" name="groupId" hint="Products, commissions and prices come from the group unless set below.">
-                <Select name="groupId" defaultValue={a.groupId ?? ""}>
-                  <option value="">Default group</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="PayPal email" name="paypalEmail">
-                <Input name="paypalEmail" type="email" defaultValue={a.paypalEmail ?? ""} maxLength={191} />
-              </Field>
-              <Field label="Notes (staff only)" name="notes" className="sm:col-span-2">
-                <Textarea name="notes" defaultValue={a.notes ?? ""} rows={3} />
-              </Field>
-              <div className="sm:col-span-2">
-                <SubmitButton>Save partner</SubmitButton>
-              </div>
-            </ActionForm>
+        <TabPanel id="products">
+          <Card title="Products for this partner" description="Overrides just for them. Blank fields use their group's settings, then the program's." padded={false}>
+            <RulesTable level="partner" rows={rules} action={saveRules.bind(null, { level: "partner", id })} />
           </Card>
-          <Card title="Application">
-            <DescriptionList
-              items={[
-                { label: "Discord", value: discordId ? (discordUsername ?? discordId) : "Not linked" },
-                { label: "Applied", value: dateTime(a.createdAt) },
-                { label: "Approved", value: a.approvedAt ? dateTime(a.approvedAt) : "—" },
-                { label: "Website", value: a.website ? <a href={a.website} target="_blank" rel="noreferrer" className="hover:text-fg">{a.website}</a> : "—" },
-                { label: "How they'd promote us", value: <span className="whitespace-pre-wrap">{a.audience ?? "—"}</span> },
-              ]}
-            />
-          </Card>
-        </div>
+        </TabPanel>
 
-        <Card title="Products for this partner" description="Overrides just for them. Blank fields use their group's settings, then the program's." padded={false}>
-          <RulesTable level="partner" rows={rules} action={saveRules.bind(null, { level: "partner", id })} />
-        </Card>
-
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <TabPanel id="commissions" className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:items-start">
           <Card title="Commissions" padded={false}>
             {commissions.length === 0 ? (
               <EmptyState title="No commissions yet" description="They appear when an order they referred is paid." />
@@ -186,49 +197,50 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
               </Table>
             )}
           </Card>
-          <div className="grid content-start gap-4">
-            <Card title="Adjust the balance" description="A bonus, or a deduction (e.g. -10). It's available straight away.">
-              <ActionForm action={addAdjustment.bind(null, id)} className="grid gap-3" resetOnSuccess>
-                <Field label="Amount ($)" name="amount">
-                  <Input name="amount" inputMode="decimal" placeholder="25.00" />
-                </Field>
-                <Field label="Reason" name="note">
-                  <Input name="note" maxLength={255} placeholder="Launch video bonus" />
-                </Field>
-                <SubmitButton size="sm">Add adjustment</SubmitButton>
-              </ActionForm>
-            </Card>
-            <Card title="Payouts" padded={false}>
-              {payouts.length === 0 ? (
-                <p className="p-5 text-sm text-muted">No payouts yet.</p>
-              ) : (
-                <ul className="divide-y divide-line">
-                  {payouts.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+          <Card title="Adjust the balance" description="A bonus, or a deduction (e.g. -10). It's available straight away.">
+            <ActionForm action={addAdjustment.bind(null, id)} className="grid gap-3" resetOnSuccess>
+              <Field label="Amount ($)" name="amount">
+                <Input name="amount" inputMode="decimal" placeholder="25.00" />
+              </Field>
+              <Field label="Reason" name="note">
+                <Input name="note" maxLength={255} placeholder="Launch video bonus" />
+              </Field>
+              <SubmitButton size="sm">Add adjustment</SubmitButton>
+            </ActionForm>
+          </Card>
+        </TabPanel>
+
+        <TabPanel id="payouts" className="max-w-2xl">
+          <Card title="Payouts" padded={false}>
+            {payouts.length === 0 ? (
+              <p className="p-5 text-sm text-muted">No payouts yet.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {payouts.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                    <div>
                       <div>
-                        <div>
-                          {PAYOUT_METHOD[p.method]} · <span className="tabular-nums">{money(p.amountCents)}</span>
-                        </div>
-                        <div className="font-mono text-xs text-dim">{p.reference ?? p.note ?? shortDate(p.createdAt)}</div>
+                        {PAYOUT_METHOD[p.method]} · <span className="tabular-nums">{money(p.amountCents)}</span>
                       </div>
-                      <Badge tone={p.status === "paid" ? "ok" : p.status === "requested" ? "warn" : "neutral"}>{p.status}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {payouts.some((p) => p.status === "requested") && (
-                <p className="border-t border-line px-5 py-3 text-xs text-muted">
-                  Pay requests from{" "}
-                  <Link href="/admin/affiliates?tab=payouts" className="text-fg hover:text-amber">
-                    Payouts
-                  </Link>
-                  .
-                </p>
-              )}
-            </Card>
-          </div>
-        </div>
-      </div>
+                      <div className="font-mono text-xs text-dim">{p.reference ?? p.note ?? shortDate(p.createdAt)}</div>
+                    </div>
+                    <Badge tone={p.status === "paid" ? "ok" : p.status === "requested" ? "warn" : "neutral"}>{p.status}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {payouts.some((p) => p.status === "requested") && (
+              <p className="border-t border-line px-5 py-3 text-xs text-muted">
+                Pay requests from{" "}
+                <Link href="/admin/affiliates?tab=payouts" className="text-fg hover:text-amber">
+                  Payouts
+                </Link>
+                .
+              </p>
+            )}
+          </Card>
+        </TabPanel>
+      </Tabs>
     </>
   );
 }

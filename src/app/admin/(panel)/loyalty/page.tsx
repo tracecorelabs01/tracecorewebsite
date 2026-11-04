@@ -4,6 +4,7 @@ import { Award, Coins, Eye, EyeOff, Gift, Pencil, Plus, TicketCheck, Users } fro
 import { saveLoyaltySettings, saveOffer, setOfferActive } from "@/actions/admin/loyalty";
 import { ActionForm, ConfirmButton, Field, FormStatus, Input, SubmitButton, Toggle } from "@/components/admin/forms";
 import { LoyaltyOfferForm } from "@/components/admin/LoyaltyOfferForm";
+import { TabPanel, Tabs } from "@/components/admin/Tabs";
 import { Badge, Card, EmptyState, LinkButton, PageHeader, StatCard, Table, Td, Th, buttonClass } from "@/components/admin/ui";
 import { getLoyaltyStats, listOfferProducts, listOffers, listRecentPoints } from "@/lib/admin/loyalty";
 import { dateTime, param } from "@/lib/admin/format";
@@ -41,11 +42,17 @@ export default async function LoyaltyPage({ searchParams }: PageProps<"/admin/lo
         <StatCard label="Rewards redeemed" value={n(stats.redeemed)} hint={`${n(stats.codesUsed)} of those codes used at checkout`} icon={<TicketCheck className="size-4" />} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="min-w-0 space-y-4">
+      <Tabs
+        tabs={[
+          { id: "offers", label: "Offers", count: offers.length },
+          { id: "activity", label: "Points activity" },
+          { id: "settings", label: "Earning points" },
+        ]}
+      >
+        <TabPanel id="offers" className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <Card title="Offers" description="What customers can spend points on, shown in their account under Rewards." padded={false}>
             {offers.length === 0 ? (
-              <EmptyState icon={<Gift className="size-5" />} title="No offers yet" description="Create one below, e.g. 10,000 points for $10 off." />
+              <EmptyState icon={<Gift className="size-5" />} title="No offers yet" description="Create one with the New offer form, e.g. 10,000 points for $10 off." />
             ) : (
               <Table>
                 <thead>
@@ -95,7 +102,14 @@ export default async function LoyaltyPage({ searchParams }: PageProps<"/admin/lo
               </Table>
             )}
           </Card>
+          <div id="new-offer" className="scroll-mt-24">
+            <Card title="New offer" description="For example: 10,000 points for $10 off, or 25,000 points for 15% off orders over $200.">
+              <LoyaltyOfferForm action={saveOffer.bind(null, null)} products={products} resetOnSuccess submitLabel="Create offer" />
+            </Card>
+          </div>
+        </TabPanel>
 
+        <TabPanel id="activity">
           <Card title="Recent points" description="The latest points earned, spent or adjusted." padded={false}>
             {recent.length === 0 ? (
               <p className="p-5 text-sm text-muted">Nothing yet. Points appear when an order from a customer is marked paid.</p>
@@ -131,15 +145,9 @@ export default async function LoyaltyPage({ searchParams }: PageProps<"/admin/lo
               </Table>
             )}
           </Card>
+        </TabPanel>
 
-          <div id="new-offer" className="scroll-mt-24">
-            <Card title="New offer" description="For example: 10,000 points for $10 off, or 25,000 points for 15% off orders over $200.">
-              <LoyaltyOfferForm action={saveOffer.bind(null, null)} products={products} resetOnSuccess submitLabel="Create offer" />
-            </Card>
-          </div>
-        </div>
-
-        <div className="xl:sticky xl:top-24 xl:self-start">
+        <TabPanel id="settings" className="max-w-xl">
           <Card title="Earning points" description="Applies to orders paid from now on. Points already earned stay as they are.">
             <ActionForm action={saveLoyaltySettings} showStatus={false}>
               <div className="space-y-4">
@@ -154,8 +162,8 @@ export default async function LoyaltyPage({ searchParams }: PageProps<"/admin/lo
               </div>
             </ActionForm>
           </Card>
-        </div>
-      </div>
+        </TabPanel>
+      </Tabs>
     </>
   );
 }

@@ -48,13 +48,10 @@ export default async function EditProductPage({ params, searchParams }: PageProp
       />
       {param(sp.created) && (
         <p className="mb-4 flex items-center gap-2 rounded-xl border border-ok/30 bg-ok/10 px-4 py-3 text-sm">
-          <CheckCircle2 className="size-4 text-ok" /> Product created. Add photos below, then set the status to Active to publish it.
+          <CheckCircle2 className="size-4 text-ok" /> Product created. Add photos on the Photos tab, then set the status to Active to publish it.
         </p>
       )}
-      <div className="space-y-4">
-        <ImageManager productId={product.id} images={images} />
-        <ProductForm action={saveProduct.bind(null, product.id)} product={product} categories={categories} costs={costs} />
-      </div>
+      <ProductForm action={saveProduct.bind(null, product.id)} product={product} categories={categories} costs={costs} photos={<ImageManager productId={product.id} images={images} />} />
     </>
   );
 }

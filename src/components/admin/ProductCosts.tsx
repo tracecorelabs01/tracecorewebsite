@@ -24,11 +24,11 @@ export function ProductCosts({ price, fields, values, shipping }: ProductCostSet
     return (
       <Card title="Costs">
         <p className="text-sm text-muted">
-          Add costs such as supplier price, postage and payment fees in{" "}
+          First add your cost fields (supplier price, postage, payment fee…) once in{" "}
           <Link href="/admin/expenses/costs" className="text-fg underline underline-offset-4 hover:text-amber">
-            Expenses → Product costs
+            Expenses → Cost fields
           </Link>
-          , then set them here to see this product&apos;s profit.
+          . They then show up here to fill in, and every order&apos;s profit is worked out from them automatically.
         </p>
       </Card>
     );
@@ -46,49 +46,47 @@ export function ProductCosts({ price, fields, values, shipping }: ProductCostSet
   const profit = paid - totalCost(costs);
 
   return (
-    <div id="costs" className="scroll-mt-24">
-      <Card title="Costs" description="What a sale of this product costs you. Leave a cost blank to use its default.">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {fields.map((f) => (
-            <Field
-              key={f.id}
-              label={`${f.name} (${f.kind === "percent" ? "%" : "USD"})`}
+    <Card title="Costs" description="Fill these in once. Every order of this product then has its costs and profit worked out automatically. Leave one blank to use its default.">
+      <div className="grid gap-4 sm:grid-cols-2">
+        {fields.map((f) => (
+          <Field
+            key={f.id}
+            label={`${f.name} (${f.kind === "percent" ? "%" : "USD"})`}
+            name={`cost:${f.id}`}
+            hint={`${COST_KIND_HINTS[f.kind]}${f.defaultValue != null ? ` Default: ${formatCost(f.kind, f.defaultValue)}.` : ""}`}
+          >
+            <Input
               name={`cost:${f.id}`}
-              hint={`${COST_KIND_HINTS[f.kind]}${f.defaultValue != null ? ` Default: ${formatCost(f.kind, f.defaultValue)}.` : ""}`}
-            >
-              <Input
-                name={`cost:${f.id}`}
-                inputMode="decimal"
-                value={inputs[f.id] ?? ""}
-                onChange={(e) => setInputs({ ...inputs, [f.id]: e.target.value })}
-                placeholder={f.defaultValue != null ? costInput(f.defaultValue) : "0.00"}
-                autoComplete="off"
-                className="tabular-nums"
-              />
-            </Field>
+              inputMode="decimal"
+              value={inputs[f.id] ?? ""}
+              onChange={(e) => setInputs({ ...inputs, [f.id]: e.target.value })}
+              placeholder={f.defaultValue != null ? costInput(f.defaultValue) : "0.00"}
+              autoComplete="off"
+              className="tabular-nums"
+            />
+          </Field>
+        ))}
+      </div>
+      <div className="mt-5 rounded-xl border border-line bg-ink-950/60 p-4 text-sm">
+        <p className="mb-3 text-xs text-dim">One of these ordered on its own</p>
+        <dl className="space-y-1.5 tabular-nums">
+          <Row label="Price" value={money(priceCents)} />
+          <Row label={shippingCents ? "Shipping charged" : "Shipping charged (free over the threshold)"} value={money(shippingCents)} />
+          <Row label="Customer pays" value={money(paid)} strong />
+          {costs.map((c) => (
+            <Row key={c.name} label={c.name} value={`−${money(c.cents)}`} muted />
           ))}
-        </div>
-        <div className="mt-5 rounded-xl border border-line bg-ink-950/60 p-4 text-sm">
-          <p className="mb-3 text-xs text-dim">One of these ordered on its own</p>
-          <dl className="space-y-1.5 tabular-nums">
-            <Row label="Price" value={money(priceCents)} />
-            <Row label={shippingCents ? "Shipping charged" : "Shipping charged (free over the threshold)"} value={money(shippingCents)} />
-            <Row label="Customer pays" value={money(paid)} strong />
-            {costs.map((c) => (
-              <Row key={c.name} label={c.name} value={`−${money(c.cents)}`} muted />
-            ))}
-            <div className="border-t border-line pt-2">
-              <Row
-                label="Profit"
-                value={`${money(profit)}${paid > 0 ? ` · ${((profit / paid) * 100).toFixed(1)}%` : ""}`}
-                strong
-                tone={profit < 0 ? "text-warn" : profit > 0 ? "text-ok" : undefined}
-              />
-            </div>
-          </dl>
-        </div>
-      </Card>
-    </div>
+          <div className="border-t border-line pt-2">
+            <Row
+              label="Profit"
+              value={`${money(profit)}${paid > 0 ? ` · ${((profit / paid) * 100).toFixed(1)}%` : ""}`}
+              strong
+              tone={profit < 0 ? "text-warn" : profit > 0 ? "text-ok" : undefined}
+            />
+          </div>
+        </dl>
+      </div>
+    </Card>
   );
 }
 

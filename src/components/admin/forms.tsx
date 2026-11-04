@@ -88,7 +88,13 @@ export function Field({ label, name, hint, children, className }: { label: strin
     <label className={cn("block", className)}>
       <span className="mb-1.5 block text-xs font-medium text-muted">{label}</span>
       {children}
-      {error ? <span className="mt-1 block text-xs text-[#ff6b5e]">{error}</span> : hint ? <span className="mt-1 block text-xs text-dim">{hint}</span> : null}
+      {error ? (
+        <span data-field-error className="mt-1 block text-xs text-[#ff6b5e]">
+          {error}
+        </span>
+      ) : hint ? (
+        <span className="mt-1 block text-xs text-dim">{hint}</span>
+      ) : null}
     </label>
   );
 }

@@ -98,6 +98,22 @@ export async function getExpenseOverview(p: Period) {
   };
 }
 
+/** One page of the period's paid orders, newest first, with what each cost and made. */
+export async function listOrderProfits(p: Period, page: number) {
+  const rows = await getDb()
+    .select({ id: orders.id, number: orders.number, createdAt: orders.createdAt, totalCents: orders.totalCents, firstName: orders.firstName, lastName: orders.lastName })
+    .from(orders)
+    .where(paidIn(p))
+    .orderBy(desc(orders.createdAt), desc(orders.id))
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE);
+  const costs = await costsOfOrders(rows);
+  return rows.map((o) => {
+    const costCents = totalCost(costs.get(o.id) ?? []);
+    return { ...o, costCents, profitCents: o.totalCents - costCents };
+  });
+}
+
 /** Revenue, order costs, spend and profit for each of the last `months` months, newest first. */
 export async function getMonthlyTotals(months = 12, now = new Date()) {
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));

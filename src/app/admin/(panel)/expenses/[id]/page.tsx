@@ -26,7 +26,7 @@ export default async function EditExpensePage({ params }: PageProps<"/admin/expe
       <PageHeader
         title={money(expense.amountCents)}
         description={`${expense.category} · ${shortDate(expense.spentOn)}${expense.vendor ? ` · ${expense.vendor}` : ""}`}
-        back={{ href: "/admin/expenses", label: "Expenses" }}
+        back={{ href: "/admin/expenses/other", label: "Other expenses" }}
         actions={
           <ConfirmButton action={deleteExpense.bind(null, expense.id)} confirm={`Delete this ${money(expense.amountCents)} expense permanently?`} variant="danger">
             <Trash2 className="size-3.5" /> Delete
