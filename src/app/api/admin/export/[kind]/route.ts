@@ -1,3 +1,4 @@
+import { listPayouts } from "@/lib/admin/affiliates";
 import { logActivity } from "@/lib/admin/audit";
 import { exportCustomers, exportSubscribers } from "@/lib/admin/customers";
 import { exportExpenses, resolvePeriod } from "@/lib/admin/expenses";
@@ -12,9 +13,17 @@ import { getCurrentAdmin, hasRole, type AdminRole } from "@/lib/auth/session";
 const dollars = (cents: number) => (cents / 100).toFixed(2);
 
 /** Exports staff can't download. */
-const MIN_ROLE: Partial<Record<string, AdminRole>> = { expenses: "admin" };
+const MIN_ROLE: Partial<Record<string, AdminRole>> = { expenses: "admin", payouts: "admin" };
 
 const EXPORTS: Record<string, (params: URLSearchParams) => Promise<unknown[][]>> = {
+  // The partner payouts waiting to be sent, for paying them in one go.
+  async payouts() {
+    const { requested } = await listPayouts();
+    return [
+      ["paypal_email", "amount", "currency", "partner", "requested_at"],
+      ...requested.map(({ payout: p, partnerName }) => [p.paypalEmail, dollars(p.amountCents), "USD", partnerName, p.createdAt]),
+    ];
+  },
   // Same filters as the Expenses page, so the file matches what's on screen.
   async expenses(params) {
     const get = (k: string) => params.get(k) || undefined;

@@ -15,7 +15,10 @@ export const PAYOUT_STATUS: Record<string, { label: string; tone: "neutral" | "o
 
 export const PAYOUT_METHOD: Record<string, string> = { paypal: "PayPal", store_credit: "Store credit" };
 
+/** "12.5%" from hundredths of a percent. */
+export const percentLabel = (value: number) => `${(value / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}%`;
+
 /** "10%" or "$12.50 each". Percent values are hundredths of a percent; fixed values are cents. */
 export function commissionLabel(c: { kind: "percent" | "fixed"; value: number }) {
-  return c.kind === "percent" ? `${(c.value / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : `$${(c.value / 100).toFixed(2)} each`;
+  return c.kind === "percent" ? percentLabel(c.value) : `$${(c.value / 100).toFixed(2)} each`;
 }

@@ -1,5 +1,6 @@
-// Assertion checks for the content guard, the token filler and the product cost maths. Run: npm run self-check
+// Assertion checks for the content guard, the token filler, the product cost maths and partner terms. Run: npm run self-check
 import assert from "node:assert/strict";
+import { customerPrice, discountStops, earnsPerUnit, generalTerms, resolveTerms, type Layer, type Rule } from "../src/lib/affiliate-terms";
 import { findBlocked, findLiteralPrices } from "../src/lib/content-guard";
 import { parseCost, saleCosts, totalCost, type CostField } from "../src/lib/costs";
 import { feesTotal, orderFees } from "../src/lib/fees";
@@ -52,5 +53,34 @@ const charged = orderFees([{ name: "Handling", kind: "amount", value: 2.5 }, { n
 assert.deepEqual(charged, [{ name: "Handling", cents: 250 }, { name: "Processing (1.85%)", cents: 342 }]);
 assert.equal(feesTotal(charged), 592);
 assert.equal(feesTotal(null), 0);
+
+// Partner terms: the owner's example. The program allows 20% off; the partner picks their customers' discount up to it.
+const program = { commissionKind: "percent" as const, commissionValue: 1000, maxDiscount: 2000 };
+const item = { id: 1, slug: "ferrum", name: "Ferrum", priceCents: 14999 };
+const none: Rule = { visible: null, commissionKind: null, commissionValue: null, priceCents: null };
+const inProgram: Layer = { rule: { ...none, visible: true } };
+const price = (discount: number | null, layers: Layer[] = [inProgram]) => resolveTerms(item, layers, program, discount).priceCents;
+assert.equal(price(null), 11999); // not chosen: the biggest discount allowed
+assert.equal(price(1000), 13499);
+assert.equal(price(0), 14999);
+assert.equal(price(5000), 11999); // never more than the limit
+// The partner's own limit beats the group's; a product's own row (lowest price, commission) beats any level's general terms.
+assert.equal(price(null, [{ general: { commissionKind: null, commissionValue: null, maxDiscount: 3000 } }, { rule: { ...none, visible: true, priceCents: 12999 } }]), 12999);
+assert.deepEqual(resolveTerms(item, [{ general: { commissionKind: "fixed", commissionValue: 1500, maxDiscount: null } }, { rule: { ...none, visible: true, commissionKind: "percent", commissionValue: 500 } }], program, null).commission, { kind: "percent", value: 500 });
+const group: Layer = { general: { commissionKind: "fixed", commissionValue: 1500, maxDiscount: 3000 } };
+const partner: Layer = { general: { commissionKind: null, commissionValue: null, maxDiscount: 500 } };
+assert.equal(price(null, [group, inProgram]), 10499);
+assert.equal(price(null, [partner, group, inProgram]), 14249);
+assert.equal(price(null, [{ ...group, rule: { ...none, priceCents: 12999 } }, inProgram]), 12999);
+assert.deepEqual(resolveTerms(item, [partner, group, inProgram], program, null).commission, { kind: "fixed", value: 1500 });
+assert.equal(resolveTerms(item, [group], program, null).visible, false);
+assert.deepEqual(generalTerms([partner.general, group.general], program), { commission: { kind: "fixed", value: 1500 }, maxDiscount: 500 });
+assert.equal(earnsPerUnit({ kind: "percent", value: 1000 }, 13499), 1350);
+assert.equal(earnsPerUnit({ kind: "fixed", value: 1500 }, 1000), 1000);
+// The slider: whole percents, ending on the most any product allows (12.5% here, 20% on a cheap item despite cent rounding).
+assert.deepEqual(discountStops([{ regularCents: 14999, floorCents: 13124 }]), [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1250]);
+assert.equal(discountStops([{ regularCents: 1899, floorCents: 1519 }]).at(-1), 2000);
+assert.equal(customerPrice(14999, 13124, null), 13124);
+assert.deepEqual(discountStops([{ regularCents: 14999, floorCents: 14999 }]), [0]);
 
 console.log("self-check passed");

@@ -23,20 +23,22 @@ import {
 } from "@/db";
 import type { Tx } from "@/lib/admin/order-stock";
 import { commissionLabel } from "@/lib/affiliate-labels";
+import { generalTerms, MAX_DISCOUNT, resolveTerms, type Commission, type CommissionKind, type LevelTerms, type Terms } from "@/lib/affiliate-terms";
 import { getCurrentCustomer } from "@/lib/auth/customer";
 import { cookieIsSecure } from "@/lib/auth/session";
 
-// The affiliate program. Partners refer orders with their link (a cookie) or their code at checkout. What a partner
-// may promote, the commission they earn and the price their customers pay are set per product at three levels,
-// each overriding the one below: the partner, their group, the program. Commissions follow their order the way
-// loyalty points do: pending once it's paid, approved a hold period after delivery, paid with a payout, and
-// reversed if it's cancelled or refunded first (taken back from the next payout if it was already paid).
+// The affiliate program. Partners refer orders with their link (a cookie) or their code at checkout. The commission
+// a partner earns and the biggest discount they may give their customers are set at three levels, each overriding
+// the one below: the partner, their group, the program. Each level has general terms and rows for single products,
+// which beat general terms (src/lib/affiliate-terms.ts); the partner picks their customers' discount within the
+// limit. Commissions follow their order the way loyalty points do: pending once it's paid, approved a hold period
+// after delivery, paid with a payout, and reversed if it's cancelled or refunded first (taken back from the next
+// payout if already paid).
 
 export { commissionLabel };
+export type { Commission, CommissionKind, Terms };
 
 type Db = Tx | ReturnType<typeof getDb>;
-export type CommissionKind = (typeof COMMISSION_KINDS)[number];
-export type Commission = { kind: CommissionKind; value: number };
 
 /* ───────────── program settings ───────────── */
 
@@ -52,10 +54,12 @@ export const programSchema = z.object({
   /** For products in the program without their own commission. */
   commissionKind: z.enum(COMMISSION_KINDS),
   commissionValue: z.number().int().min(0).max(1_000_000),
+  /** The biggest discount partners may give their customers, in hundredths of a percent. Partners choose theirs up to it. */
+  maxDiscount: z.number().int().min(0).max(MAX_DISCOUNT),
 });
 export type Program = z.infer<typeof programSchema>;
 
-export const DEFAULT_PROGRAM: Program = { enabled: true, cookieDays: 30, holdDays: 14, minPayoutCents: 5000, commissionKind: "percent", commissionValue: 1000 };
+export const DEFAULT_PROGRAM: Program = { enabled: true, cookieDays: 30, holdDays: 14, minPayoutCents: 5000, commissionKind: "percent", commissionValue: 1000, maxDiscount: 0 };
 
 export async function getProgram(db: Db = getDb()): Promise<Program> {
   const [row] = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, AFFILIATE_SETTINGS_KEY)).limit(1);
@@ -64,66 +68,73 @@ export async function getProgram(db: Db = getDb()): Promise<Program> {
 }
 
 
-/* ───────────── rules: what a partner sees, earns and sells at ───────────── */
+/* ───────────── terms: what a partner sees, earns and sells at ───────────── */
 
 export type Scope = { level: "program" } | { level: "group"; id: number } | { level: "partner"; id: number };
 export const scopeKey = (s: Scope) => (s.level === "program" ? "program" : `${s.level}:${s.id}`);
-
-export type Rule = { visible: boolean | null; commissionKind: CommissionKind | null; commissionValue: number | null; priceCents: number | null };
-export type Terms = { productId: number; slug: string; name: string; regularCents: number; visible: boolean; commission: Commission; priceCents: number };
-
-/** The product's terms through the given rule layers (most specific first), down to the program defaults. */
-export function resolveTerms(product: { id: number; slug: string; name: string; priceCents: number }, layers: (Rule | undefined)[], program: Program): Terms {
-  const pick = <K extends keyof Rule>(k: K) => layers.find((r) => r?.[k] != null)?.[k] ?? null;
-  const ruleWithCommission = layers.find((r) => r?.commissionKind != null && r.commissionValue != null);
-  return {
-    productId: product.id,
-    slug: product.slug,
-    name: product.name,
-    regularCents: product.priceCents,
-    visible: pick("visible") ?? false,
-    commission: ruleWithCommission ? { kind: ruleWithCommission.commissionKind!, value: ruleWithCommission.commissionValue! } : { kind: program.commissionKind, value: program.commissionValue },
-    priceCents: pick("priceCents") ?? product.priceCents,
-  };
-}
 
 export async function defaultGroupId(db: Db = getDb()) {
   const [g] = await db.select({ id: affiliateGroups.id }).from(affiliateGroups).where(eq(affiliateGroups.isDefault, true)).limit(1);
   return g?.id ?? null;
 }
 
-/** The rule layers for a scope: its own, then those it inherits from. */
-async function layerScopes(scope: Scope, db: Db) {
-  if (scope.level === "program") return ["program"];
-  if (scope.level === "group") return [`group:${scope.id}`, "program"];
-  const [a] = await db.select({ groupId: affiliates.groupId }).from(affiliates).where(eq(affiliates.id, scope.id)).limit(1);
-  const groupId = a?.groupId ?? (await defaultGroupId(db));
-  return [`partner:${scope.id}`, ...(groupId ? [`group:${groupId}`] : []), "program"];
+/**
+ * The levels a scope gets its terms from, itself first: each one's rule scope and general terms (the program's are
+ * in its settings), plus the customer discount the partner chose.
+ */
+async function levelsFor(scope: Scope, db: Db) {
+  if (scope.level === "program") return { keys: ["program"], generals: [undefined] as (LevelTerms | undefined)[], discount: null };
+  const [partner] =
+    scope.level === "partner"
+      ? await db
+          .select({ commissionKind: affiliates.commissionKind, commissionValue: affiliates.commissionValue, maxDiscount: affiliates.maxDiscount, groupId: affiliates.groupId, discount: affiliates.customerDiscount })
+          .from(affiliates)
+          .where(eq(affiliates.id, scope.id))
+          .limit(1)
+      : [];
+  const groupId = scope.level === "group" ? scope.id : (partner?.groupId ?? (await defaultGroupId(db)));
+  const [group] = groupId
+    ? await db.select({ commissionKind: affiliateGroups.commissionKind, commissionValue: affiliateGroups.commissionValue, maxDiscount: affiliateGroups.maxDiscount }).from(affiliateGroups).where(eq(affiliateGroups.id, groupId)).limit(1)
+    : [];
+  return {
+    keys: [...(scope.level === "partner" ? [`partner:${scope.id}`] : []), ...(groupId ? [`group:${groupId}`] : []), "program"],
+    generals: [...(scope.level === "partner" ? [partner] : []), ...(groupId ? [group] : []), undefined] as (LevelTerms | undefined)[],
+    discount: partner?.discount ?? null,
+  };
+}
+
+/** Every active product with the scope's levels and their rules for it. */
+async function termsData(scope: Scope, db: Db) {
+  const levels = await levelsFor(scope, db);
+  const [program, rows, rules] = await Promise.all([
+    getProgram(db),
+    db.select({ id: products.id, slug: products.slug, name: products.name, priceCents: products.priceCents }).from(products).where(eq(products.status, "active")).orderBy(products.sortOrder, products.name),
+    db.select().from(affiliateRules).where(inArray(affiliateRules.scope, levels.keys)),
+  ]);
+  const byLevel = levels.keys.map((key) => new Map(rules.filter((r) => r.scope === key).map((r) => [r.productId, r])));
+  return { ...levels, program, rows, byLevel };
 }
 
 /** Every active product with its own rule at this scope and the terms it would get without it. For the admin. */
 export async function rulesFor(scope: Scope, db: Db = getDb()) {
-  const keys = await layerScopes(scope, db);
-  const [program, rows, rules] = await Promise.all([
-    getProgram(db),
-    db.select({ id: products.id, slug: products.slug, name: products.name, priceCents: products.priceCents }).from(products).where(eq(products.status, "active")).orderBy(products.sortOrder, products.name),
-    db.select().from(affiliateRules).where(inArray(affiliateRules.scope, keys)),
-  ]);
-  const by = (key: string) => new Map(rules.filter((r) => r.scope === key).map((r) => [r.productId, r]));
-  const [own, ...inherited] = keys.map(by);
-  return rows.map((p) => ({ product: p, rule: own.get(p.id) ?? null, inherited: resolveTerms(p, inherited.map((m) => m.get(p.id)), program) }));
+  const { generals, program, rows, byLevel } = await termsData(scope, db);
+  return rows.map((p) => ({
+    product: p,
+    rule: byLevel[0].get(p.id) ?? null,
+    inherited: resolveTerms(p, byLevel.map((rules, i) => ({ rule: i === 0 ? null : rules.get(p.id), general: generals[i] })), program, null),
+  }));
+}
+
+/** A group's or partner's own general terms, what they'd be without them, what applies now, and the partner's chosen discount. */
+export async function generalTermsFor(scope: Exclude<Scope, { level: "program" }>, db: Db = getDb()) {
+  const [{ generals, discount }, program] = await Promise.all([levelsFor(scope, db), getProgram(db)]);
+  return { own: generals[0] ?? null, inherited: generalTerms(generals.slice(1), program), now: generalTerms(generals, program), discount };
 }
 
 /** A partner's terms for every active product (including ones they can't promote: visible false). */
 export async function partnerTerms(affiliateId: number, db: Db = getDb()) {
-  const keys = await layerScopes({ level: "partner", id: affiliateId }, db);
-  const [program, rows, rules] = await Promise.all([
-    getProgram(db),
-    db.select({ id: products.id, slug: products.slug, name: products.name, priceCents: products.priceCents }).from(products).where(eq(products.status, "active")),
-    db.select().from(affiliateRules).where(inArray(affiliateRules.scope, keys)),
-  ]);
-  const layers = keys.map((key) => new Map(rules.filter((r) => r.scope === key).map((r) => [r.productId, r])));
-  return new Map(rows.map((p) => [p.id, resolveTerms(p, layers.map((m) => m.get(p.id)), program)]));
+  const { generals, discount, program, rows, byLevel } = await termsData({ level: "partner", id: affiliateId }, db);
+  return new Map(rows.map((p) => [p.id, resolveTerms(p, byLevel.map((rules, i) => ({ rule: rules.get(p.id), general: generals[i] })), program, discount)]));
 }
 
 /* ───────────── referrals ───────────── */

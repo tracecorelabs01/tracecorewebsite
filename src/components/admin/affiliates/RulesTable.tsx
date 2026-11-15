@@ -1,6 +1,6 @@
 "use client";
 
-import { commissionLabel } from "@/lib/affiliate-labels";
+import { commissionLabel, percentLabel } from "@/lib/affiliate-labels";
 import { centsToInput } from "@/lib/admin/format";
 import { cn } from "@/lib/utils";
 import { ActionForm, SubmitButton, useActionForm, type ActionState } from "../forms";
@@ -10,15 +10,15 @@ export type RuleRow = {
   product: { id: number; name: string; priceCents: number };
   rule: { visible: boolean | null; commissionKind: "percent" | "fixed" | null; commissionValue: number | null; priceCents: number | null } | null;
   /** What applies without this level's rule. */
-  inherited: { visible: boolean; commission: { kind: "percent" | "fixed"; value: number }; priceCents: number };
+  inherited: { visible: boolean; commission: { kind: "percent" | "fixed"; value: number }; floorCents: number };
 };
 
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const cell = cn(inputClass, "h-9 px-2.5 text-sm");
 
 /**
- * Per product, at one level (the program, a group or a partner): whether partners can promote it, the commission
- * and the price their customers pay. Blank fields inherit from the level above, shown in brackets.
+ * Per product, at one level (the program, a group or a partner): whether partners can promote it, its commission
+ * and the lowest price a partner's customers can pay. Blank fields show what applies without them, in brackets.
  */
 export function RulesTable({ level, rows, action }: { level: "program" | "group" | "partner"; rows: RuleRow[]; action: (prev: ActionState, fd: FormData) => Promise<ActionState> }) {
   return (
@@ -27,8 +27,8 @@ export function RulesTable({ level, rows, action }: { level: "program" | "group"
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-5">
         <p className="text-xs text-dim">
           {level === "program"
-            ? "Only products in the program can be promoted. Blank commission uses the program default; blank price is the regular price."
-            : "Blank means inherit, shown in brackets. A partner's own rule beats their group's, which beats the program's."}
+            ? "Only products in the program can be promoted. A commission or lowest price set here holds for every partner, whatever their group's rates, unless their group or own page has a row for the product. Blank uses the general rates."
+            : "Fill in only what should differ for one product. Blank shows what applies now, in brackets: a row for the product at a level above, or else the general commission and discount limit."}
         </p>
         <SubmitButton pendingText="Saving…">Save products</SubmitButton>
       </div>
@@ -48,7 +48,7 @@ function Rows({ level, rows }: { level: "program" | "group" | "partner"; rows: R
             <th className="px-5 py-3 font-normal">Product</th>
             <th className="px-3 py-3 font-normal">{level === "program" ? "In program" : "Can promote"}</th>
             <th className="px-3 py-3 font-normal">Commission</th>
-            <th className="px-3 py-3 font-normal">Customer price via partner</th>
+            <th className="px-3 py-3 font-normal">Lowest customer price</th>
           </tr>
         </thead>
         <tbody>
@@ -99,8 +99,8 @@ function Rows({ level, rows }: { level: "program" | "group" | "partner"; rows: R
                   name={`p_${p.id}`}
                   inputMode="decimal"
                   defaultValue={r?.priceCents != null ? centsToInput(r.priceCents) : ""}
-                  placeholder={`${usd(i.priceCents)}${level === "program" ? " (regular)" : " (inherited)"}`}
-                  aria-label={`${p.name} customer price`}
+                  placeholder={`${usd(i.floorCents)}${i.floorCents < p.priceCents ? ` (${percentLabel(Math.round((1 - i.floorCents / p.priceCents) * 1000) * 10)} off)` : " (regular)"}`}
+                  aria-label={`${p.name} lowest customer price`}
                   className={cn(cell, "w-40", errors[`p_${p.id}`] && "border-ember")}
                 />
                 {errors[`p_${p.id}`] && <p className="mt-1 text-xs text-[#ff6b5e]">{errors[`p_${p.id}`]}</p>}

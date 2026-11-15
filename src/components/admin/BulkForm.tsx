@@ -10,7 +10,10 @@ export type BulkAction = {
   value: string;
   label: string;
   /** Extra value the action needs, sent as `value`. */
-  input?: { label: string; type: "number"; min?: number; max?: number; step?: number; placeholder?: string } | { label: string; type: "select"; options: { value: string; label: string }[] };
+  input?:
+    | { label: string; type: "number"; min?: number; max?: number; step?: number; placeholder?: string }
+    | { label: string; type: "text"; maxLength?: number; placeholder?: string }
+    | { label: string; type: "select"; options: { value: string; label: string }[] };
   /** Ask before running, for destructive actions. `{n}` is replaced with the count. */
   confirm?: string;
 };
@@ -114,6 +117,17 @@ export function BulkForm({
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && apply()}
               className={cn(inputClass, "w-36 tabular-nums")}
+            />
+          )}
+          {current?.input?.type === "text" && (
+            <input
+              aria-label={current.input.label}
+              placeholder={current.input.placeholder ?? current.input.label}
+              maxLength={current.input.maxLength}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && apply()}
+              className={cn(inputClass, "w-64 max-w-full")}
             />
           )}
           {current?.input?.type === "select" && (

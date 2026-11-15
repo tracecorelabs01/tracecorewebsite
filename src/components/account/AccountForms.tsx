@@ -49,11 +49,11 @@ export function Field({ label, error, hint, className, ...props }: { label: stri
   );
 }
 
-export function Submit({ pending, children, className }: { pending: boolean; children: ReactNode; className?: string }) {
+export function Submit({ pending, disabled, children, className }: { pending: boolean; disabled?: boolean; children: ReactNode; className?: string }) {
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
       className={cn(
         "flex h-12 items-center justify-center gap-2.5 bg-brand px-7 text-[12px] font-semibold uppercase tracking-[0.16em] text-white transition-[filter] clip-slant [--slant:13px] hover:brightness-110 disabled:opacity-70",
         className,

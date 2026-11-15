@@ -82,7 +82,7 @@ export async function sendPayoutRequestAlert(r: { partnerId: number; partnerName
   });
 }
 
-export async function sendPayoutPaid(to: string, firstName: string | null, amountCents: number, reference: string) {
+export async function sendPayoutPaid(to: string, firstName: string | null, amountCents: number, reference: string, payoutId: number) {
   return sendEmail({
     to,
     replyTo: customerReplyTo(),
@@ -94,7 +94,8 @@ export async function sendPayoutPaid(to: string, firstName: string | null, amoun
       body: p(`We've sent ${strong(money(amountCents))} to your PayPal account.`) + panel(`${label("PayPal transaction")}${code(reference, 16)}`) + button("See your payouts", url("/partners/payouts")),
       reason: "Sent because you're a TraceCore Lab partner.",
     }),
-    idempotencyKey: `partner-payout-paid/${reference}`,
+    // By payout, not reference: one PayPal batch ID can pay many partners.
+    idempotencyKey: `partner-payout-paid/${payoutId}`,
   });
 }
 

@@ -11,8 +11,8 @@ import { PageHero } from "@/components/ui/PageHero";
 import { isDbConfigured } from "@/db";
 import { getLinkedAccounts } from "@/lib/account";
 import { param } from "@/lib/admin/format";
-import { COMMISSION_STATUS } from "@/lib/affiliate-labels";
-import { getProgram, partnerBalance, partnerCommissions, partnerForCustomer, partnerStats } from "@/lib/affiliates";
+import { COMMISSION_STATUS, percentLabel } from "@/lib/affiliate-labels";
+import { generalTermsFor, getProgram, partnerBalance, partnerCommissions, partnerForCustomer, partnerStats } from "@/lib/affiliates";
 import { getCurrentCustomer } from "@/lib/auth/customer";
 import { oauthEnabled } from "@/lib/auth/oauth";
 import { site } from "@/lib/site";
@@ -64,7 +64,7 @@ export default async function PartnersPage({ searchParams }: PageProps<"/partner
         <div className="grid content-start gap-4">
           {[
             { Icon: BadgePercent, title: "Commission on every order", text: "A percentage or a fixed amount per product, set for your partnership." },
-            { Icon: Handshake, title: "Partner prices for your audience", text: "Customers who use your link or code get the prices we set for you." },
+            { Icon: Handshake, title: "A discount for your audience", text: "Customers who use your link or code pay less. You choose how much, up to the limit we set for you." },
             { Icon: Wallet, title: "Paid your way", text: "Take your earnings as store credit straight away, or by PayPal." },
           ].map(({ Icon, title, text }) => (
             <div key={title} className="flex gap-4 rounded-3xl border border-line bg-ink-900/60 p-6">
@@ -129,27 +129,31 @@ function DiscordButton({ href, children }: { href: string; children: ReactNode }
 }
 
 async function Dashboard({ partnerId, code, name, cookieDays }: { partnerId: number; code: string; name: string; cookieDays: number }) {
-  const [stats, balance, recent] = await Promise.all([partnerStats(partnerId), partnerBalance(partnerId), partnerCommissions(partnerId, 6)]);
+  const [stats, balance, recent, terms] = await Promise.all([partnerStats(partnerId), partnerBalance(partnerId), partnerCommissions(partnerId, 6), generalTermsFor({ level: "partner", id: partnerId })]);
   const link = `${site.url}/?ref=${code}`;
+  // The discount they chose for their customers, within the limit the team set.
+  const limit = terms.now.maxDiscount;
+  const discount = Math.min(terms.discount ?? limit, limit);
   return (
     <AccountShell tabs={PARTNER_TABS} kicker="Partner portal" active="/partners" title={<span>Hi, <span className="text-gradient">{name}.</span></span>} description="Your link, your code and how they're doing over the last 30 days.">
-      <div className="grid gap-4">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* grid-cols-1: lets the panels shrink to a phone's width instead of widening the page. */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[
             { label: "Clicks", value: stats.clicks.toLocaleString("en-US") },
             { label: "Paid orders", value: stats.orders.toLocaleString("en-US") },
             { label: "Conversion", value: `${(stats.conversion * 100).toFixed(1)}%` },
             { label: "Earned", value: usd(stats.earnedCents) },
           ].map((s) => (
-            <div key={s.label} className="rounded-3xl border border-line bg-ink-900/60 p-6">
+            <div key={s.label} className="rounded-3xl border border-line bg-ink-900/60 p-4 sm:p-6">
               <p className="type-kicker text-dim">{s.label}</p>
-              <p className="mt-3 font-display text-4xl">{s.value}</p>
+              <p className="mt-3 font-display text-3xl sm:text-4xl">{s.value}</p>
             </div>
           ))}
         </div>
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <Panel title="Share">
-            <div className="grid gap-5">
+            <div className="grid grid-cols-1 gap-5">
               <div>
                 <p className="type-kicker text-dim">Your link</p>
                 <div className="mt-2">
@@ -164,6 +168,14 @@ async function Dashboard({ partnerId, code, name, cookieDays }: { partnerId: num
                 </div>
                 <p className="mt-1.5 text-xs text-dim">Customers can type it at checkout instead of using your link.</p>
               </div>
+              {limit > 0 && (
+                <p className="rounded-xl border border-line px-4 py-3 text-sm text-muted">
+                  Your customers get <span className="text-fg">{percentLabel(discount)} off</span> with your link or code. You can give up to {percentLabel(limit)}.{" "}
+                  <Link href="/partners/products" className="text-fg underline underline-offset-4 hover:text-blaze">
+                    Change it
+                  </Link>
+                </p>
+              )}
             </div>
           </Panel>
           <Panel title="Earnings">

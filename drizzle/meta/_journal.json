@@ -99,6 +99,13 @@
       "when": 1794744859005,
       "tag": "0013_order_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "5",
+      "when": 1794756629691,
+      "tag": "0014_partner_discounts",
+      "breakpoints": true
     }
   ]
 }

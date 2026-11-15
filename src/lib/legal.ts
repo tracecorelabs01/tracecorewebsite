@@ -47,7 +47,7 @@ You apply by signing in with Discord: your Discord account is your partner login
 ## Your link, your code and partner prices
 
 - Your partner portal has your referral link and your partner code. Customers who visit through your link, or type your code at checkout, are referred by you for the referral window shown in your portal. If they later use another partner's link or code, that partner gets the order.
-- Customers you refer pay the partner prices we set for you, which may differ from our regular prices. You can't set or change prices or offer your own discounts.
+- Customers you refer pay our regular prices less the discount you choose in your portal, up to the limit we set for you. You can't offer a bigger discount than that limit, or any other discount.
 - One partner gets each order. Orders you place yourself never earn a commission and don't get partner prices.
 
 ## Commissions

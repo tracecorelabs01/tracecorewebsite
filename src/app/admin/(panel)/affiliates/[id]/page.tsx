@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { addAdjustment, saveRules, savePartner, setCommissionStatus, setPartnerStatus } from "@/actions/admin/affiliates";
 import { RulesTable } from "@/components/admin/affiliates/RulesTable";
+import { TermsFields } from "@/components/admin/affiliates/TermsFields";
 import { TabPanel, Tabs } from "@/components/admin/Tabs";
 import { ActionForm, ConfirmButton, Field, Input, Select, SubmitButton, Textarea } from "@/components/admin/forms";
 import { Badge, Card, DescriptionList, EmptyState, PageHeader, StatCard, Table, Td, Th } from "@/components/admin/ui";
-import { COMMISSION_STATUS, PAYOUT_METHOD } from "@/lib/affiliate-labels";
-import { partnerBalance, partnerCommissions, partnerPayouts, partnerStats, rulesFor } from "@/lib/affiliates";
+import { COMMISSION_STATUS, commissionLabel, PAYOUT_METHOD, percentLabel } from "@/lib/affiliate-labels";
+import { generalTermsFor, partnerBalance, partnerCommissions, partnerPayouts, partnerStats, rulesFor } from "@/lib/affiliates";
 import { getPartner, listGroups, PARTNER_TONE } from "@/lib/admin/affiliates";
 import { dateTime, money, shortDate } from "@/lib/admin/format";
 import { requireAdmin } from "@/lib/auth/session";
@@ -25,14 +26,18 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
   const row = Number.isInteger(id) ? await getPartner(id) : null;
   if (!row) notFound();
   const { partner: a, email, firstName, lastName, discordId, discordUsername } = row;
-  const [groups, stats, balance, commissions, payouts, rules] = await Promise.all([
+  const [groups, stats, balance, commissions, payouts, rules, terms] = await Promise.all([
     listGroups(),
     partnerStats(id),
     partnerBalance(id),
     partnerCommissions(id, 100),
     partnerPayouts(id),
     rulesFor({ level: "partner", id }),
+    generalTermsFor({ level: "partner", id }),
   ]);
+  // What their customers get now: the discount they chose, within the limit.
+  const limit = terms.now.maxDiscount;
+  const discount = Math.min(terms.discount ?? limit, limit);
 
   return (
     <>
@@ -49,7 +54,7 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
             </span>
           </span>
         }
-        back={{ href: "/admin/affiliates", label: "Affiliates" }}
+        back={a.status === "pending" ? { href: "/admin/affiliates?tab=applications", label: "Applications" } : { href: "/admin/affiliates", label: "Affiliates" }}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {/* Partners sign up through Discord: no linked Discord, no approval. */}
@@ -98,7 +103,15 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
             <StatCard label="Paid out" value={money(balance.paidCents)} hint={balance.requestedCents ? `${money(balance.requestedCents)} requested` : undefined} />
           </div>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <Card title="Partner">
+            <Card
+              title="Partner"
+              description={
+                <>
+                  Earns {commissionLabel(terms.now.commission)}. Customers get {limit === 0 ? "no discount" : `${percentLabel(discount)} off`}
+                  {limit > 0 && (discount >= limit ? " (the most allowed)" : ` (their choice, up to ${percentLabel(limit)})`)}.
+                </>
+              }
+            >
               <ActionForm action={savePartner.bind(null, id)} className="grid gap-4 sm:grid-cols-2">
                 <Field label="Name" name="name">
                   <Input name="name" defaultValue={a.name} maxLength={120} />
@@ -106,7 +119,7 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
                 <Field label="Code" name="code" hint={`Link: ${site.url}/?ref=${a.code}`}>
                   <Input name="code" defaultValue={a.code} maxLength={32} className="font-mono uppercase" />
                 </Field>
-                <Field label="Group" name="groupId" hint="Products, commissions and prices come from the group unless set below.">
+                <Field label="Group" name="groupId" hint="Their commission and discount limit come from the group.">
                   <Select name="groupId" defaultValue={a.groupId ?? ""}>
                     <option value="">Default group</option>
                     {groups.map((g) => (
@@ -119,6 +132,8 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
                 <Field label="PayPal email" name="paypalEmail">
                   <Input name="paypalEmail" type="email" defaultValue={a.paypalEmail ?? ""} maxLength={191} />
                 </Field>
+                <p className="border-t border-line pt-4 text-xs text-dim sm:col-span-2">Only for this partner. Leave these blank and they follow their group or the program, so one change there covers everyone.</p>
+                <TermsFields own={terms.own} inherited={terms.inherited} above={groups.some((g) => g.id === a.groupId || g.isDefault) ? "their group" : "the program"} />
                 <Field label="Notes (staff only)" name="notes" className="sm:col-span-2">
                   <Textarea name="notes" defaultValue={a.notes ?? ""} rows={3} />
                 </Field>
@@ -142,12 +157,12 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
         </TabPanel>
 
         <TabPanel id="products">
-          <Card title="Products for this partner" description="Overrides just for them. Blank fields use their group's settings, then the program's." padded={false}>
+          <Card title="Product exceptions" description="Only for products that should differ just for this partner. Their commission and discount limit are on the Overview tab." padded={false}>
             <RulesTable level="partner" rows={rules} action={saveRules.bind(null, { level: "partner", id })} />
           </Card>
         </TabPanel>
 
-        <TabPanel id="commissions" className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:items-start">
+        <TabPanel id="commissions" className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:items-start">
           <Card title="Commissions" padded={false}>
             {commissions.length === 0 ? (
               <EmptyState title="No commissions yet" description="They appear when an order they referred is paid." />

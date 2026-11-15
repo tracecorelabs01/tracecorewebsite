@@ -2,13 +2,14 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { ActionState } from "@/components/admin/forms";
 import { affiliateCommissions, affiliateGroups, affiliateRules, affiliates, customers, getDb, products, settings } from "@/db";
 import { AFFILIATE_SETTINGS_KEY, codeTaken, markPayoutPaid, normaliseCode, programSchema, rejectPayout, scopeKey, type Scope } from "@/lib/affiliates";
+import { MAX_DISCOUNT, type CommissionKind } from "@/lib/affiliate-terms";
 import { logActivity } from "@/lib/admin/audit";
-import { parseCents } from "@/lib/admin/format";
-import { requireAdmin } from "@/lib/auth/session";
+import { bulkInput, parseCents } from "@/lib/admin/format";
+import { requireAdmin, type AdminUser } from "@/lib/auth/session";
 import { sendPartnerDecision, sendPayoutPaid } from "@/lib/emails/partners";
 
 const str = (v: FormDataEntryValue | null) => String(v ?? "").trim();
@@ -17,6 +18,29 @@ const whole = (v: FormDataEntryValue | null) => {
   return s && /^\d+$/.test(s) ? Number(s) : NaN;
 };
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** What happened to one row of a bulk action. */
+type Outcome = { changed: boolean; message: string };
+/** "Updated 3 of 5 partners. Skipped 2: why." */
+function bulkResult(outcomes: Outcome[], noun: string): ActionState {
+  const changed = outcomes.filter((o) => o.changed).length;
+  const skipped = outcomes.filter((o) => !o.changed);
+  const reasons = [...new Set(skipped.map((o) => o.message))].slice(0, 3).join(" ");
+  return { ok: changed > 0, message: `Updated ${changed} of ${plural(outcomes.length, noun)}.${skipped.length ? ` Skipped ${skipped.length}: ${reasons}` : ""}` };
+}
+
+/** A group's or partner's own commission and discount limit from its form. Blank means use the level above. */
+function readTerms(fd: FormData, fieldErrors: Record<string, string>) {
+  const kind = str(fd.get("commissionKind"));
+  const value = parseCents(fd.get("commissionValue"));
+  const maxDiscount = parseCents(fd.get("maxDiscount"));
+  const own: CommissionKind | null = kind === "percent" ? "percent" : kind === "fixed" ? "fixed" : null;
+  if (own && (value === null || Number.isNaN(value) || (own === "percent" && value > 10_000))) fieldErrors.commissionValue = own === "percent" ? "0 to 100." : "Enter an amount.";
+  if (!own && value !== null) fieldErrors.commissionValue = "Choose percent or fixed first, or clear this.";
+  if (maxDiscount !== null && (Number.isNaN(maxDiscount) || maxDiscount > MAX_DISCOUNT)) fieldErrors.maxDiscount = `0 to ${MAX_DISCOUNT / 100}.`;
+  return { commissionKind: own, commissionValue: own ? value : null, maxDiscount };
+}
 
 /* ───────────── program ───────────── */
 
@@ -31,12 +55,13 @@ export async function saveProgram(_prev: ActionState, fd: FormData): Promise<Act
     minPayoutCents: parseCents(fd.get("minPayout")) ?? NaN,
     commissionKind: kind,
     commissionValue: rate ?? NaN,
+    maxDiscount: parseCents(fd.get("maxDiscount")) ?? 0,
   });
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const i of parsed.error.issues) {
       const k = String(i.path[0]);
-      fieldErrors[k === "minPayoutCents" ? "minPayout" : k] ??= "Enter a valid value.";
+      fieldErrors[k === "minPayoutCents" ? "minPayout" : k] ??= k === "maxDiscount" ? `0 to ${MAX_DISCOUNT / 100}.` : "Enter a valid value.";
     }
     return { ok: false, message: "Please fix the highlighted fields.", fieldErrors };
   }
@@ -68,7 +93,7 @@ export async function saveRules(scope: Scope, _prev: ActionState, fd: FormData):
     const value = parseCents(fd.get(`n_${id}`));
     const price = parseCents(fd.get(`p_${id}`));
     if (kind && (value === null || Number.isNaN(value) || value < 0 || (kind === "percent" && value > 10_000))) fieldErrors[`n_${id}`] = kind === "percent" ? "0 to 100" : "A positive amount";
-    if (price !== null && (Number.isNaN(price) || price < 0)) fieldErrors[`p_${id}`] = "A positive price";
+    if (price !== null && Number.isNaN(price)) fieldErrors[`p_${id}`] = "A price, or blank";
     rows.push({
       productId: id,
       visible: v === "1" ? true : v === "0" ? false : null,
@@ -97,8 +122,9 @@ export async function saveRules(scope: Scope, _prev: ActionState, fd: FormData):
 
 /* ───────────── partners ───────────── */
 
-export async function setPartnerStatus(id: number, status: "approved" | "rejected" | "suspended") {
-  const user = await requireAdmin("admin");
+type NewStatus = "approved" | "rejected" | "suspended";
+
+async function changePartnerStatus(user: AdminUser, id: number, status: NewStatus): Promise<Outcome> {
   const db = getDb();
   const [row] = await db
     .select({ status: affiliates.status, approvedAt: affiliates.approvedAt, name: affiliates.name, code: affiliates.code, email: customers.email, firstName: customers.firstName, discordId: customers.discordId })
@@ -106,8 +132,12 @@ export async function setPartnerStatus(id: number, status: "approved" | "rejecte
     .innerJoin(customers, eq(affiliates.customerId, customers.id))
     .where(eq(affiliates.id, id))
     .limit(1);
-  // Partners must have Discord linked to be approved (the partner page hides Approve until they do).
-  if (!row || row.status === status || (status === "approved" && !row.discordId)) return;
+  if (!row) return { changed: false, message: "Partner not found." };
+  if (row.status === status) return { changed: false, message: `Already ${status}.` };
+  // Partners sign up through Discord: no linked Discord, no approval.
+  if (status === "approved" && !row.discordId) return { changed: false, message: "No Discord linked, so they can't be approved." };
+  if (status === "rejected" && row.status !== "pending") return { changed: false, message: "Only applications can be declined. Suspend an active partner instead." };
+  if (status === "suspended" && row.status !== "approved") return { changed: false, message: "Only active partners can be suspended." };
   await db
     .update(affiliates)
     .set({ status, ...(status === "approved" && !row.approvedAt ? { approvedAt: new Date() } : {}) })
@@ -115,7 +145,36 @@ export async function setPartnerStatus(id: number, status: "approved" | "rejecte
   // Tell applicants the decision; suspending or reinstating an existing partner is a conversation, not an email.
   if (row.status === "pending" && status !== "suspended") await sendPartnerDecision(row.email, row.firstName || null, status === "approved", row.code);
   await logActivity(user, "update", "affiliate", id, `Partner ${row.name}: ${row.status} → ${status}`);
-  refresh();
+  return { changed: true, message: "" };
+}
+
+export async function setPartnerStatus(id: number, status: NewStatus) {
+  const user = await requireAdmin("admin");
+  if ((await changePartnerStatus(user, id, status)).changed) refresh();
+}
+
+/** The partners list and the applications inbox: approve, decline or suspend many at once, or move them to a group. */
+export async function bulkUpdatePartners(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const user = await requireAdmin("admin");
+  const { ids, action, value } = bulkInput(fd);
+  if (!ids.length) return { ok: false, message: "Select at least one partner." };
+
+  if (action === "group") {
+    const db = getDb();
+    const groupId = value === "default" ? null : Number(value);
+    const [group] = groupId ? await db.select({ name: affiliateGroups.name }).from(affiliateGroups).where(eq(affiliateGroups.id, groupId)).limit(1) : [];
+    if (value !== "default" && !group) return { ok: false, message: "Choose a group." };
+    await db.update(affiliates).set({ groupId }).where(inArray(affiliates.id, ids));
+    await logActivity(user, "update", "affiliate", null, `Moved ${plural(ids.length, "partner")} to ${group ? `the group ${group.name}` : "the default group"}`);
+    refresh();
+    return { ok: true, message: `Moved ${plural(ids.length, "partner")} to ${group?.name ?? "the default group"}. Its commission and discount limit apply to them now.` };
+  }
+  if (action !== "approved" && action !== "rejected" && action !== "suspended") return { ok: false, message: "Choose an action." };
+  // One at a time: each decision emails its applicant, exactly as when made by hand.
+  const outcomes: Outcome[] = [];
+  for (const id of ids) outcomes.push(await changePartnerStatus(user, id, action));
+  if (outcomes.some((o) => o.changed)) refresh();
+  return bulkResult(outcomes, "partner");
 }
 
 export async function savePartner(id: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -130,10 +189,11 @@ export async function savePartner(id: number, _prev: ActionState, fd: FormData):
   if (!/^[A-Z0-9_-]{3,32}$/.test(code)) fieldErrors.code = "3 to 32 letters, numbers, - or _.";
   else if (await codeTaken(code, id, db)) fieldErrors.code = "Another partner or a discount code already uses this.";
   if (paypalEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paypalEmail)) fieldErrors.paypalEmail = "Enter a valid email.";
+  const terms = readTerms(fd, fieldErrors);
   if (Object.keys(fieldErrors).length) return { ok: false, message: "Please fix the highlighted fields.", fieldErrors };
   await db
     .update(affiliates)
-    .set({ name, code, groupId: Number.isNaN(groupId) ? null : groupId, paypalEmail: paypalEmail || null, notes: str(fd.get("notes")) || null })
+    .set({ name, code, groupId: Number.isNaN(groupId) ? null : groupId, paypalEmail: paypalEmail || null, notes: str(fd.get("notes")) || null, ...terms })
     .where(eq(affiliates.id, id));
   await logActivity(user, "update", "affiliate", id, `Updated partner ${name}`);
   refresh();
@@ -176,8 +236,11 @@ export async function setCommissionStatus(id: number, status: "approved" | "reve
 export async function saveGroup(id: number | null, _prev: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin("admin");
   const name = str(fd.get("name"));
-  if (name.length < 2 || name.length > 80) return { ok: false, message: "Give the group a name.", fieldErrors: { name: "2 to 80 characters." } };
-  const values = { name, description: str(fd.get("description")).slice(0, 255), isDefault: fd.get("isDefault") === "on" };
+  const fieldErrors: Record<string, string> = {};
+  if (name.length < 2 || name.length > 80) fieldErrors.name = "2 to 80 characters.";
+  const terms = readTerms(fd, fieldErrors);
+  if (Object.keys(fieldErrors).length) return { ok: false, message: "Please fix the highlighted fields.", fieldErrors };
+  const values = { name, description: str(fd.get("description")).slice(0, 255), isDefault: fd.get("isDefault") === "on", ...terms };
   const db = getDb();
   let groupId = id;
   await db.transaction(async (tx) => {
@@ -204,31 +267,37 @@ export async function deleteGroup(id: number) {
 
 /* ───────────── payouts ───────────── */
 
-export async function payPayout(payoutId: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
+/**
+ * The payouts to send: mark the ticked ones paid with one PayPal transaction or batch ID (each partner is emailed),
+ * or reject them with a reason (the amount goes back to the partner's available balance).
+ */
+export async function bulkPayouts(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireAdmin("admin");
-  const reference = str(fd.get("reference")).slice(0, 191);
-  if (!reference) return { ok: false, message: "Enter the PayPal transaction ID.", fieldErrors: { reference: "Required." } };
-  const p = await markPayoutPaid(payoutId, reference, user.id);
-  if (!p) return { ok: false, message: "That payout isn't waiting to be paid any more." };
-  const [who] = await getDb()
-    .select({ email: customers.email, firstName: customers.firstName, name: affiliates.name })
-    .from(affiliates)
-    .innerJoin(customers, eq(affiliates.customerId, customers.id))
-    .where(eq(affiliates.id, p.affiliateId))
-    .limit(1);
-  if (who) await sendPayoutPaid(who.email, who.firstName || null, p.amountCents, reference);
-  await logActivity(user, "update", "affiliate", p.affiliateId, `Paid ${money(p.amountCents)} to ${who?.name ?? "a partner"} by PayPal (${reference})`);
-  refresh();
-  return { ok: true, message: "Marked paid. The partner has been emailed." };
-}
+  const { ids, action, value } = bulkInput(fd);
+  if (!ids.length) return { ok: false, message: "Select at least one payout." };
+  if (action !== "paid" && action !== "rejected") return { ok: false, message: "Choose an action." };
+  const text = value.slice(0, action === "paid" ? 191 : 255);
+  if (!text) return { ok: false, message: action === "paid" ? "Enter the PayPal transaction or batch ID." : "Say why, for the partner." };
 
-export async function declinePayout(payoutId: number, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  const user = await requireAdmin("admin");
-  const note = str(fd.get("note")).slice(0, 255);
-  if (!note) return { ok: false, message: "Say why, for the partner.", fieldErrors: { note: "Required." } };
-  const p = await rejectPayout(payoutId, note, user.id);
-  if (!p) return { ok: false, message: "That payout isn't waiting to be paid any more." };
-  await logActivity(user, "update", "affiliate", p.affiliateId, `Rejected a ${money(p.amountCents)} payout request: ${note}`);
-  refresh();
-  return { ok: true, message: "Rejected. The amount is back in the partner's available balance." };
+  const gone: Outcome = { changed: false, message: "No longer waiting to be paid." };
+  const outcomes: Outcome[] = [];
+  for (const id of ids) {
+    const p = action === "paid" ? await markPayoutPaid(id, text, user.id) : await rejectPayout(id, text, user.id);
+    outcomes.push(p ? { changed: true, message: "" } : gone);
+    if (!p) continue;
+    if (action === "rejected") {
+      await logActivity(user, "update", "affiliate", p.affiliateId, `Rejected a ${money(p.amountCents)} payout request: ${text}`);
+      continue;
+    }
+    const [who] = await getDb()
+      .select({ email: customers.email, firstName: customers.firstName, name: affiliates.name })
+      .from(affiliates)
+      .innerJoin(customers, eq(affiliates.customerId, customers.id))
+      .where(eq(affiliates.id, p.affiliateId))
+      .limit(1);
+    if (who) await sendPayoutPaid(who.email, who.firstName || null, p.amountCents, text, p.id);
+    await logActivity(user, "update", "affiliate", p.affiliateId, `Paid ${money(p.amountCents)} to ${who?.name ?? "a partner"} by PayPal (${text})`);
+  }
+  if (outcomes.some((o) => o.changed)) refresh();
+  return bulkResult(outcomes, "payout");
 }

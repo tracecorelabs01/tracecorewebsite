@@ -571,9 +571,10 @@ export const activityLog = mysqlTable(
 );
 
 /* ───────────── Affiliate program ───────────── */
-// Partners (approved customer accounts) refer orders with a link or their code. What each partner may promote,
-// what they earn and the prices their customers pay are set per product at three levels: the program, the
-// partner's group, and the partner. Commissions follow the order like loyalty points do (src/lib/affiliates.ts).
+// Partners (approved customer accounts) refer orders with a link or their code. What they earn and how big a
+// discount they may give their customers are set at three levels (the program, the partner's group, the partner),
+// each with exceptions per product; the partner picks their customers' discount within that limit. Commissions
+// follow the order like loyalty points do (src/lib/affiliates.ts, src/lib/affiliate-terms.ts).
 
 export const COMMISSION_KINDS = ["percent", "fixed"] as const;
 
@@ -583,6 +584,11 @@ export const affiliateGroups = mysqlTable("affiliate_groups", {
   description: varchar("description", { length: 255 }).notNull().default(""),
   /** New partners join this group. */
   isDefault: boolean("is_default").notNull().default(false),
+  /** The group's own commission and discount limit; null = the program's. Values as in affiliate_rules. */
+  commissionKind: mysqlEnum("commission_kind", COMMISSION_KINDS),
+  commissionValue: int("commission_value"),
+  /** The biggest discount its partners may give their customers, in hundredths of a percent (2000 = 20%). */
+  maxDiscount: int("max_discount"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -604,6 +610,12 @@ export const affiliates = mysqlTable(
     /** From the application: where and how they'd promote. */
     audience: text("audience"),
     paypalEmail: varchar("paypal_email", { length: 191 }),
+    /** The partner's own commission and discount limit, set by the team; null = their group's. */
+    commissionKind: mysqlEnum("commission_kind", COMMISSION_KINDS),
+    commissionValue: int("commission_value"),
+    maxDiscount: int("max_discount"),
+    /** The discount the partner chose for their customers, in hundredths of a percent; null = the biggest allowed. */
+    customerDiscount: int("customer_discount"),
     /** Staff only. */
     notes: text("notes"),
     approvedAt: datetime("approved_at"),
@@ -629,7 +641,7 @@ export const affiliateRules = mysqlTable(
     commissionKind: mysqlEnum("commission_kind", COMMISSION_KINDS),
     /** percent: hundredths of a percent (1000 = 10%); fixed: cents per unit. */
     commissionValue: int("commission_value"),
-    /** What customers referred by the partner pay; null = inherit (the program's null means the regular price). */
+    /** The lowest price the partner's customers can pay for this product; null = the level's discount limit decides. */
     priceCents: int("price_cents"),
     updatedAt: updatedAt(),
   },

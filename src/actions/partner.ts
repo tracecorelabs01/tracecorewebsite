@@ -13,10 +13,13 @@ import {
   partnerByCode,
   partnerForCustomer,
   partnerPriceMap,
+  partnerTerms,
   recordClick,
   rememberPartner,
   requestPayout,
 } from "@/lib/affiliates";
+import { percentLabel } from "@/lib/affiliate-labels";
+import { discountStops } from "@/lib/affiliate-terms";
 import { getLinkedAccounts } from "@/lib/account";
 import { getCurrentCustomer, requireCustomer } from "@/lib/auth/customer";
 import { cookieIsSecure } from "@/lib/auth/session";
@@ -96,6 +99,21 @@ export async function savePayoutEmail(_prev: PartnerFormState, fd: FormData): Pr
   await getDb().update(affiliates).set({ paypalEmail: email.data }).where(eq(affiliates.id, mine.partner.id));
   refresh();
   return { ok: true, message: "PayPal email saved." };
+}
+
+/**
+ * The discount the partner gives their customers, in hundredths of a percent. null, or anything at or over the
+ * most their products allow, is saved as "the biggest allowed". Orders are priced within the limit whatever is saved.
+ */
+export async function saveCustomerDiscount(discount: number | null): Promise<{ ok: boolean; message: string }> {
+  const mine = await myPartner();
+  if (!mine) return { ok: false, message: "Your partner account isn't active." };
+  if (discount !== null && !(Number.isInteger(discount) && discount >= 0 && discount <= 10_000)) return { ok: false, message: "Choose a discount." };
+  const most = discountStops([...(await partnerTerms(mine.partner.id)).values()].filter((t) => t.visible)).at(-1)!;
+  const value = discount === null || discount >= most ? null : discount;
+  await getDb().update(affiliates).set({ customerDiscount: value }).where(eq(affiliates.id, mine.partner.id));
+  refresh();
+  return { ok: true, message: `Saved. Your customers now get ${value === null ? `the biggest discount we allow (${percentLabel(most)})` : `${percentLabel(value)} off`}.` };
 }
 
 export async function requestPartnerPayout(method: "paypal" | "store_credit"): Promise<{ ok: boolean; message: string }> {
