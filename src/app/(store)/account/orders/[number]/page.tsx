@@ -56,6 +56,12 @@ export default async function AccountOrderPage({ params }: PageProps<"/account/o
               <dt className="text-muted">Shipping</dt>
               <dd>{o.shippingCents ? usd(o.shippingCents) : "Free"}</dd>
             </div>
+            {o.fees?.map((f, i) => (
+              <div key={i} className="flex justify-between gap-4">
+                <dt className="text-muted">{f.name}</dt>
+                <dd>{usd(f.cents)}</dd>
+              </div>
+            ))}
             <div className="flex items-baseline justify-between border-t border-line pt-3">
               <dt className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Total</dt>
               <dd className="font-display text-3xl">{usd(o.totalCents)}</dd>

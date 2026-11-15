@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { money } from "@/lib/admin/format";
 
-type Totals = { subtotalCents: number; discountCents: number; discountCode: string | null; shippingCents: number; totalCents: number; currency: string };
+type Totals = { subtotalCents: number; discountCents: number; discountCode: string | null; shippingCents: number; fees: { name: string; cents: number }[] | null; totalCents: number; currency: string };
 
 export function OrderTotals({ order }: { order: Totals }) {
   const m = (cents: number) => money(cents, order.currency);
@@ -21,6 +21,11 @@ export function OrderTotals({ order }: { order: Totals }) {
         </Row>
       ) : null}
       <Row label="Shipping">{order.shippingCents ? m(order.shippingCents) : "Free"}</Row>
+      {order.fees?.map((f, i) => (
+        <Row key={i} label={f.name}>
+          {m(f.cents)}
+        </Row>
+      ))}
       <div className="flex items-baseline justify-between gap-4 border-t border-line pt-3">
         <dt className="font-medium text-fg">Total</dt>
         <dd className="font-mono text-base font-semibold tabular-nums text-fg">{m(order.totalCents)}</dd>

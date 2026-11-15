@@ -121,6 +121,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                         {o.firstName} {o.lastName}
                       </div>
                       <div className="text-xs text-dim">{o.email}</div>
+                      {o.partner && <div className="text-xs text-amber">via {o.partner}</div>}
                     </Td>
                     <Td className="tabular-nums text-muted">
                       {o.units} item{o.units === 1 ? "" : "s"}

@@ -1,6 +1,6 @@
 import "server-only";
 import { and, asc, count, desc, eq, like, or, sql, sum } from "drizzle-orm";
-import { adminUsers, getDb, ORDER_STATUSES, orderEvents, orderItems, orders, PAYMENT_STATUSES, products } from "@/db";
+import { adminUsers, affiliates, getDb, ORDER_STATUSES, orderEvents, orderItems, orders, PAYMENT_STATUSES, products } from "@/db";
 
 export const PAGE_SIZE = 25;
 /** Row cap for CSV exports. */
@@ -77,8 +77,11 @@ export async function listOrders({ q, status, payment, page }: { q?: string; sta
         totalCents: orders.totalCents,
         currency: orders.currency,
         units: orderUnits(),
+        // The partner who referred it, if any. Shown in the admin only.
+        partner: affiliates.name,
       })
       .from(orders)
+      .leftJoin(affiliates, eq(orders.affiliateId, affiliates.id))
       .where(where)
       .orderBy(desc(orders.createdAt), desc(orders.id))
       .limit(PAGE_SIZE)
@@ -152,11 +155,14 @@ export async function exportOrders() {
       discountCents: orders.discountCents,
       discountCode: orders.discountCode,
       shippingCents: orders.shippingCents,
+      fees: orders.fees,
       totalCents: orders.totalCents,
       trackingCarrier: orders.trackingCarrier,
       trackingNumber: orders.trackingNumber,
+      partner: affiliates.name,
     })
     .from(orders)
+    .leftJoin(affiliates, eq(orders.affiliateId, affiliates.id))
     .orderBy(desc(orders.createdAt), desc(orders.id))
     .limit(EXPORT_LIMIT);
 }

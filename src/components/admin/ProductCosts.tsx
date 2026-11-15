@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { money, parseCents } from "@/lib/admin/format";
 import { COST_KIND_HINTS, costInput, formatCost, parseCost, saleCosts, totalCost, type CostField, type CostValues } from "@/lib/costs";
+import { feesTotal, orderFees, type CheckoutFee } from "@/lib/fees";
 import { cn } from "@/lib/utils";
 import { Field, Input } from "./forms";
 import { Card } from "./ui";
@@ -12,12 +13,13 @@ export type ProductCostSetup = {
   fields: CostField[];
   /** This product's own values (none for a new product). */
   values: CostValues;
-  /** Store shipping, to work out what a customer pays for one of these on its own. */
+  /** Store shipping and checkout fees, to work out what a customer pays for one of these on its own. */
   shipping: { flatCents: number; freeOverCents: number };
+  fees: CheckoutFee[];
 };
 
 /** The product's costs (Expenses > Product costs) and the profit on one sold on its own, worked out as you type. */
-export function ProductCosts({ price, fields, values, shipping }: ProductCostSetup & { price: string }) {
+export function ProductCosts({ price, fields, values, shipping, fees }: ProductCostSetup & { price: string }) {
   const [inputs, setInputs] = useState<Record<number, string>>(() => Object.fromEntries(fields.map((f) => [f.id, costInput(values[f.id])])));
 
   if (!fields.length) {
@@ -41,7 +43,8 @@ export function ProductCosts({ price, fields, values, shipping }: ProductCostSet
   }
   const priceCents = parseCents(price) || 0;
   const shippingCents = priceCents >= shipping.freeOverCents ? 0 : shipping.flatCents;
-  const paid = priceCents + shippingCents;
+  const feeLines = orderFees(fees, priceCents + shippingCents);
+  const paid = priceCents + shippingCents + feesTotal(feeLines);
   const costs = saleCosts(fields, { totalCents: paid, lines: [{ values: own, qty: 1, lineTotalCents: priceCents }] });
   const profit = paid - totalCost(costs);
 
@@ -72,6 +75,9 @@ export function ProductCosts({ price, fields, values, shipping }: ProductCostSet
         <dl className="space-y-1.5 tabular-nums">
           <Row label="Price" value={money(priceCents)} />
           <Row label={shippingCents ? "Shipping charged" : "Shipping charged (free over the threshold)"} value={money(shippingCents)} />
+          {feeLines.map((f, i) => (
+            <Row key={i} label={`${f.name} charged`} value={money(f.cents)} />
+          ))}
           <Row label="Customer pays" value={money(paid)} strong />
           {costs.map((c) => (
             <Row key={c.name} label={c.name} value={`−${money(c.cents)}`} muted />

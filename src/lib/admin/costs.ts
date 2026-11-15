@@ -3,6 +3,7 @@ import { asc, eq, inArray, ne } from "drizzle-orm";
 import { costFields, getDb, orderCosts, orderItems, productCosts, products } from "@/db";
 import { getStoreSettings } from "@/lib/catalog/server";
 import { saleCosts, totalCost, type CostField, type CostLine, type CostValues } from "@/lib/costs";
+import { feesTotal, orderFees } from "@/lib/fees";
 
 export function listCostFields(): Promise<CostField[]> {
   return getDb().select({ id: costFields.id, name: costFields.name, kind: costFields.kind, defaultValue: costFields.defaultValue }).from(costFields).orderBy(asc(costFields.id));
@@ -20,16 +21,16 @@ export async function productCostValues(productIds?: number[]) {
   return map;
 }
 
-/** Shipping as checkout charges it, in cents: the flat rate, free from the threshold up. */
-export async function storeShipping() {
+/** What checkout adds to the items: shipping in cents (the flat rate, free from the threshold up) and the checkout fees. */
+export async function checkoutCharges() {
   const s = await getStoreSettings();
-  return { flatCents: Math.round(s.flatShipping * 100), freeOverCents: Math.round(s.freeShippingThreshold * 100) };
+  return { shipping: { flatCents: Math.round(s.flatShipping * 100), freeOverCents: Math.round(s.freeShippingThreshold * 100) }, fees: s.checkoutFees };
 }
 
-/** What the product form's Costs card needs: the cost fields, the product's own values and the store's shipping. */
+/** What the product form's Costs card needs: the cost fields, the product's own values and what checkout adds. */
 export async function productCostSetup(productId?: number) {
-  const [fields, values, shipping] = await Promise.all([listCostFields(), productCostValues(productId ? [productId] : []), storeShipping()]);
-  return { fields, values: (productId && values.get(productId)) || {}, shipping };
+  const [fields, values, charges] = await Promise.all([listCostFields(), productCostValues(productId ? [productId] : []), checkoutCharges()]);
+  return { fields, values: (productId && values.get(productId)) || {}, ...charges };
 }
 
 /**
@@ -37,10 +38,10 @@ export async function productCostSetup(productId?: number) {
  * each product (archived ones left out) ordered on its own.
  */
 export async function getCostOverview() {
-  const [fields, values, shipping, rows] = await Promise.all([
+  const [fields, values, { shipping, fees }, rows] = await Promise.all([
     listCostFields(),
     productCostValues(),
-    storeShipping(),
+    checkoutCharges(),
     getDb()
       .select({ id: products.id, name: products.name, status: products.status, priceCents: products.priceCents })
       .from(products)
@@ -50,7 +51,8 @@ export async function getCostOverview() {
   const usage = new Map<number, number>();
   for (const own of values.values()) for (const id of Object.keys(own)) usage.set(Number(id), (usage.get(Number(id)) ?? 0) + 1);
   const profits = rows.map((p) => {
-    const paidCents = p.priceCents + (p.priceCents >= shipping.freeOverCents ? 0 : shipping.flatCents);
+    const beforeFees = p.priceCents + (p.priceCents >= shipping.freeOverCents ? 0 : shipping.flatCents);
+    const paidCents = beforeFees + feesTotal(orderFees(fees, beforeFees));
     const costCents = totalCost(saleCosts(fields, { totalCents: paidCents, lines: [{ values: values.get(p.id), qty: 1, lineTotalCents: p.priceCents }] }));
     return { ...p, paidCents, costCents, profitCents: paidCents - costCents, costsSet: Boolean(values.get(p.id)) };
   });

@@ -23,7 +23,8 @@ import { cookieIsSecure } from "@/lib/auth/session";
 import { sendApplicationAlert, sendApplicationReceived, sendPayoutRequestAlert, sendStoreCredit } from "@/lib/emails/partners";
 
 export type PartnerFormState = { ok: boolean; message?: string; fieldErrors?: Record<string, string> } | null;
-export type PartnerPricing = { name: string; prices: Record<string, number> } | null;
+/** The referring partner's prices by product slug. Only prices: who the partner is stays in the admin. */
+export type PartnerPricing = { prices: Record<string, number> } | null;
 
 /** One click per visitor, partner and day. */
 const SEEN_COOKIE = "tcl_ref_seen";
@@ -41,14 +42,14 @@ export async function trackReferral(code: string): Promise<PartnerPricing> {
     jar.set(SEEN_COOKIE, seen, { httpOnly: true, sameSite: "lax", secure: await cookieIsSecure(), path: "/", maxAge: 86_400 });
     await recordClick(partner.id);
   }
-  return { name: partner.name, prices: await partnerPriceMap(partner.id) };
+  return { prices: await partnerPriceMap(partner.id) };
 }
 
 /** The prices of the partner who referred this visitor, for the storefront to show. */
 export async function referralPricing(): Promise<PartnerPricing> {
   const me = await getCurrentCustomer();
   const partner = await currentPartner({ buyerEmail: me?.email });
-  return partner ? { name: partner.name, prices: await partnerPriceMap(partner.id) } : null;
+  return partner ? { prices: await partnerPriceMap(partner.id) } : null;
 }
 
 const applySchema = z.object({

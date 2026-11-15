@@ -1,6 +1,7 @@
 import { logActivity } from "@/lib/admin/audit";
 import { exportCustomers, exportSubscribers } from "@/lib/admin/customers";
 import { exportExpenses, resolvePeriod } from "@/lib/admin/expenses";
+import { feesTotal } from "@/lib/fees";
 import { csvEscape } from "@/lib/admin/format";
 import { exportOrders } from "@/lib/admin/orders";
 import { getCurrentAdmin, hasRole, type AdminRole } from "@/lib/auth/session";
@@ -46,9 +47,11 @@ const EXPORTS: Record<string, (params: URLSearchParams) => Promise<unknown[][]>>
         "discount",
         "discount_code",
         "shipping",
+        "fees",
         "total",
         "tracking_carrier",
         "tracking_number",
+        "partner",
       ],
       ...rows.map((o) => [
         o.number,
@@ -70,9 +73,11 @@ const EXPORTS: Record<string, (params: URLSearchParams) => Promise<unknown[][]>>
         dollars(o.discountCents),
         o.discountCode,
         dollars(o.shippingCents),
+        dollars(feesTotal(o.fees)),
         dollars(o.totalCents),
         o.trackingCarrier,
         o.trackingNumber,
+        o.partner,
       ]),
     ];
   },

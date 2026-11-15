@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { MAX_CHECKOUT_FEES, type CheckoutFee } from "@/lib/fees";
 import type { StoreSettings } from "@/lib/settings-defaults";
 import { ActionForm, Field, FormStatus, Input, Select, SubmitButton, Textarea, Toggle, type ActionState } from "@/components/admin/forms";
 import { TabPanel, Tabs } from "@/components/admin/Tabs";
-import { Card } from "@/components/admin/ui";
+import { buttonClass, Card } from "@/components/admin/ui";
+import { cn } from "@/lib/utils";
 
 const LINKS = [
   { key: "discord", label: "Discord invite", placeholder: "https://discord.gg/…" },
@@ -16,6 +19,42 @@ const LINKS = [
 
 /** Exactly four counters — the homepage grid is laid out for four. */
 const STAT_ROWS = 4;
+
+/** The checkout fees, one row each. Rows are numbered in order on the form: checkoutFees.0.name, .kind, .value… */
+function FeeRows({ fees }: { fees: CheckoutFee[] }) {
+  // Each row keeps an id, so removing one doesn't shuffle what's typed in the others.
+  const [rows, setRows] = useState(() => fees.map((fee, id) => ({ id, ...fee, value: String(fee.value) })));
+  const nextId = useRef(fees.length);
+  return (
+    <div className="space-y-3">
+      {rows.length === 0 && <p className="text-sm text-dim">No fees. Customers pay for their items and shipping only.</p>}
+      {rows.map((row, i) => (
+        <div key={row.id} className="grid gap-3 rounded-xl border border-line bg-ink-950/40 p-4 sm:grid-cols-[minmax(0,1fr)_190px_110px_auto] sm:items-start">
+          <Field label="Name customers see" name={`checkoutFees.${i}.name`}>
+            <Input name={`checkoutFees.${i}.name`} defaultValue={row.name} maxLength={40} placeholder="Handling fee" autoComplete="off" />
+          </Field>
+          <Field label="Charged as" name={`checkoutFees.${i}.kind`}>
+            <Select name={`checkoutFees.${i}.kind`} defaultValue={row.kind}>
+              <option value="amount">A set amount (USD)</option>
+              <option value="percent">A percent of the order</option>
+            </Select>
+          </Field>
+          <Field label="Value" name={`checkoutFees.${i}.value`}>
+            <Input name={`checkoutFees.${i}.value`} defaultValue={row.value} inputMode="decimal" placeholder="2.50" autoComplete="off" className="tabular-nums" />
+          </Field>
+          <button type="button" onClick={() => setRows(rows.filter((r) => r.id !== row.id))} aria-label={`Remove fee ${i + 1}`} className={cn(buttonClass("danger", "sm"), "sm:mt-7")}>
+            <Trash2 className="size-3.5" /> Remove
+          </button>
+        </div>
+      ))}
+      {rows.length < MAX_CHECKOUT_FEES && (
+        <button type="button" onClick={() => setRows([...rows, { id: nextId.current++, name: "", kind: "amount", value: "" }])} className={buttonClass("secondary", "sm")}>
+          <Plus className="size-3.5" /> Add a fee
+        </button>
+      )}
+    </div>
+  );
+}
 
 function DollarInput(props: { name: string; defaultValue: number }) {
   return (
@@ -135,6 +174,14 @@ export function SettingsForm({
                   <Toggle name="paypal" label="PayPal" description="Customers get payment instructions after placing the order." defaultChecked={settings.manualPayments.paypal} />
                   <Toggle name="crypto" label="Crypto (BTC, ETH, USDT, LTC)" description="Customers get payment instructions after placing the order." defaultChecked={settings.manualPayments.crypto} />
                 </div>
+              </Card>
+
+              <Card
+                title="Checkout fees"
+                description="Extra charges added to every order. Customers see each one, by name, when they open the order overview at checkout, and the total includes them."
+              >
+                <FeeRows fees={settings.checkoutFees} />
+                <p className="mt-4 text-xs text-dim">A percent is taken of the items after discounts plus shipping. Fees count as revenue on the Expenses page; they don&apos;t earn loyalty points or partner commission.</p>
               </Card>
 
               <Card title="Order note" description="Shown to customers right after checkout and included in their order confirmation email.">

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertTriangle, Bitcoin, Check, CreditCard, Info, Loader2, Lock, PackageSearch, ShoppingBag, Tag, UserPlus, UserRound, Wallet, X } from "lucide-react";
+import { AlertTriangle, Bitcoin, Check, ChevronDown, CreditCard, Info, Loader2, Lock, PackageSearch, ShoppingBag, Tag, UserPlus, UserRound, Wallet, X } from "lucide-react";
 import { confirmPayment, startPayment } from "@/actions/payment";
 import { placeOrder, previewDiscount, previewSetupDiscount, type PlaceOrderResult } from "@/actions/store";
 import { SocialSignIn } from "@/components/account/SocialSignIn";
@@ -16,6 +16,7 @@ import { PaymentLogos, TrustBadges } from "@/components/ui/Badges";
 import { ButtonLink } from "@/components/ui/Button";
 import { EASE_EXPO } from "@/components/ui/motion";
 import { selectSubtotal, useCart } from "@/lib/cart-store";
+import { feesTotal, orderFees } from "@/lib/fees";
 import { usePartnerPricing } from "@/lib/partner-pricing";
 import { useUi } from "@/lib/ui-store";
 import { cn, formatPrice } from "@/lib/utils";
@@ -101,7 +102,7 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
   const cartInput = lines.map((l) => ({ slug: l.slug, option: l.option, qty: l.qty }));
   const cartKey = JSON.stringify(cartInput);
   // Partner prices change the subtotal, so a quote is for this cart at these prices.
-  const quoteKey = cartKey + (partner ? `@${partner.name}` : "");
+  const quoteKey = `${cartKey}@${subtotal}`;
   // The server decides whether the cart is a complete setup; a code replaces the setup discount.
   const [setupQuote, setSetupQuote] = useState<{ key: string; discount: { code: string; cents: number } | null } | null>(null);
   const checkSetup = !demo && hydrated && !discount && lines.length > 0;
@@ -117,7 +118,10 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
   const setupDiscount = checkSetup && setupQuote?.key === quoteKey ? setupQuote.discount : null;
   const discountCents = (discount ?? setupDiscount)?.cents ?? 0;
   const shipping = subtotal >= settings.freeShippingThreshold || subtotal === 0 ? 0 : settings.flatShipping;
-  const total = Math.max(0, subtotal - discountCents / 100) + shipping;
+  // The same sums the server does when it prices the order: fees on the items after discounts plus shipping.
+  const beforeFeesCents = Math.max(0, Math.round(subtotal * 100) - discountCents) + Math.round(shipping * 100);
+  const fees = orderFees(settings.checkoutFees, beforeFeesCents);
+  const total = (beforeFeesCents + feesTotal(fees)) / 100;
 
   function applyCode() {
     const value = code.trim();
@@ -468,29 +472,48 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
                 </div>
               )}
               {discountMsg && !discount && <p className="mt-2 text-xs text-ember">{discountMsg}</p>}
-              {partner && <p className="mt-2 text-xs text-ok">Partner prices from {partner.name} applied.</p>}
+              {partner && <p className="mt-2 text-xs text-ok">Referral pricing applied.</p>}
             </div>
 
-            <dl className="mt-5 space-y-2 border-t border-line pt-5 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted">Subtotal</dt>
-                <dd>{formatPrice(subtotal)}</dd>
-              </div>
-              {(discount ?? setupDiscount) && (
-                <div className="flex justify-between">
-                  <dt className="text-muted">{discount ? "Discount" : `Setup discount (${settings.setupDiscountPercent}%)`}</dt>
-                  <dd className="text-ok">−{formatPrice(discountCents / 100)}</dd>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <dt className="text-muted">Shipping</dt>
-                <dd>{shipping === 0 ? <span className="text-ok">Free</span> : formatPrice(shipping)}</dd>
-              </div>
-              <div className="flex items-baseline justify-between border-t border-line pt-4">
+            <div className="mt-5 border-t border-line pt-5 text-sm">
+              {/* How the total is worked out, closed until asked for. */}
+              <details className="group rounded-xl border border-line bg-ink-950/50">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                  <span className="font-medium">Order overview</span>
+                  <span className="flex items-center gap-2 text-xs text-dim">
+                    <span className="group-open:hidden">Show details</span>
+                    <span className="hidden group-open:inline">Hide details</span>
+                    <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+                  </span>
+                </summary>
+                <dl className="space-y-2 border-t border-line px-4 py-3">
+                  <div className="flex justify-between">
+                    <dt className="text-muted">Subtotal</dt>
+                    <dd>{formatPrice(subtotal)}</dd>
+                  </div>
+                  {(discount ?? setupDiscount) && (
+                    <div className="flex justify-between">
+                      <dt className="text-muted">{discount ? "Discount" : `Setup discount (${settings.setupDiscountPercent}%)`}</dt>
+                      <dd className="text-ok">−{formatPrice(discountCents / 100)}</dd>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <dt className="text-muted">Shipping</dt>
+                    <dd>{shipping === 0 ? <span className="text-ok">Free</span> : formatPrice(shipping)}</dd>
+                  </div>
+                  {fees.map((f, i) => (
+                    <div key={i} className="flex justify-between gap-4">
+                      <dt className="text-muted">{f.name}</dt>
+                      <dd>{formatPrice(f.cents / 100)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </details>
+              <dl className="mt-4 flex items-baseline justify-between">
                 <dt className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Total</dt>
                 <dd className="font-display text-4xl">{formatPrice(total)}</dd>
-              </div>
-            </dl>
+              </dl>
+            </div>
 
             {error && (
               <p className="mt-5 flex items-start gap-2 rounded-xl border border-ember/40 bg-ember/10 px-4 py-3 text-sm text-fg" role="alert">
@@ -634,6 +657,12 @@ function Confirmation({ order }: { order: PlacedOrder }) {
             <span className="text-muted">Shipping</span>
             <span className="font-mono">{order.shippingCents ? formatPrice(order.shippingCents / 100) : "Free"}</span>
           </li>
+          {order.fees.map((f, i) => (
+            <li key={i} className="flex justify-between gap-4 px-5 py-3 text-sm">
+              <span className="text-muted">{f.name}</span>
+              <span className="font-mono">{formatPrice(f.cents / 100)}</span>
+            </li>
+          ))}
           <li className="flex justify-between px-5 py-3">
             <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted">Total</span>
             <span className="font-display text-2xl">{formatPrice(order.totalCents / 100)}</span>

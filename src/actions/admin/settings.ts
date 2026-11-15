@@ -7,6 +7,7 @@ import type { ActionState } from "@/components/admin/forms";
 import { getDb, settings } from "@/db";
 import { logActivity } from "@/lib/admin/audit";
 import { lines } from "@/lib/admin/format";
+import { MAX_CHECKOUT_FEES } from "@/lib/fees";
 import { STORE_SETTINGS_KEY } from "@/lib/admin/settings";
 import { requireAdmin } from "@/lib/auth/session";
 import { TAGS } from "@/lib/catalog/server";
@@ -28,6 +29,7 @@ const SECTIONS: Record<keyof StoreSettings, string> = {
   orderNote: "order note",
   reservationHours: "unpaid order reservation time",
   setupDiscountPercent: "setup discount",
+  checkoutFees: "checkout fees",
 };
 
 const str = (v: FormDataEntryValue | null) => String(v ?? "").trim();
@@ -66,6 +68,10 @@ function readForm(fd: FormData): Omit<StoreSettings, "setupDiscountPercent"> {
     manualPayments: { paypal: fd.get("paypal") === "on", crypto: fd.get("crypto") === "on" },
     orderNote: str(fd.get("orderNote")),
     reservationHours: num(fd.get("reservationHours")),
+    // One row per fee on the form, numbered from 0. Amounts and percents both keep two decimals.
+    checkoutFees: Array.from({ length: MAX_CHECKOUT_FEES }, (_, i) => `checkoutFees.${i}`)
+      .filter((row) => fd.has(`${row}.name`))
+      .map((row) => ({ name: str(fd.get(`${row}.name`)), kind: fd.get(`${row}.kind`) === "percent" ? ("percent" as const) : ("amount" as const), value: dollars(fd.get(`${row}.value`)) })),
   };
 }
 

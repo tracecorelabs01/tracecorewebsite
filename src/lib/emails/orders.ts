@@ -73,6 +73,7 @@ function totals(o: Order) {
 ${row("Subtotal", money(o.subtotalCents, o.currency))}
 ${o.discountCents ? row(`Discount${o.discountCode ? ` (${escapeHtml(o.discountCode)})` : ""}`, `−${money(o.discountCents, o.currency)}`) : ""}
 ${row("Shipping", o.shippingCents ? money(o.shippingCents, o.currency) : "Free")}
+${(o.fees ?? []).map((f) => row(escapeHtml(f.name), money(f.cents, o.currency))).join("")}
 <tr><td colspan="2" style="padding-top:6px;border-top:1px solid ${C.line};font-size:0;line-height:0">&nbsp;</td></tr>
 ${row("Total", money(o.totalCents, o.currency), true)}
 </table>`;

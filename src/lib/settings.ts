@@ -2,9 +2,12 @@
 // are used whenever no database is configured (or a key hasn't been saved yet).
 
 import { z } from "zod";
+import { MAX_CHECKOUT_FEES } from "./fees";
 import { defaultSettings, type StoreSettings } from "./settings-defaults";
 
 export { defaultSettings, type StoreSettings };
+
+const feeName = z.string().trim().min(1).max(40);
 
 export const storeSettingsSchema: z.ZodType<StoreSettings> = z.object({
   announcements: z.array(z.string().trim().min(1).max(140)).max(8),
@@ -32,6 +35,14 @@ export const storeSettingsSchema: z.ZodType<StoreSettings> = z.object({
   orderNote: z.string().trim().max(600),
   reservationHours: z.number().int().min(0).max(720),
   setupDiscountPercent: z.number().int().min(0).max(50),
+  checkoutFees: z
+    .array(
+      z.discriminatedUnion("kind", [
+        z.object({ name: feeName, kind: z.literal("amount"), value: z.number().min(0).max(1000) }),
+        z.object({ name: feeName, kind: z.literal("percent"), value: z.number().min(0).max(100) }),
+      ]),
+    )
+    .max(MAX_CHECKOUT_FEES),
 });
 
 /** Merge a stored (possibly partial or outdated) settings object over the defaults. */

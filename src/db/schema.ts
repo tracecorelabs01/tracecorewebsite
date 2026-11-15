@@ -305,6 +305,8 @@ export const orders = mysqlTable(
     subtotalCents: int("subtotal_cents").notNull(),
     shippingCents: int("shipping_cents").notNull().default(0),
     discountCents: int("discount_cents").notNull().default(0),
+    /** Checkout fees charged on this order (Settings > Checkout & payments), included in the total. Null: none. */
+    fees: jsonCol<{ name: string; cents: number }[]>("fees"),
     totalCents: int("total_cents").notNull(),
     currency: char("currency", { length: 3 }).notNull().default("USD"),
     discountCode: varchar("discount_code", { length: 40 }),

@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { findBlocked, findLiteralPrices } from "../src/lib/content-guard";
 import { parseCost, saleCosts, totalCost, type CostField } from "../src/lib/costs";
+import { feesTotal, orderFees } from "../src/lib/fees";
 import { fillTokens } from "../src/lib/tokens";
 
 // Content guard: blocked wording is caught, ordinary hardware wording is not.
@@ -45,5 +46,11 @@ assert.equal(parseCost("percent", "1.85%"), 185);
 assert.equal(parseCost("per-item", "$1,200.50"), 120050);
 assert.equal(parseCost("per-item", " "), null);
 assert.ok(Number.isNaN(parseCost("percent", "120")) && Number.isNaN(parseCost("per-item", "-5")) && Number.isNaN(parseCost("per-item", "abc")));
+
+// Checkout fees: a set amount plus a percent of the items and shipping ($184.99), neither stacking on the other.
+const charged = orderFees([{ name: "Handling", kind: "amount", value: 2.5 }, { name: "Processing", kind: "percent", value: 1.85 }, { name: "Off", kind: "amount", value: 0 }], 18499);
+assert.deepEqual(charged, [{ name: "Handling", cents: 250 }, { name: "Processing (1.85%)", cents: 342 }]);
+assert.equal(feesTotal(charged), 592);
+assert.equal(feesTotal(null), 0);
 
 console.log("self-check passed");

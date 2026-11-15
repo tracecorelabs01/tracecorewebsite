@@ -2,6 +2,7 @@
 // Values come from site.ts until edited in /admin/settings.
 
 import { EMBARGOED } from "./countries";
+import type { CheckoutFee } from "./fees";
 import { site } from "./site";
 
 export interface StoreSettings {
@@ -21,6 +22,8 @@ export interface StoreSettings {
   reservationHours: number;
   /** Percent off a cart holding a complete setup (DMA card + fuser + input device). 0 = off. */
   setupDiscountPercent: number;
+  /** Charges added to every order at checkout, each a set amount or a percent of the order. */
+  checkoutFees: CheckoutFee[];
 }
 
 export const defaultSettings: StoreSettings = {
@@ -36,6 +39,7 @@ export const defaultSettings: StoreSettings = {
   orderNote: "Thanks for your order! We'll email you payment instructions and a confirmation shortly. Questions? Reply to that email or message us on Discord.",
   reservationHours: 48,
   setupDiscountPercent: 10,
+  checkoutFees: [],
 };
 
 /** What the storefront receives: the settings plus the payment logos to show, worked out on the server from what's set up. */

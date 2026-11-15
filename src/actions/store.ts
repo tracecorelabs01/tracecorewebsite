@@ -14,6 +14,7 @@ import { MAX_QTY } from "@/lib/catalog/types";
 import { isCompleteSetup, setupDiscountCode } from "@/lib/setup-builder";
 import { sendContactAlert, sendNewsletterWelcome } from "@/lib/emails/account";
 import { emailOrder } from "@/lib/emails/orders";
+import { feesTotal, orderFees, type FeeLine } from "@/lib/fees";
 import { listNames, withProductNames } from "@/lib/loyalty";
 import { isRazorpayConfigured, PAID_NOTE } from "@/lib/razorpay";
 import { getClientIp } from "@/lib/request";
@@ -52,7 +53,7 @@ interface Discount {
   cents: number;
 }
 
-type Priced = { ok: true; lines: PricedLine[]; subtotalCents: number; shippingCents: number; discount: Discount | null; totalCents: number } | { ok: false; error: string; cartIssues?: CartIssue[] };
+type Priced = { ok: true; lines: PricedLine[]; subtotalCents: number; shippingCents: number; discount: Discount | null; fees: FeeLine[]; totalCents: number } | { ok: false; error: string; cartIssues?: CartIssue[] };
 
 const now = () => new Date();
 
@@ -84,7 +85,8 @@ async function priceCart(lines: CartInput, code?: string, partner?: Partner | nu
     const subtotalCents = priced.reduce((n, l) => n + l.lineTotalCents, 0);
     const shippingCents = subtotalCents >= settings.freeShippingThreshold * 100 ? 0 : Math.round(settings.flatShipping * 100);
     if (code) return { ok: false, error: "Discount codes need a connected database." };
-    return { ok: true, lines: priced, subtotalCents, shippingCents, discount: null, totalCents: subtotalCents + shippingCents };
+    const fees = orderFees(settings.checkoutFees, subtotalCents + shippingCents);
+    return { ok: true, lines: priced, subtotalCents, shippingCents, discount: null, fees, totalCents: subtotalCents + shippingCents + feesTotal(fees) };
   }
 
   const db = getDb();
@@ -163,8 +165,10 @@ async function priceCart(lines: CartInput, code?: string, partner?: Partner | nu
     }
   }
   const shippingCents = subtotalCents >= settings.freeShippingThreshold * 100 ? 0 : Math.round(settings.flatShipping * 100);
-  const totalCents = Math.max(0, subtotalCents - (discount?.cents ?? 0)) + shippingCents;
-  return { ok: true, lines: priced, subtotalCents, shippingCents, discount, totalCents };
+  // Checkout fees (Settings) on the items after discounts plus shipping.
+  const beforeFees = Math.max(0, subtotalCents - (discount?.cents ?? 0)) + shippingCents;
+  const fees = orderFees(settings.checkoutFees, beforeFees);
+  return { ok: true, lines: priced, subtotalCents, shippingCents, discount, fees, totalCents: beforeFees + feesTotal(fees) };
 }
 
 /* ───────────── discount preview ───────────── */
@@ -172,7 +176,7 @@ async function priceCart(lines: CartInput, code?: string, partner?: Partner | nu
 export type CodePreview =
   | { ok: true; code: string; discountCents: number }
   /** A partner's code: their prices from now on, no discount. */
-  | { ok: true; partner: { name: string; prices: Record<string, number> } }
+  | { ok: true; partner: { prices: Record<string, number> } }
   | { ok: false; error: string };
 
 export async function previewDiscount(code: string, lines: CartInput): Promise<CodePreview> {
@@ -184,7 +188,7 @@ export async function previewDiscount(code: string, lines: CartInput): Promise<C
   if (partner) {
     if (me && me.email.toLowerCase() === partner.email.toLowerCase()) return { ok: false, error: "That's your own partner code: it doesn't apply to your orders." };
     await rememberPartner(partner.id, "code", (await getProgram()).cookieDays);
-    return { ok: true, partner: { name: partner.name, prices: await partnerPriceMap(partner.id) } };
+    return { ok: true, partner: { prices: await partnerPriceMap(partner.id) } };
   }
   const priced = await priceCart(parsedLines.data, parsedCode.data, await currentPartner({ buyerEmail: me?.email }));
   if (!priced.ok) return { ok: false, error: priced.error };
@@ -231,6 +235,7 @@ export type PlaceOrderResult =
         subtotalCents: number;
         discountCents: number;
         shippingCents: number;
+        fees: FeeLine[];
         totalCents: number;
         note: string;
         demo: boolean;
@@ -279,6 +284,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     subtotalCents: priced.subtotalCents,
     discountCents: priced.discount?.cents ?? 0,
     shippingCents: priced.shippingCents,
+    fees: priced.fees,
     totalCents: priced.totalCents,
   };
 
@@ -386,6 +392,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
             subtotalCents: summary.subtotalCents,
             shippingCents: summary.shippingCents,
             discountCents: summary.discountCents,
+            fees: summary.fees.length ? summary.fees : null,
             totalCents: summary.totalCents,
             discountCode: priced.discount?.code ?? null,
             customerNote: data.note || null,
