@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Check, Copy } from "lucide-react";
 import { ActionForm, Field, Input, Select, SubmitButton, Textarea, Toggle, type ActionState } from "@/components/admin/forms";
+import { buttonClass } from "@/components/admin/ui";
 import { cn } from "@/lib/utils";
 
 type Action = (prev: ActionState, fd: FormData) => Promise<ActionState>;
@@ -17,6 +19,22 @@ function useDraft<T>(server: T) {
   const [draft, setDraft] = useState<{ base: T; value: T } | null>(null);
   const value = draft && Object.is(draft.base, server) ? draft.value : server;
   return [value, (next: T) => setDraft({ base: server, value: next })] as const;
+}
+
+/** Copies `text` as it is, line breaks included. */
+export function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () =>
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  return (
+    <button type="button" onClick={copy} className={buttonClass("secondary", "sm")}>
+      {copied ? <Check className="size-3.5 text-ok" /> : <Copy className="size-3.5" />}
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
 }
 
 function Hint({ children, tone }: { children: ReactNode; tone?: "warn" }) {

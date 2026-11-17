@@ -36,6 +36,24 @@ export function addressLines(o: Pick<typeof orders.$inferSelect, "firstName" | "
   ].filter((line): line is string => Boolean(line));
 }
 
+/** Who and where to ship, as the labelled lines the team pastes into a courier's form. Used by the order page and the Discord post. */
+export function shippingDetails(o: Pick<typeof orders.$inferSelect, "firstName" | "lastName" | "phone" | "email" | "address1" | "address2" | "city" | "region" | "postalCode" | "country">) {
+  return [
+    `Name: ${o.firstName} ${o.lastName}`,
+    `Phone: ${o.phone ?? ""}`,
+    `Email: ${o.email}`,
+    "",
+    "Shipping Address",
+    `Street Name: ${[o.address1, o.address2].filter(Boolean).join(", ")}`,
+    `City / Emirate: ${o.city}`,
+    `State: ${o.region ?? ""}`,
+    `Country: ${o.country}`,
+    `Postal Code: ${o.postalCode}`,
+  ]
+    .map((line) => line.trim())
+    .join("\n");
+}
+
 function orderSearch(q: string) {
   const pattern = `%${q}%`;
   return or(

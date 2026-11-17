@@ -5,6 +5,7 @@ import "server-only";
 import { asc, eq } from "drizzle-orm";
 import { getDb, orderItems, orders } from "@/db";
 import { money } from "@/lib/admin/format";
+import { shippingDetails } from "@/lib/admin/orders";
 import { site } from "@/lib/site";
 
 export async function announcePaidOrder(orderId: number) {
@@ -29,6 +30,9 @@ export async function announcePaidOrder(orderId: number) {
         username: "Tracer",
         avatar_url: `${site.url}/brand/logo-mark.webp`,
         allowed_mentions: { parse: [] },
+        // A code block: Discord gives it a copy button, and nothing the customer typed is read as formatting.
+        // Their backticks are swapped out so they can't end the block early.
+        content: `\`\`\`\n${shippingDetails(o).replaceAll("`", "'")}\n\`\`\``,
         embeds: [
           {
             title: `New paid order ${o.number}`,
