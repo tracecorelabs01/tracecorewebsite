@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
 import { affiliateCommissions, affiliates, getDb, ORDER_STATUSES, PAYMENT_STATUSES } from "@/db";
 import { orderCostsOf } from "@/lib/admin/costs";
 import { dateTime, money } from "@/lib/admin/format";
-import { getOrder, shippingDetails } from "@/lib/admin/orders";
+import { getOrder, orderCopyText } from "@/lib/admin/orders";
 import { hasRole, requireAdmin } from "@/lib/auth/session";
 import { totalCost } from "@/lib/costs";
 
@@ -33,7 +33,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
   const units = items.reduce((n, i) => n + i.quantity, 0);
   const restockUnits = items.reduce((n, i) => n + (i.trackInventory ? i.quantity : 0), 0);
   const m = (cents: number) => money(cents, order.currency);
-  const shipping = shippingDetails(order);
+  const copyText = orderCopyText(order, items);
   const milestones = (
     [
       ["Placed", order.createdAt],
@@ -135,8 +135,8 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
               </div>
             </Card>
             {/* The same lines the Discord post carries, ready to paste into a courier's form. */}
-            <Card title="Shipping details" actions={<CopyButton text={shipping} />}>
-              <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-fg/90">{shipping}</pre>
+            <Card title="Order details" actions={<CopyButton text={copyText} />}>
+              <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-fg/90">{copyText}</pre>
             </Card>
             {order.affiliateId && <ReferredBy orderId={order.id} affiliateId={order.affiliateId} source={order.affiliateSource} />}
             <Card title="Customer note">
