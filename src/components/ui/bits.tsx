@@ -127,20 +127,23 @@ export function Stars({ rating, className, size = 14 }: { rating: number; classN
 }
 
 /* ── Price with optional compare-at ── */
-export function Price({ price, compareAt, className, large }: { price: number; compareAt?: number; className?: string; large?: boolean }) {
+/** `partner`: the lower price comes from a partner's link or code, so it's labelled a partner discount with its percent. */
+export function Price({ price, compareAt, partner, className, large }: { price: number; compareAt?: number; partner?: boolean; className?: string; large?: boolean }) {
+  const reduced = compareAt != null && compareAt > price;
+  // To one decimal, so 12.5% never reads as 13%.
+  const off = reduced ? `${Math.round((1 - price / compareAt) * 1000) / 10}%` : "";
   return (
-    <div className={cn("flex items-baseline gap-2.5", className)}>
-      <span translate="no" className={cn("font-display tracking-wide text-fg", large ? "text-5xl" : "text-[1.7rem]")}>{formatPrice(price)}</span>
-      {compareAt && compareAt > price && (
-        <>
-          <span className={cn("text-dim line-through", large ? "text-xl" : "text-sm")}>{formatPrice(compareAt)}</span>
-          {large && (
-            <span className="clip-slant bg-brand px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white [--slant:6px]">
-              Save {Math.round((1 - price / compareAt) * 100)}%
-            </span>
-          )}
-        </>
-      )}
+    <div className={className}>
+      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+        <span translate="no" className={cn("font-display tracking-wide text-fg", large ? "text-5xl" : "text-[1.7rem]")}>{formatPrice(price)}</span>
+        {reduced && (
+          <>
+            <span className={cn("text-dim line-through", large ? "text-xl" : "text-sm")}>{formatPrice(compareAt)}</span>
+            {large && <span className="clip-slant bg-brand px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white [--slant:6px]">Save {off}</span>}
+          </>
+        )}
+      </div>
+      {reduced && partner && <p className={cn("text-ok", large ? "mt-3 text-sm" : "mt-0.5 text-xs")}>Partner discount: {off} off</p>}
     </div>
   );
 }

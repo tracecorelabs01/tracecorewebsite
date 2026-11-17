@@ -12,11 +12,14 @@ export const usePartnerPricing = create<{ partner: PartnerPricing; set: (partner
   set: (partner) => set({ partner }),
 }));
 
-/** What this visitor pays for a product: the partner price if there is one, with the regular price struck out. */
-export function usePrice(product: { slug: string; price: number; compareAt?: number }) {
+/**
+ * What this visitor pays for a product: the partner price if there is one, with the regular price struck out and
+ * `partner` set, so the price says the saving is a partner discount (never which partner).
+ */
+export function usePrice(product: { slug: string; price: number; compareAt?: number }): { price: number; compareAt?: number; partner?: boolean } {
   const partnerPrice = usePartnerPricing((s) => s.partner?.prices[product.slug]);
   if (partnerPrice == null) return { price: product.price, compareAt: product.compareAt };
-  return { price: partnerPrice, compareAt: partnerPrice < product.price ? product.price : undefined };
+  return partnerPrice < product.price ? { price: partnerPrice, compareAt: product.price, partner: true } : { price: partnerPrice };
 }
 
 /** A function giving each product's price for this visitor, for lists and totals. */

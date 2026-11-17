@@ -16,7 +16,7 @@ const panel = "rounded-3xl border border-line bg-ink-900/60 p-6 md:p-7";
  * The partner's customer discount and what it does to each product: a slider from no discount to the most the
  * team allows, with every price and commission below following it before it's saved.
  */
-export function PartnerProducts({ products, discount, linkBase, code }: { products: PartnerProduct[]; discount: number | null; linkBase: string; code: string }) {
+export function PartnerProducts({ products, discount, linkBase, token }: { products: PartnerProduct[]; discount: number | null; linkBase: string; /** The random text in their links. */ token: string }) {
   const stops = discountStops(products);
   const last = stops.length - 1;
   // The top stop is saved as "the biggest allowed" (null), so it follows the limit if the team changes it.
@@ -107,7 +107,7 @@ export function PartnerProducts({ products, discount, linkBase, code }: { produc
                   </div>
                 </dl>
                 <div className="col-span-2 sm:col-span-1 sm:col-start-2">
-                  <CopyText text={`${linkBase}/product/${t.slug}?ref=${code}`} label="Copy product link" />
+                  <CopyText text={`${linkBase}/product/${t.slug}?ref=${token}`} label="Copy product link" />
                 </div>
               </li>
             );

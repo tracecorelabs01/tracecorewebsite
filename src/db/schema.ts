@@ -601,8 +601,10 @@ export const affiliates = mysqlTable(
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
     status: mysqlEnum("status", ["pending", "approved", "rejected", "suspended"]).notNull().default("pending"),
-    /** In their link (?ref=CODE) and typed at checkout. Never the same as a discount code. */
+    /** Typed at checkout (and in links shared before link tokens). Never the same as a discount code. */
     code: varchar("code", { length: 32 }).notNull(),
+    /** The random text in their links (?ref=...), which says nothing about who they are. Made when they first open the portal. */
+    linkToken: varchar("link_token", { length: 32 }),
     groupId: int("group_id").references(() => affiliateGroups.id, { onDelete: "set null" }),
     /** The name customers and the team see (a channel or shop name). */
     name: varchar("name", { length: 120 }).notNull(),
@@ -622,7 +624,7 @@ export const affiliates = mysqlTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("affiliates_customer_uq").on(t.customerId), uniqueIndex("affiliates_code_uq").on(t.code), index("affiliates_status_idx").on(t.status)],
+  (t) => [uniqueIndex("affiliates_customer_uq").on(t.customerId), uniqueIndex("affiliates_code_uq").on(t.code), uniqueIndex("affiliates_link_token_uq").on(t.linkToken), index("affiliates_status_idx").on(t.status)],
 );
 
 export const affiliateRules = mysqlTable(

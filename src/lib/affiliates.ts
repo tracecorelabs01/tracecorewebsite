@@ -1,7 +1,8 @@
 import "server-only";
+import { randomBytes, randomInt } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, desc, eq, gte, inArray, isNull, or, sql, sum } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, ne, or, sql, sum } from "drizzle-orm";
 import { z } from "zod";
 import {
   affiliateClicks,
@@ -162,6 +163,21 @@ export const normaliseCode = (code: string) => code.trim().toUpperCase();
 export async function partnerByCode(code: string, db: Db = getDb()) {
   if (!isDbConfigured() || !(await getProgram(db)).enabled) return null;
   return (await approvedPartner(eq(affiliates.code, normaliseCode(code)), db)) ?? null;
+}
+
+/** An approved partner by what's in their link: their link token, or their code (links shared before tokens). */
+export async function partnerByLink(ref: string, db: Db = getDb()) {
+  if (!isDbConfigured() || !(await getProgram(db)).enabled) return null;
+  return (await approvedPartner(or(eq(affiliates.linkToken, ref), eq(affiliates.code, normaliseCode(ref)))!, db)) ?? null;
+}
+
+/** The random text in a partner's links, so a link never shows who they are. Made the first time it's needed. */
+export async function linkToken(partner: { id: number; linkToken: string | null }, db: Db = getDb()) {
+  if (partner.linkToken) return partner.linkToken;
+  // Only fills an empty one, then reads it back: two pages opened at once get the same token.
+  await db.update(affiliates).set({ linkToken: randomBytes(8).toString("hex") }).where(and(eq(affiliates.id, partner.id), isNull(affiliates.linkToken)));
+  const [row] = await db.select({ linkToken: affiliates.linkToken }).from(affiliates).where(eq(affiliates.id, partner.id)).limit(1);
+  return row.linkToken!;
 }
 
 /**
@@ -416,21 +432,28 @@ export async function partnerForCustomer(customerId: number) {
   return a ?? null;
 }
 
-/** A code from the partner's name, unused by any partner or discount code. */
-export async function freeCode(name: string, db: Db = getDb()) {
-  const base = name.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12) || "PARTNER";
-  for (let n = 0; n < 50; n++) {
-    const code = n === 0 && base.length >= 3 ? base : `${base.slice(0, 10)}${Math.floor(10 + Math.random() * 990)}`;
+/** What a partner code may be. Customers type it at checkout. */
+export const PARTNER_CODE = /^[A-Z0-9_-]{3,32}$/;
+// No 0/O or 1/I/L: a random code gets read aloud and typed by hand.
+const CODE_LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+/** A new partner's code: random, so it says nothing about them. They can swap it for their own in the portal. */
+export async function randomCode(db: Db = getDb()) {
+  for (;;) {
+    const code = Array.from({ length: 8 }, () => CODE_LETTERS[randomInt(CODE_LETTERS.length)]).join("");
     if (!(await codeTaken(code, null, db))) return code;
   }
-  return `P${Date.now().toString(36).toUpperCase()}`;
 }
 
-/** Partner codes share the checkout code box with discount codes, so they must never clash. */
+/**
+ * Partner codes share the checkout code box with discount codes, and the ?ref= of a link with every partner's
+ * link token, so they must never clash: a code equal to another partner's token would take their referrals.
+ */
 export async function codeTaken(code: string, exceptAffiliateId: number | null, db: Db = getDb()) {
+  const clash = or(eq(affiliates.code, code), eq(affiliates.linkToken, code.toLowerCase()));
   const [[a], [d]] = await Promise.all([
-    db.select({ id: affiliates.id }).from(affiliates).where(eq(affiliates.code, code)).limit(1),
+    db.select({ id: affiliates.id }).from(affiliates).where(exceptAffiliateId === null ? clash : and(clash, ne(affiliates.id, exceptAffiliateId))).limit(1),
     db.select({ id: discountCodes.id }).from(discountCodes).where(eq(discountCodes.code, code)).limit(1),
   ]);
-  return Boolean(d || (a && a.id !== exceptAffiliateId));
+  return Boolean(a || d);
 }

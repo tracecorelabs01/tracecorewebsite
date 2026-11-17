@@ -54,7 +54,7 @@ export async function sendPartnerDecision(to: string, firstName: string | null, 
       kicker: "Partner program",
       heading: approved ? `Welcome aboard${hello(firstName)}.` : `Thanks for applying${hello(firstName)}.`,
       body: approved
-        ? p("Your application is approved. Your partner portal has your link, your code, the products you can promote and what you earn on each.") +
+        ? p("Your application is approved. Your partner portal has your link, your code, the products you can promote and what you earn on each. You can swap the code below for one of your own there.") +
           panel(`${label("Your partner code")}${code(partnerCode, 24)}`, C.brand) +
           button("Open the partner portal", url("/partners"))
         : p("We've reviewed your application and can't approve it right now. If your channel or shop grows, you're welcome to apply again later. Reply to this email if you have any questions."),

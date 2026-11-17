@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { ActionState } from "@/components/admin/forms";
 import { affiliateCommissions, affiliateGroups, affiliateRules, affiliates, customers, getDb, products, settings } from "@/db";
-import { AFFILIATE_SETTINGS_KEY, codeTaken, markPayoutPaid, normaliseCode, programSchema, rejectPayout, scopeKey, type Scope } from "@/lib/affiliates";
+import { AFFILIATE_SETTINGS_KEY, PARTNER_CODE, codeTaken, markPayoutPaid, normaliseCode, programSchema, rejectPayout, scopeKey, type Scope } from "@/lib/affiliates";
 import { MAX_DISCOUNT, type CommissionKind } from "@/lib/affiliate-terms";
 import { logActivity } from "@/lib/admin/audit";
 import { bulkInput, parseCents } from "@/lib/admin/format";
@@ -186,7 +186,7 @@ export async function savePartner(id: number, _prev: ActionState, fd: FormData):
   const paypalEmail = str(fd.get("paypalEmail"));
   const fieldErrors: Record<string, string> = {};
   if (name.length < 2 || name.length > 120) fieldErrors.name = "2 to 120 characters.";
-  if (!/^[A-Z0-9_-]{3,32}$/.test(code)) fieldErrors.code = "3 to 32 letters, numbers, - or _.";
+  if (!PARTNER_CODE.test(code)) fieldErrors.code = "3 to 32 letters, numbers, - or _.";
   else if (await codeTaken(code, id, db)) fieldErrors.code = "Another partner or a discount code already uses this.";
   if (paypalEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paypalEmail)) fieldErrors.paypalEmail = "Enter a valid email.";
   const terms = readTerms(fd, fieldErrors);

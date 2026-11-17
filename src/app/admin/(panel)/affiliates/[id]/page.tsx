@@ -116,7 +116,7 @@ export default async function PartnerPage({ params }: PageProps<"/admin/affiliat
                 <Field label="Name" name="name">
                   <Input name="name" defaultValue={a.name} maxLength={120} />
                 </Field>
-                <Field label="Code" name="code" hint={`Link: ${site.url}/?ref=${a.code}`}>
+                <Field label="Code" name="code" hint={`Typed at checkout. Their link: ${site.url}/?ref=${a.linkToken ?? a.code}`}>
                   <Input name="code" defaultValue={a.code} maxLength={32} className="font-mono uppercase" />
                 </Field>
                 <Field label="Group" name="groupId" hint="Their commission and discount limit come from the group.">

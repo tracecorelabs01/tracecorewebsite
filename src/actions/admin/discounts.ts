@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq, ne } from "drizzle-orm";
 import type { ActionState } from "@/components/admin/forms";
-import { discountCodes, getDb } from "@/db";
+import { affiliates, discountCodes, getDb } from "@/db";
 import { logActivity } from "@/lib/admin/audit";
 import { discountLabel } from "@/lib/admin/discounts";
 import { parseCents } from "@/lib/admin/format";
@@ -96,7 +96,10 @@ export async function saveDiscount(discountId: number | null, _prev: ActionState
       .from(discountCodes)
       .where(discountId ? and(eq(discountCodes.code, data.code), ne(discountCodes.id, discountId)) : eq(discountCodes.code, data.code))
       .limit(1);
+    // A partner's code wins at checkout, so a discount with the same code would never apply.
+    const [partner] = clash ? [] : await db.select({ id: affiliates.id }).from(affiliates).where(eq(affiliates.code, data.code)).limit(1);
     if (clash) fieldErrors.code = CLASH;
+    else if (partner) fieldErrors.code = "A partner already uses this as their code.";
   }
   if (Object.keys(fieldErrors).length) return { ok: false, message: "Please fix the highlighted fields.", fieldErrors };
 

@@ -6,18 +6,22 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { affiliates, customers, getDb, isDbConfigured } from "@/db";
 import {
+  PARTNER_CODE,
+  codeTaken,
   currentPartner,
   defaultGroupId,
-  freeCode,
   getProgram,
-  partnerByCode,
+  normaliseCode,
+  partnerByLink,
   partnerForCustomer,
   partnerPriceMap,
   partnerTerms,
+  randomCode,
   recordClick,
   rememberPartner,
   requestPayout,
 } from "@/lib/affiliates";
+import { isDuplicateKey } from "@/lib/admin/staff";
 import { percentLabel } from "@/lib/affiliate-labels";
 import { discountStops } from "@/lib/affiliate-terms";
 import { getLinkedAccounts } from "@/lib/account";
@@ -33,9 +37,9 @@ export type PartnerPricing = { prices: Record<string, number> } | null;
 const SEEN_COOKIE = "tcl_ref_seen";
 
 /** A visit through a partner's link: remember them (their prices from now on) and count the click. */
-export async function trackReferral(code: string): Promise<PartnerPricing> {
-  if (!isDbConfigured() || !/^[A-Za-z0-9_-]{2,32}$/.test(code)) return null;
-  const partner = await partnerByCode(code);
+export async function trackReferral(ref: string): Promise<PartnerPricing> {
+  if (!isDbConfigured() || !/^[A-Za-z0-9_-]{2,32}$/.test(ref)) return null;
+  const partner = await partnerByLink(ref);
   const me = partner && (await getCurrentCustomer());
   if (!partner || (me && me.email.toLowerCase() === partner.email.toLowerCase())) return null;
   await rememberPartner(partner.id, "link", (await getProgram()).cookieDays);
@@ -77,7 +81,7 @@ export async function applyAsPartner(_prev: PartnerFormState, fd: FormData): Pro
   const { name, website, audience, paypalEmail } = parsed.data;
   const [{ id }] = await db
     .insert(affiliates)
-    .values({ customerId: me.id, name, website: website || null, audience, paypalEmail: paypalEmail || null, code: await freeCode(name, db), groupId: await defaultGroupId(db) })
+    .values({ customerId: me.id, name, website: website || null, audience, paypalEmail: paypalEmail || null, code: await randomCode(db), groupId: await defaultGroupId(db) })
     .$returningId();
   await Promise.all([sendApplicationReceived(me.email, me.firstName || null, name), sendApplicationAlert({ id, name, email: me.email, website: website || null, audience })]);
   refresh();
@@ -99,6 +103,27 @@ export async function savePayoutEmail(_prev: PartnerFormState, fd: FormData): Pr
   await getDb().update(affiliates).set({ paypalEmail: email.data }).where(eq(affiliates.id, mine.partner.id));
   refresh();
   return { ok: true, message: "PayPal email saved." };
+}
+
+/** The partner's own choice of code, in place of the random one they started with. */
+export async function savePartnerCode(_prev: PartnerFormState, fd: FormData): Promise<PartnerFormState> {
+  const mine = await myPartner();
+  if (!mine) return { ok: false, message: "Your partner account isn't active." };
+  const code = normaliseCode(String(fd.get("code") ?? ""));
+  if (!PARTNER_CODE.test(code)) return { ok: false, fieldErrors: { code: "Use 3 to 32 letters, numbers, - or _." } };
+  if (code === mine.partner.code) return { ok: true, message: "That's already your code." };
+  const taken = { ok: false, fieldErrors: { code: "That code is taken. Try another." } };
+  const db = getDb();
+  if (await codeTaken(code, mine.partner.id, db)) return taken;
+  try {
+    await db.update(affiliates).set({ code }).where(eq(affiliates.id, mine.partner.id));
+  } catch (err) {
+    // Lost a race with someone saving the same code.
+    if (isDuplicateKey(err)) return taken;
+    throw err;
+  }
+  refresh();
+  return { ok: true, message: `Saved. Customers can type ${code} at checkout now; ${mine.partner.code} no longer works.` };
 }
 
 /**

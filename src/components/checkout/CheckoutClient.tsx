@@ -472,7 +472,7 @@ export function CheckoutClient({ demo, cardOnline, details, providers }: { demo:
                 </div>
               )}
               {discountMsg && !discount && <p className="mt-2 text-xs text-ember">{discountMsg}</p>}
-              {partner && <p className="mt-2 text-xs text-ok">Referral pricing applied.</p>}
+              {partner && lines.some((l) => partner.prices[l.slug] != null) && <p className="mt-2 text-xs text-ok">Partner discount applied to your prices.</p>}
             </div>
 
             <div className="mt-5 border-t border-line pt-5 text-sm">

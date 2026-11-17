@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AccountShell, Panel, PARTNER_TABS } from "@/components/account/AccountShell";
 import { PartnerProducts } from "@/components/partners/PartnerProducts";
 import { ProductVisual } from "@/components/product/ProductVisual";
-import { partnerTerms, requirePartner } from "@/lib/affiliates";
+import { linkToken, partnerTerms, requirePartner } from "@/lib/affiliates";
 import { getCatalog } from "@/lib/catalog/server";
 import { site } from "@/lib/site";
 
@@ -12,7 +12,7 @@ export const instant = false;
 
 export default async function PartnerProductsPage() {
   const { partner } = await requirePartner();
-  const [terms, { products }] = await Promise.all([partnerTerms(partner.id), getCatalog()]);
+  const [terms, { products }, token] = await Promise.all([partnerTerms(partner.id), getCatalog(), linkToken(partner)]);
   const bySlug = new Map(products.map((p) => [p.slug, p]));
   const visible = [...terms.values()].filter((t) => t.visible && bySlug.has(t.slug));
 
@@ -35,7 +35,7 @@ export default async function PartnerProductsPage() {
           }))}
           discount={partner.customerDiscount}
           linkBase={site.url}
-          code={partner.code}
+          token={token}
         />
       )}
     </AccountShell>

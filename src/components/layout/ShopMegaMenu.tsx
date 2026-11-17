@@ -74,7 +74,7 @@ export function ShopMegaMenu({ open, menu, onNavigate }: { open: boolean; menu: 
 }
 
 function Featured({ product, onNavigate }: { product: NonNullable<ShopMenu["featured"]>; onNavigate: () => void }) {
-  const { price, compareAt } = usePrice(product);
+  const price = usePrice(product);
   return (
     <Link
       href={`/product/${product.slug}`}
@@ -91,7 +91,7 @@ function Featured({ product, onNavigate }: { product: NonNullable<ShopMenu["feat
           <span className="mt-1 block font-display text-3xl uppercase">{product.name}</span>
           <span className="block truncate text-sm text-muted">{product.tagline}</span>
         </span>
-        <Price price={price} compareAt={compareAt} />
+        <Price {...price} className="shrink-0" />
       </span>
     </Link>
   );

@@ -5,14 +5,14 @@ import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { BadgePercent, Handshake, Wallet } from "lucide-react";
 import { AccountShell, Panel, PARTNER_TABS, Pill, shortDay } from "@/components/account/AccountShell";
-import { ApplyForm, CopyText } from "@/components/partners/PartnerForms";
+import { ApplyForm, CodeForm, CopyText } from "@/components/partners/PartnerForms";
 import { DiscordIcon } from "@/components/ui/icons";
 import { PageHero } from "@/components/ui/PageHero";
 import { isDbConfigured } from "@/db";
 import { getLinkedAccounts } from "@/lib/account";
 import { param } from "@/lib/admin/format";
 import { COMMISSION_STATUS, percentLabel } from "@/lib/affiliate-labels";
-import { generalTermsFor, getProgram, partnerBalance, partnerCommissions, partnerForCustomer, partnerStats } from "@/lib/affiliates";
+import { generalTermsFor, getProgram, linkToken, partnerBalance, partnerCommissions, partnerForCustomer, partnerStats } from "@/lib/affiliates";
 import { getCurrentCustomer } from "@/lib/auth/customer";
 import { oauthEnabled } from "@/lib/auth/oauth";
 import { site } from "@/lib/site";
@@ -43,7 +43,7 @@ export default async function PartnersPage({ searchParams }: PageProps<"/partner
   const me = await getCurrentCustomer();
   const partner = me && isDbConfigured() ? await partnerForCustomer(me.id) : null;
   const program = isDbConfigured() ? await getProgram() : null;
-  if (partner?.status === "approved") return <Dashboard partnerId={partner.id} code={partner.code} name={partner.name} cookieDays={program!.cookieDays} />;
+  if (partner?.status === "approved") return <Dashboard partnerId={partner.id} code={partner.code} token={await linkToken(partner)} name={partner.name} cookieDays={program!.cookieDays} />;
   // Partners sign up with Discord only: it's their login, and how the team reaches them.
   const [discord, sp] = await Promise.all([me ? getLinkedAccounts(me.id).then((l) => l.discord) : null, searchParams]);
   const notice = NOTICES[param(sp.linked) ?? param(sp.error) ?? ""];
@@ -128,9 +128,10 @@ function DiscordButton({ href, children }: { href: string; children: ReactNode }
   );
 }
 
-async function Dashboard({ partnerId, code, name, cookieDays }: { partnerId: number; code: string; name: string; cookieDays: number }) {
+async function Dashboard({ partnerId, code, token, name, cookieDays }: { partnerId: number; code: string; token: string; name: string; cookieDays: number }) {
   const [stats, balance, recent, terms] = await Promise.all([partnerStats(partnerId), partnerBalance(partnerId), partnerCommissions(partnerId, 6), generalTermsFor({ level: "partner", id: partnerId })]);
-  const link = `${site.url}/?ref=${code}`;
+  // The link carries random text, not the code: nothing in it says who the partner is.
+  const link = `${site.url}/?ref=${token}`;
   // The discount they chose for their customers, within the limit the team set.
   const limit = terms.now.maxDiscount;
   const discount = Math.min(terms.discount ?? limit, limit);
@@ -159,7 +160,13 @@ async function Dashboard({ partnerId, code, name, cookieDays }: { partnerId: num
                 <div className="mt-2">
                   <CopyText text={link} />
                 </div>
-                <p className="mt-1.5 text-xs text-dim">Add ?ref={code} to any product page link too. Visitors keep your prices for {cookieDays} days.</p>
+                <p className="mt-1.5 text-xs text-dim">
+                  The text after ref= is yours alone and doesn&apos;t show your name or code. Links to single products are under{" "}
+                  <Link href="/partners/products" className="underline underline-offset-2 hover:text-fg">
+                    Products
+                  </Link>
+                  . Visitors keep your prices for {cookieDays} days.
+                </p>
               </div>
               <div>
                 <p className="type-kicker text-dim">Your code</p>
@@ -167,6 +174,7 @@ async function Dashboard({ partnerId, code, name, cookieDays }: { partnerId: num
                   <CopyText text={code} />
                 </div>
                 <p className="mt-1.5 text-xs text-dim">Customers can type it at checkout instead of using your link.</p>
+                <CodeForm />
               </div>
               {limit > 0 && (
                 <p className="rounded-xl border border-line px-4 py-3 text-sm text-muted">

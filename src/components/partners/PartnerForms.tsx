@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState, useTransition, type FormEvent } from "react";
 import { Check, Copy, Loader2 } from "lucide-react";
-import { applyAsPartner, requestPartnerPayout, savePayoutEmail, type PartnerFormState } from "@/actions/partner";
+import { applyAsPartner, requestPartnerPayout, savePartnerCode, savePayoutEmail, type PartnerFormState } from "@/actions/partner";
 import { Field, Status, Submit } from "@/components/account/AccountForms";
 import { cn } from "@/lib/utils";
 
@@ -74,6 +74,36 @@ export function PayoutEmailForm({ email }: { email: string | null }) {
         </Submit>
       </div>
     </form>
+  );
+}
+
+/** Swap the code for one the partner picks. Folded away: most keep the code they have. */
+export function CodeForm() {
+  const { state, pending, onSubmit } = usePartnerForm(savePartnerCode);
+  return (
+    <details className="mt-3">
+      <summary className="cursor-pointer text-sm text-muted underline underline-offset-4 hover:text-fg">Choose your own code</summary>
+      <form onSubmit={onSubmit} noValidate className="mt-3 grid gap-3">
+        <Field
+          label="New code"
+          name="code"
+          maxLength={32}
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+          style={{ textTransform: "uppercase" }}
+          error={state?.fieldErrors?.code}
+          hint="3 to 32 letters, numbers, - or _. The code you have now stops working once you save."
+          required
+        />
+        <div className="flex items-center justify-between gap-3">
+          <Status state={state} />
+          <Submit pending={pending} className="ml-auto h-10 px-5 text-[11px]">
+            Save
+          </Submit>
+        </div>
+      </form>
+    </details>
   );
 }
 
